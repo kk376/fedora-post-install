@@ -1137,18 +1137,37 @@ setup_fonts() {
 setup_gnome() {
     log "Installing GNOME tools..."
     run_sudo dnf install -y gnome-tweaks
-    run flatpak install -y flathub com.mattjakeman.ExtensionManager 2>/dev/null || true
+    if ! $DRY_RUN; then
+        mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
+        cat << 'GTK_CSS' > "$HOME/.config/gtk-3.0/gtk.css"
+/* Transparent Headerbar / Titlebar for libdecor & CSD Windows */
+window.libdecor-frame,
+window.libdecor-frame headerbar,
+headerbar.default-decoration,
+headerbar.titlebar,
+.titlebar,
+headerbar {
+    background: transparent;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
 
-    info "Recommended GNOME Extensions (install via Extension Manager):"
-    info "  • Blur My Shell"
-    info "  • Clipboard Indicator"
-    info "  • Dash to Dock / Dash2Dock Animated"
-    info "  • Coverflow Alt+Tab"
-    info "  • GSConnect"
-    info "  • Net Speed"
-    info "  • Space Bar"
-    info "  • User Themes"
-    info "  Note: Some extensions (Compiz effects) may not work on GNOME 45+"
+headerbar button.titlebutton {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+    margin: 4px 2px;
+}
+
+headerbar button.titlebutton:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+GTK_CSS
+        cp "$HOME/.config/gtk-3.0/gtk.css" "$HOME/.config/gtk-4.0/gtk.css"
+        success "Transparent headerbar CSS deployed for GTK3/GTK4"
+    else
+        dry "Deploy transparent titlebar CSS to ~/.config/gtk-3.0/gtk.css and ~/.config/gtk-4.0/gtk.css"
+    fi
 
     step_complete "GNOME tools installed"
 }
