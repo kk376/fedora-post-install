@@ -796,8 +796,9 @@ background_opacity         0.88
 background_blur            32
 dynamic_background_opacity yes
 window_padding_width       14 16
-hide_window_decorations    yes
+hide_window_decorations    no
 wayland_titlebar_color     background
+linux_display_server       wayland
 confirm_os_window_close    0
 
 # --- Cursor Customization ---
