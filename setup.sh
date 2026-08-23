@@ -778,8 +778,71 @@ alias cat='bat --paging=never --style=plain'
 eval "$(starship init bash)"
 BASHRC_STARSHIP
         fi
+
+        # Deploy Kitty terminal configuration (Tokyo Night, FiraCode ligatures, translucency)
+        mkdir -p "$HOME/.config/kitty"
+        backup_file "$HOME/.config/kitty/kitty.conf"
+        cat > "$HOME/.config/kitty/kitty.conf" <<'KITTY_CONF'
+# --- Typography & Font Ligatures ---
+font_family      FiraCode Nerd Font
+bold_font        auto
+italic_font      auto
+bold_italic_font auto
+font_size        13.5
+disable_ligatures never
+
+# --- Translucency & Styling ---
+background_opacity         0.88
+background_blur            32
+dynamic_background_opacity yes
+window_padding_width       14 16
+confirm_os_window_close    0
+
+# --- Cursor & Tab Bar ---
+cursor_shape            beam
+cursor_beam_thickness   1.8
+cursor_blink_interval   0.5
+tab_bar_edge            bottom
+tab_bar_style           powerline
+tab_powerline_style     slanted
+
+# --- Audio & Shell ---
+enable_audio_bell no
+shell zsh
+
+# --- Tokyo Night Color Scheme ---
+background #1a1b26
+foreground #c0caf5
+selection_background #33467c
+selection_foreground #c0caf5
+url_color #73daca
+cursor #c0caf5
+cursor_text_color #1a1b26
+
+active_tab_background #7aa2f7
+active_tab_foreground #16161e
+inactive_tab_background #24283b
+inactive_tab_foreground #787c99
+
+color0 #15161e
+color1 #f7768e
+color2 #9ece6a
+color3 #e0af68
+color4 #7aa2f7
+color5 #bb9af7
+color6 #7dcfff
+color7 #a9b1d6
+color8 #414868
+color9 #f7768e
+color10 #9ece6a
+color11 #e0af68
+color12 #7aa2f7
+color13 #bb9af7
+color14 #7dcfff
+color15 #c0caf5
+KITTY_CONF
     else
-        dry "Install Starship, clone plugins, deploy starship.toml, .zshrc, and .bashrc"
+        dry "Install Starship, clone plugins, deploy starship.toml, kitty.conf, .zshrc, and .bashrc"
     fi
 
     confirm "Set ZSH as default shell?" "Y" && run chsh -s "$(command -v zsh)"
@@ -1065,8 +1128,8 @@ setup_packages() {
     log "Installing essential packages..."
 
     local pkgs_to_install=(
-        gcc clang fastfetch make cmake perl wmctrl cargo maven bat eza \
-        fd-find ripgrep fzf zoxide \
+        gcc clang fastfetch make cmake perl wmctrl cargo maven bat eza kitty \
+        fd-find ripgrep fzf zoxide python-unversioned-command \
         java-latest-openjdk java-latest-openjdk-devel nodejs python3 python3-pip wget htop unzip unrar \
         p7zip p7zip-plugins ntfs-3g gparted timeshift vlc \
         telegram-desktop vim neovim gh android-tools libva-utils gstreamer1-plugin-openh264
@@ -1197,14 +1260,79 @@ setup_dev() {
         run_sudo corepack enable 2>/dev/null || true
     fi
 
-    log "Installing Google Antigravity CLI..."
+    log "Configuring Python symlinks and VS Codium environment..."
     if ! $DRY_RUN; then
-        if ! command -v agy &>/dev/null; then
-            curl -fsSL https://antigravity.google/cli/install.sh | bash 2>/dev/null || \
-            warn "Antigravity CLI install failed - try manually: curl -fsSL https://antigravity.google/cli/install.sh | bash"
-        fi
+        mkdir -p "$HOME/.local/bin"
+        ln -sf "$(command -v python3 || echo /usr/bin/python3)" "$HOME/.local/bin/python" 2>/dev/null || true
+        ln -sf "$(command -v python3 || echo /usr/bin/python3)" "$HOME/.local/bin/python3" 2>/dev/null || true
+
+        # Deploy VSCodium / VS Code User settings for ligatures, Code Runner terminal execution & Python paths
+        for conf_dir in "$HOME/.config/VSCodium/User" "$HOME/.config/Code/User"; do
+            if [[ -d "${conf_dir%/*}" ]] || [[ "$conf_dir" == *"VSCodium"* ]]; then
+                mkdir -p "$conf_dir"
+                backup_file "$conf_dir/settings.json"
+                cat > "$conf_dir/settings.json" <<'VSCODE_SETTINGS'
+{
+    "workbench.iconTheme": "vscode-icons",
+    "python.defaultInterpreterPath": "/usr/bin/python3",
+    "python.autoSelectWorkspace": true,
+    "python.locator": "js",
+    "python-envs.globalSearchPaths": [
+        "/usr/bin",
+        "/usr/local/bin",
+        "/home/kk376/.local/bin"
+    ],
+    "python.venvFolders": [
+        "envs",
+        ".envs",
+        ".venv",
+        "env",
+        "venv"
+    ],
+    "python.analysis.autoSearchPaths": true,
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "editor.fontFamily": "'FiraCode Nerd Font', 'Fira Code', monospace",
+    "editor.fontLigatures": true,
+    "editor.fontSize": 14,
+    "terminal.integrated.fontFamily": "'FiraCode Nerd Font', 'Fira Code', monospace",
+    "terminal.integrated.fontSize": 14,
+    "terminal.integrated.fontLigatures.enabled": true,
+    "terminal.integrated.gpuAcceleration": "on",
+    "terminal.external.linuxExec": "/home/kk376/.local/bin/kitty",
+    "terminal.integrated.defaultProfile.linux": "zsh",
+    "terminal.integrated.profiles.linux": {
+        "zsh": {
+            "path": "/usr/bin/zsh",
+            "icon": "terminal"
+        },
+        "bash": {
+            "path": "/usr/bin/bash",
+            "icon": "terminal-bash"
+        }
+    },
+    "code-runner.runInTerminal": true,
+    "code-runner.clearPreviousOutput": true,
+    "code-runner.saveFileBeforeRun": true,
+    "code-runner.saveAllFilesBeforeRun": false,
+    "code-runner.ignoreSelection": true,
+    "code-runner.executorMap": {
+        "python": "python3 -u",
+        "c": "cd $dir && gcc -Wall -O2 $fileName -o $fileNameWithoutExt && $dir$fileNameWithoutExt",
+        "cpp": "cd $dir && g++ -Wall -O2 -std=c++20 $fileName -o $fileNameWithoutExt && $dir$fileNameWithoutExt",
+        "rust": "cd $dir && cargo run 2>/dev/null || (rustc $fileName && $dir$fileNameWithoutExt)",
+        "javascript": "node",
+        "typescript": "ts-node",
+        "shellscript": "bash",
+        "go": "go run"
+    }
+}
+VSCODE_SETTINGS
+            fi
+        done
+        success "Python environment & IDE settings configured"
     else
-        dry "Install Antigravity CLI (agy) via official installer"
+        dry "Create python symlinks in ~/.local/bin and deploy VSCodium/VS Code settings.json"
     fi
 
     step_complete "Dev tools installed"
