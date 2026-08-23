@@ -354,13 +354,15 @@ setup_dnf() {
         run_sudo sed -i '/^# BEGIN fedora-setup$/,/^# END fedora-setup$/d' /etc/dnf/dnf.conf
 
         # max_parallel_downloads=10 saturates broadband pipes during massive multi-package transactions
+        # defaultyes=True sets [Y/n] as default confirmation for package transactions
         run_sudo tee -a /etc/dnf/dnf.conf > /dev/null <<EOF
 # BEGIN fedora-setup
 max_parallel_downloads=10
+defaultyes=True
 # END fedora-setup
 EOF
     else
-        dry "Add max_parallel_downloads=10 block to dnf.conf (idempotent)"
+        dry "Add max_parallel_downloads=10 and defaultyes=True block to dnf.conf (idempotent)"
     fi
 
     log "Enabling RPM Fusion & Flathub (atomic operation)..."
