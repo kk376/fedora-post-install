@@ -784,7 +784,7 @@ BASHRC_STARSHIP
         backup_file "$HOME/.config/kitty/kitty.conf"
         cat > "$HOME/.config/kitty/kitty.conf" <<'KITTY_CONF'
 # --- Typography & Font Ligatures ---
-font_family      FiraCode Nerd Font
+font_family      Fira Code
 bold_font        auto
 italic_font      auto
 bold_italic_font auto
@@ -798,12 +798,22 @@ dynamic_background_opacity yes
 window_padding_width       14 16
 confirm_os_window_close    0
 
-# --- Tab Bar Aesthetics (Always visible at TOP like browser/terminal tabs) ---
-tab_bar_edge        top
+# --- Cursor Customization ---
+cursor_shape          beam
+cursor_beam_thickness 1.8
+cursor_blink_interval 0.5
+
+# Right-click pastes from clipboard
+mouse_map right press ungrabbed paste_from_clipboard
+
+# --- Tab Bar (Hidden on single tab, seamless dark integration when 2+ tabs) ---
+tab_bar_edge        bottom
 tab_bar_style       powerline
 tab_powerline_style slanted
-tab_bar_min_tabs    1
+tab_bar_min_tabs    2
+tab_bar_background  #1a1b26
 tab_title_template  " {index}: {title} "
+
 active_tab_font_style   bold
 inactive_tab_font_style normal
 
