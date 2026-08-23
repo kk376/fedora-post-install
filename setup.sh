@@ -538,8 +538,8 @@ setup_shell() {
     if ! $DRY_RUN; then
         mkdir -p "$HOME/.zsh/plugins" "$HOME/.config"
 
-        [[ ! -d "$HOME/.zsh/plugins/zsh-autosuggestions" ]] && run git clone https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/plugins/zsh-autosuggestions" 2>/dev/null || true
-        [[ ! -d "$HOME/.zsh/plugins/zsh-syntax-highlighting" ]] && run git clone https://github.com/zsh-users/zsh-syntax-highlighting "$HOME/.zsh/plugins/zsh-syntax-highlighting" 2>/dev/null || true
+        [[ ! -d "$HOME/.zsh/plugins/zsh-autosuggestions" ]] && run git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/plugins/zsh-autosuggestions" 2>/dev/null || true
+        [[ ! -d "$HOME/.zsh/plugins/zsh-syntax-highlighting" ]] && run git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting "$HOME/.zsh/plugins/zsh-syntax-highlighting" 2>/dev/null || true
 
         backup_file "$HOME/.config/starship.toml"
         cat > "$HOME/.config/starship.toml" <<'STARSHIP_CONFIG'
@@ -567,22 +567,22 @@ style = "bold blue"
 format = "[$symbol]($style) "
 
 [os.symbols]
-Windows = ""
-Ubuntu = "󰕈"
-SUSE = ""
-Raspbian = "󰐿"
-Mint = "󰣭"
-Macos = "󰀵"
-Manjaro = ""
-Linux = "󰌽"
-Gentoo = "󰣨"
-Fedora = "󰣛"
-Alpine = ""
-Amazon = ""
-Android = ""
-Arch = "󰣇"
-Debian = "󰣚"
-Redhat = "󱄛"
+Windows = " "
+Ubuntu = " "
+SUSE = " "
+Raspbian = " "
+Mint = "󰣭 "
+Macos = " "
+Manjaro = " "
+Linux = "󰌽 "
+Gentoo = "󰣨 "
+Fedora = " "
+Alpine = " "
+Amazon = " "
+Android = " "
+Arch = "󰣇 "
+Debian = " "
+Redhat = "󱄛 "
 
 [username]
 show_always = false
@@ -597,11 +597,11 @@ truncation_length = 0
 truncate_to_repo = false
 
 [directory.substitutions]
-"Documents" = "󰈙 "
-"Downloads" = " "
-"Music" = "󰝚 "
-"Pictures" = " "
-"Developer" = "󰲋 "
+"Documents" = "󰈙 Documents"
+"Downloads" = " Downloads"
+"Music" = "󰝚 Music"
+"Pictures" = " Pictures"
+"Developer" = "󰲋 Developer"
 
 [git_branch]
 symbol = " "
@@ -707,29 +707,17 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#8a8a8a"
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
 
-# ===== Antigravity IDE (WSL Remote) =====
+# ===== Native Launchers =====
 anti() {
-  if [[ -z "$WSL_DISTRO_NAME" ]]; then
-    echo "❌ anti: This command must be run inside WSL"
-    return 1
+  if command -v antigravity &>/dev/null; then
+    antigravity "${1:-.}" &>/dev/null &
+    disown
+  elif [[ -f "$HOME/.local/bin/anti" ]]; then
+    "$HOME/.local/bin/anti" "${1:-.}" &>/dev/null &
+    disown
+  else
+    echo "Antigravity not found in PATH"
   fi
-
-  local WIN_USER
-  WIN_USER=$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r')
-
-  local IDE_EXE="/mnt/c/Users/$WIN_USER/AppData/Local/Programs/Antigravity IDE/Antigravity IDE.exe"
-
-  if [[ ! -f "$IDE_EXE" ]]; then
-    echo "❌ Antigravity IDE not found at:"
-    echo "   $IDE_EXE"
-    return 1
-  fi
-
-  local LINUX_PATH
-  LINUX_PATH="$(realpath "${1:-.}")"
-
-  "$IDE_EXE" --remote "wsl+$WSL_DISTRO_NAME" "$LINUX_PATH" &>/dev/null &
-  disown
 }
 
 # ===== Environment & PATH =====
@@ -777,8 +765,19 @@ alias cat='bat --paging=never --style=plain'
 eval "$(starship init zsh)"
 ZSHRC_NORMAL
         fi
+
+        # Also ensure ~/.bashrc has Starship and aliases for non-Zsh sessions
+        if ! grep -q "starship init bash" "$HOME/.bashrc" 2>/dev/null; then
+            cat >> "$HOME/.bashrc" << 'BASHRC_STARSHIP'
+
+# ===== Starship & Aliases =====
+alias ls='eza --group-directories-first --classify --icons --git'
+alias cat='bat --paging=never --style=plain'
+eval "$(starship init bash)"
+BASHRC_STARSHIP
+        fi
     else
-        dry "Install Starship, clone plugins, deploy starship.toml and .zshrc"
+        dry "Install Starship, clone plugins, deploy starship.toml, .zshrc, and .bashrc"
     fi
 
     confirm "Set ZSH as default shell?" "Y" && run chsh -s "$(command -v zsh)"
@@ -1019,9 +1018,17 @@ setup_fonts() {
             info "Manual download: https://github.com/ryanoasis/nerd-fonts/releases"
         fi
         fc-cache -fv
+
+        if command -v gsettings &>/dev/null; then
+            log "Configuring FiraCode Nerd Font as default monospace & terminal font..."
+            run gsettings set org.gnome.desktop.interface monospace-font-name 'FiraCode Nerd Font 11' 2>/dev/null || true
+            run gsettings set org.gnome.Ptyxis font-name 'FiraCode Nerd Font 12' 2>/dev/null || true
+            run gsettings set org.gnome.Ptyxis use-system-font false 2>/dev/null || true
+        fi
     else
         dry "Download and install FiraCode Nerd Font"
         dry "fc-cache -fv"
+        dry "Configure FiraCode Nerd Font in GNOME desktop and Ptyxis terminal"
     fi
 
     step_complete "Fonts installed"

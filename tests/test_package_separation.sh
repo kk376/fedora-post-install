@@ -495,7 +495,7 @@ echo ""
 echo -e "${BLUE}--- Suite 7: Dry-Run Safety ---${NC}"
 
 # Test that dry-run for gaming prints expected dry messages and does not modify filesystem
-dry_output=$(bash "$SETUP_SCRIPT" --dry-run --profile=gaming <<< "N" 2>&1)
+dry_output=$(bash "$SETUP_SCRIPT" --dry-run -f --profile=gaming 2>&1)
 
 if echo "$dry_output" | grep -q "Unlock Steam H264 codec"; then
     pass "Dry-run gaming profile logs Steam H264 unlock action"
@@ -515,7 +515,7 @@ else
     fail "Dry-run gaming profile missing Vesktop download log"
 fi
 
-dry_dev_output=$(bash "$SETUP_SCRIPT" --dry-run --profile=dev <<< "N" 2>&1)
+dry_dev_output=$(bash "$SETUP_SCRIPT" --dry-run -f --profile=dev 2>&1)
 if ! echo "$dry_dev_output" | grep -q "Unlock Steam H264 codec" && \
    ! echo "$dry_dev_output" | grep -q "Create MangoHud.conf"; then
     pass "Dry-run dev profile does NOT log Steam H264 unlock or MangoHud config"
