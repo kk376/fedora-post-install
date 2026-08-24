@@ -801,13 +801,15 @@ wayland_titlebar_color     background
 linux_display_server       wayland
 confirm_os_window_close    0
 
-# --- Cursor Customization ---
+# --- Cursor & Mouse Customization ---
 cursor_shape          beam
 cursor_beam_thickness 1.8
 cursor_blink_interval 0.5
+scrollback_lines      10000
+copy_on_select        no
 
-# Right-click pastes from clipboard
-mouse_map right press ungrabbed paste_from_clipboard
+# Smart Right-Click: Copies selected text if selection exists; Pastes if no selection
+mouse_map right press ungrabbed kitten copy_or_paste.py
 
 # --- Tab Bar (Hidden on single tab, seamless dark integration when 2+ tabs) ---
 tab_bar_edge        bottom
@@ -873,8 +875,26 @@ color13 #bb9af7
 color14 #7dcfff
 color15 #c0caf5
 KITTY_CONF
+
+        cat > "$HOME/.config/kitty/copy_or_paste.py" <<'KITTEN_PY'
+from typing import List
+from kitty.boss import Boss
+
+def main(args: List[str]) -> str:
+    return ""
+
+def handle_result(args: List[str], answer: str, target_window_id: int, boss: Boss) -> None:
+    w = boss.window_id_map.get(target_window_id)
+    if w is None:
+        return
+    if w.has_selection():
+        w.copy_to_clipboard()
+        w.clear_selection()
+    else:
+        w.paste_from_clipboard()
+KITTEN_PY
     else
-        dry "Install Starship, clone plugins, deploy starship.toml, kitty.conf, .zshrc, and .bashrc"
+        dry "Install Starship, clone plugins, deploy starship.toml, kitty.conf, copy_or_paste.py, .zshrc, and .bashrc"
     fi
 
     confirm "Set ZSH as default shell?" "Y" && run chsh -s "$(command -v zsh)"
