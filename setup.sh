@@ -788,12 +788,12 @@ font_family      Fira Code
 bold_font        auto
 italic_font      auto
 bold_italic_font auto
-font_size        13.5
+font_size        13
 disable_ligatures never
 
 # --- Translucency & Styling ---
-background_opacity         0.88
-background_blur            32
+background_opacity         0.90
+background_blur            50
 dynamic_background_opacity yes
 window_padding_width       14 16
 hide_window_decorations    no
