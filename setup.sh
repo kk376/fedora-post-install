@@ -992,8 +992,8 @@ setup_drivers() {
     if [[ -n "$GPU_NVIDIA" ]]; then
         log "NVIDIA GPU Detected."
 
-        # Install akmod tooling and MOK enrollment utility for Secure Boot module signing
-        run_sudo dnf install -y kmodtool akmods mokutil openssl nvtop akmod-nvidia xorg-x11-drv-nvidia-cuda libva-nvidia-driver
+        # Install akmod tooling, NVIDIA drivers, CUDA, v4l2loopback for virtual cameras, and MOK utility
+        run_sudo dnf install -y kmodtool akmods mokutil openssl nvtop akmod-nvidia xorg-x11-drv-nvidia-cuda libva-nvidia-driver akmod-v4l2loopback v4l2loopback v4l-utils dkms
 
         # Force immediate akmod compilation for running kernel
         log "Building NVIDIA kernel modules (this may take a few minutes)..."
@@ -1209,7 +1209,7 @@ setup_packages() {
     fi
 
     if is_creator_profile; then
-        pkgs_to_install+=(obs-studio)
+        pkgs_to_install+=(obs-studio v4l-utils gtk4-devel libadwaita-devel gstreamer1-devel libayatana-appindicator-gtk3 pulseaudio-utils)
     fi
 
     run_sudo dnf install -y --skip-unavailable "${pkgs_to_install[@]}"
@@ -1304,9 +1304,23 @@ EOF
                 warn "Could not download Stirling-PDF RPM"
             fi
         fi
+
+        # NVIDIA Broadcast for Linux (AI Noise Removal, Virtual Camera, Room Echo Removal)
+        if is_creator_profile && lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' | grep -qi nvidia; then
+            if [[ ! -d "$HOME/nvidia-broadcast-linux" || ! -f "$HOME/.local/bin/nvbroadcast" ]]; then
+                log "Installing NVIDIA Broadcast for Linux..."
+                if [[ ! -d "$HOME/nvidia-broadcast-linux" ]]; then
+                    git clone https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$HOME/nvidia-broadcast-linux" || true
+                fi
+                if [[ -f "$HOME/nvidia-broadcast-linux/install.sh" ]]; then
+                    (cd "$HOME/nvidia-broadcast-linux" && ./install.sh --runtime cuda) || warn "NVIDIA Broadcast install finished with warnings"
+                fi
+            fi
+        fi
     else
         dry "Download and install Vesktop RPM from GitHub Releases"
         dry "Download and install Stirling-PDF from https://files.stirlingpdf.com/linux-installer.rpm"
+        dry "Clone and install NVIDIA Broadcast for Linux (NVIDIA GPU)"
     fi
 
     step_complete "Essential packages installed"

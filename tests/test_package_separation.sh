@@ -233,6 +233,8 @@ run_mock_setup_packages() {
         }
         rpm() { return 1; }
         curl() { return 0; }
+        git() { return 0; }
+        lspci() { return 0; }
         github_download() {
             touch "$3"
             return 0
@@ -461,6 +463,8 @@ test_mangohud_content() {
         command() { return 0; }
         rpm() { return 1; }
         curl() { return 0; }
+        git() { return 0; }
+        lspci() { return 0; }
         github_download() { touch "$3"; return 0; }
         sleep() { return 0; }
 
