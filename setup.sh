@@ -801,15 +801,13 @@ wayland_titlebar_color     background
 linux_display_server       wayland
 confirm_os_window_close    0
 
-# --- Cursor & Mouse Customization ---
+# --- Cursor Customization ---
 cursor_shape          beam
 cursor_beam_thickness 1.8
 cursor_blink_interval 0.5
-scrollback_lines      10000
-copy_on_select        yes
 
 # Right-click pastes from clipboard
-mouse_map right click ungrabbed paste_from_clipboard
+mouse_map right press ungrabbed paste_from_clipboard
 
 # --- Tab Bar (Hidden on single tab, seamless dark integration when 2+ tabs) ---
 tab_bar_edge        bottom
