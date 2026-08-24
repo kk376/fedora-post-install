@@ -239,8 +239,9 @@ run_mock_setup_packages() {
         }
         sleep() { command sleep 0.05; }
 
-        # Extract is_gaming_profile and setup_packages definitions from setup.sh
+        # Extract profile helpers and setup_packages definitions from setup.sh
         eval "$(sed -n "/is_gaming_profile() {/,/^}/p" "$setup_script")"
+        eval "$(sed -n "/is_creator_profile() {/,/^}/p" "$setup_script")"
         eval "$(sed -n "/setup_packages() {/,/^}/p" "$setup_script")"
 
         # Execute setup_packages
@@ -464,6 +465,7 @@ test_mangohud_content() {
         sleep() { return 0; }
 
         eval "$(sed -n "/is_gaming_profile() {/,/^}/p" "$setup_script")"
+        eval "$(sed -n "/is_creator_profile() {/,/^}/p" "$setup_script")"
         eval "$(sed -n "/setup_packages() {/,/^}/p" "$setup_script")"
         setup_packages
     ' _ "$sandbox" "$SETUP_SCRIPT"

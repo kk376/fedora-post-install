@@ -130,6 +130,10 @@ is_gaming_profile() {
     [[ "$PROFILE" == "gaming" || "$PROFILE" == "workstation" || "$PROFILE" == "creator" || "$PROFILE" == "full" ]]
 }
 
+is_creator_profile() {
+    [[ "$PROFILE" == "creator" || "$PROFILE" == "workstation" || "$PROFILE" == "full" ]]
+}
+
 is_dev_profile() {
     [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]
 }
@@ -1135,8 +1139,22 @@ setup_fonts() {
 # GNOME Tools
 # ==============================================================================
 setup_gnome() {
-    log "Installing GNOME tools..."
-    run_sudo dnf install -y gnome-tweaks
+    log "Installing GNOME tools and extensions..."
+    run_sudo dnf install -y gnome-tweaks gnome-shell-extension-gsconnect
+
+    # Enable firewall service for GSConnect / KDE Connect
+    if command -v firewall-cmd &>/dev/null; then
+        if ! $DRY_RUN; then
+            if systemctl is-active --quiet firewalld 2>/dev/null; then
+                run_sudo firewall-cmd --permanent --add-service=kdeconnect 2>/dev/null || true
+                run_sudo firewall-cmd --reload 2>/dev/null || true
+                success "Firewall service enabled for GSConnect / KDE Connect"
+            fi
+        else
+            dry "firewall-cmd --permanent --add-service=kdeconnect && firewall-cmd --reload"
+        fi
+    fi
+
     if ! $DRY_RUN; then
         mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
         cat << 'GTK_CSS' > "$HOME/.config/gtk-3.0/gtk.css"
@@ -1169,7 +1187,7 @@ GTK_CSS
         dry "Deploy transparent titlebar CSS to ~/.config/gtk-3.0/gtk.css and ~/.config/gtk-4.0/gtk.css"
     fi
 
-    step_complete "GNOME tools installed"
+    step_complete "GNOME tools and GSConnect configured"
 }
 
 # ==============================================================================
@@ -1182,12 +1200,16 @@ setup_packages() {
         gcc clang fastfetch make cmake perl wmctrl cargo maven bat eza kitty \
         fd-find ripgrep fzf zoxide python-unversioned-command \
         java-latest-openjdk java-latest-openjdk-devel nodejs python3 python3-pip wget htop unzip unrar \
-        p7zip p7zip-plugins ntfs-3g gparted timeshift vlc \
+        p7zip p7zip-plugins ntfs-3g gparted timeshift vlc qbittorrent \
         telegram-desktop vim neovim gh android-tools libva-utils gstreamer1-plugin-openh264
     )
 
     if is_gaming_profile; then
         pkgs_to_install+=(steam mangohud)
+    fi
+
+    if is_creator_profile; then
+        pkgs_to_install+=(obs-studio)
     fi
 
     run_sudo dnf install -y --skip-unavailable "${pkgs_to_install[@]}"
@@ -1264,8 +1286,27 @@ EOF
             warn "Failed to download Vesktop"
             info "Manual install: https://github.com/Vencord/Vesktop/releases"
         fi
+
+        # Stirling-PDF (Full-featured offline/desktop PDF tool suite)
+        if ! command -v stirling-pdf &>/dev/null && ! rpm -q stirling-pdf &>/dev/null; then
+            log "Installing Stirling-PDF..."
+            local stirling_rpm="/tmp/stirling-pdf.rpm"
+            local stirling_fallback="https://github.com/Stirling-Tools/Stirling-PDF/releases/latest/download/Stirling-PDF-linux-x86_64.rpm"
+            if curl -fsSL "https://files.stirlingpdf.com/linux-installer.rpm" -o "$stirling_rpm" 2>/dev/null || \
+               github_download "Stirling-Tools/Stirling-PDF" "Stirling-PDF-linux-.*\.rpm" "$stirling_rpm" "$stirling_fallback"; then
+                if run_sudo dnf install -y "$stirling_rpm" 2>/dev/null; then
+                    success "Stirling-PDF installed"
+                else
+                    warn "Stirling-PDF RPM install failed"
+                fi
+                run rm -f "$stirling_rpm"
+            else
+                warn "Could not download Stirling-PDF RPM"
+            fi
+        fi
     else
         dry "Download and install Vesktop RPM from GitHub Releases"
+        dry "Download and install Stirling-PDF from https://files.stirlingpdf.com/linux-installer.rpm"
     fi
 
     step_complete "Essential packages installed"
