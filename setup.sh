@@ -713,17 +713,6 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#8a8a8a"
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
 
-# ===== Native Launchers =====
-code() {
-  if command -v codium &>/dev/null; then
-    codium "${1:-.}" &>/dev/null &
-    disown
-  elif command -v code &>/dev/null; then
-    code "${1:-.}" &>/dev/null &
-    disown
-  fi
-}
-
 # ===== Environment & PATH =====
 export PATH="$HOME/.local/bin:$PATH"
 
