@@ -1441,6 +1441,36 @@ VSCODE_SETTINGS
         dry "Create python symlinks in ~/.local/bin and deploy VSCodium/VS Code settings.json"
     fi
 
+    # PostgreSQL 18 Server (PGDG Official Repository)
+    log "Installing PostgreSQL 18 Server..."
+    if ! $DRY_RUN; then
+        local fedora_ver
+        fedora_ver=$(rpm -E %fedora 2>/dev/null || echo "44")
+        local arch
+        arch=$(uname -m)
+        local pgdg_rpm="https://download.postgresql.org/pub/repos/yum/reporpms/F-${fedora_ver}-${arch}/pgdg-fedora-repo-latest.noarch.rpm"
+        if ! rpm -q pgdg-fedora-repo &>/dev/null; then
+            run_sudo dnf install -y --skip-unavailable "$pgdg_rpm" 2>/dev/null || true
+        fi
+        if run_sudo dnf install -y postgresql18-server postgresql18 postgresql18-libs; then
+            if [[ ! -f "/var/lib/pgsql/18/data/PG_VERSION" ]]; then
+                log "Initializing PostgreSQL 18 database cluster..."
+                run_sudo /usr/pgsql-18/bin/postgresql-18-setup initdb 2>/dev/null || true
+            fi
+            run_sudo systemctl enable --now postgresql-18 2>/dev/null || true
+            if [[ -d "/usr/pgsql-18/bin" ]]; then
+                run_sudo tee /etc/profile.d/pgsql18.sh > /dev/null <<'PG_PROFILE'
+export PATH="/usr/pgsql-18/bin:$PATH"
+PG_PROFILE
+            fi
+            success "PostgreSQL 18 installed, initialized, and enabled"
+        else
+            warn "PostgreSQL 18 installation failed"
+        fi
+    else
+        dry "Install pgdg-fedora-repo, postgresql18-server, run initdb, and enable postgresql-18.service"
+    fi
+
     step_complete "Dev tools installed"
 }
 
