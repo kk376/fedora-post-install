@@ -81,8 +81,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full history.
 - Some steps require a reboot (GPU drivers, Docker group, Secure Boot, KVM)
 - NVIDIA users: read the Secure Boot prompts carefully; follow the MOK enrollment steps when prompted and complete key enrollment on reboot
 - ZSH default shell change needs a logout/login
-- Docker and libvirt group changes need a reboot or re-login
-- The Antigravity repo is added with `gpgcheck=0` — this matches Google's own official Fedora/RHEL install instructions, which currently don't publish a signing key for the RPM repo (their APT/Debian instructions do). You're relying on HTTPS + Google's infrastructure for that package, not GPG signature verification. The script warns about this when the step runs; if that's not an acceptable trade-off for you, skip `setup_antigravity` and install manually once Google publishes a key.
+- The VSCodium repository is imported with official GPG key verification (`https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg`).
 
 ---
 

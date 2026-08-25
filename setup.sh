@@ -323,7 +323,7 @@ check_disk_space() {
 # Show installed versions
 show_versions() {
     log "Checking installed versions..."
-    local packages=("zsh" "brave-browser" "vesktop" "agy" "antigravity" "docker" "tlp" "steam" "ffmpeg")
+    local packages=("zsh" "brave-browser" "vesktop" "agy" "codium" "docker" "tlp" "steam" "ffmpeg")
     for pkg in "${packages[@]}"; do
         if rpm -q "$pkg" &>/dev/null; then
             echo "  ✅ $pkg: $(rpm -q --queryformat '%{VERSION}' "$pkg" 2>/dev/null)"
@@ -714,15 +714,13 @@ alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
 
 # ===== Native Launchers =====
-anti() {
-  if command -v antigravity &>/dev/null; then
-    antigravity "${1:-.}" &>/dev/null &
+code() {
+  if command -v codium &>/dev/null; then
+    codium "${1:-.}" &>/dev/null &
     disown
-  elif [[ -f "$HOME/.local/bin/anti" ]]; then
-    "$HOME/.local/bin/anti" "${1:-.}" &>/dev/null &
+  elif command -v code &>/dev/null; then
+    code "${1:-.}" &>/dev/null &
     disown
-  else
-    echo "Antigravity not found in PATH"
   fi
 }
 
@@ -1475,44 +1473,52 @@ PG_PROFILE
 }
 
 # ==============================================================================
-# Antigravity
+# VSCodium (Free/Libre Open Source Software Binaries of VS Code)
 # ==============================================================================
-setup_antigravity() {
-    log "Installing Antigravity..."
+setup_vscodium() {
+    log "Installing VSCodium..."
     if ! $DRY_RUN; then
-        run_sudo tee /etc/yum.repos.d/antigravity.repo > /dev/null <<'EOL'
-[antigravity-rpm]
-name=Antigravity RPM Repository
-baseurl=https://us-central1-yum.pkg.dev/projects/antigravity-auto-updater-dev/antigravity-rpm
+        run_sudo rpm --import https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg 2>/dev/null || true
+        run_sudo tee /etc/yum.repos.d/vscodium.repo > /dev/null <<'EOL'
+[gitlab.com_paulcarroty_vscodium_repo]
+name=gitlab.com_paulcarroty_vscodium_repo
+baseurl=https://paulcarroty.gitlab.io/vscodium-deb-rpm-repo/rpms/
 enabled=1
-gpgcheck=0
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg
+metadata_expire=1h
 EOL
         if run_sudo dnf makecache; then
-            run_sudo dnf install -y antigravity || warn "Failed to install Antigravity"
+            run_sudo dnf install -y codium || warn "Failed to install VSCodium"
         else
-            warn "Failed to refresh Antigravity repo metadata"
+            warn "Failed to refresh VSCodium repo metadata"
         fi
 
-        log "Creating Antigravity settings..."
-        mkdir -p "$HOME/.config/Antigravity/User"
-        cat > "$HOME/.config/Antigravity/User/settings.json" <<'SETTINGS'
+        log "Creating VSCodium settings..."
+        mkdir -p "$HOME/.config/VSCodium/User"
+        backup_file "$HOME/.config/VSCodium/User/settings.json"
+        cat > "$HOME/.config/VSCodium/User/settings.json" <<'SETTINGS'
 {
-    "editor.fontFamily": "FiraCode Nerd Font, monospace",
+    "editor.fontFamily": "'FiraCode Nerd Font', 'Fira Code', monospace",
     "editor.fontWeight": "600",
     "editor.fontLigatures": true,
     "editor.fontSize": 14,
     "editor.lineHeight": 1.6,
-    "terminal.integrated.fontFamily": "FiraCode Nerd Font",
+    "terminal.integrated.fontFamily": "'FiraCode Nerd Font', monospace",
     "terminal.integrated.fontWeight": "600",
+    "terminal.integrated.fontSize": 14,
     "terminal.integrated.lineHeight": 1.2,
-    "files.autoSave": "afterDelay"
+    "terminal.integrated.defaultProfile.linux": "zsh",
+    "files.autoSave": "afterDelay",
+    "workbench.iconTheme": "vscode-icons"
 }
 SETTINGS
-        success "Antigravity settings created"
+        success "VSCodium settings created"
     else
-        dry "Add Antigravity repo and create settings.json"
+        dry "Add VSCodium repo, install codium, and configure settings.json"
     fi
-    step_complete "Antigravity configured"
+    step_complete "VSCodium configured"
 }
 
 # ==============================================================================
@@ -1813,7 +1819,7 @@ main() {
         "setup_gnome:GNOME Tools"
         "setup_packages:Essential Packages"
         "setup_dev:Development Tools"
-        "setup_antigravity:Antigravity"
+        "setup_vscodium:VSCodium"
         "setup_flatpaks:Flatpak Apps"
         "setup_docker:Docker Setup"
         "setup_kvm:KVM/QEMU Virtualization"
@@ -1824,7 +1830,7 @@ main() {
     # Step matrices mapping profiles to required setup functions
     local -A PROFILE_STEPS
     PROFILE_STEPS[minimal]="setup_dnf setup_dns setup_fonts setup_shell setup_browser_multimedia setup_pre_driver_reboot setup_drivers"
-    PROFILE_STEPS[dev]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_dev setup_antigravity setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
+    PROFILE_STEPS[dev]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_dev setup_vscodium setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[gaming]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[workstation]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_kvm setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[creator]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_copr setup_gnome setup_packages setup_flatpaks setup_kvm setup_pre_driver_reboot setup_drivers"
