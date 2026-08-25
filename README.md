@@ -160,6 +160,14 @@ sudo usermod -aG libvirt $USER
 **NVIDIA drivers not loading?**
 Complete MOK enrollment on reboot (the blue "MOK Manager" screen).
 
+**Bluetooth earbuds/headset sound degraded or tinny?**
+When an application (Chrome, Discord, OBS) accesses the microphone, PipeWire switches Bluetooth devices from **A2DP Stereo (AAC / SBC-XQ)** to **HFP/HSP Handsfree (16kHz mono)**.
+*Fix:* Open **GNOME Settings ➔ Sound**, set **Input Device** to your laptop's **Internal Microphone** (not the Bluetooth headset), then disconnect and reconnect Bluetooth.
+
+**Chrome / Chromium video playback showing vertical split line on YouTube?**
+On Linux/Wayland with hybrid AMD/Mesa graphics, Chromium's hardware video decoder can render a 1px seam across viewport tiles.
+*Fix:* In Google Chrome, go to `chrome://settings/system` ➔ Toggle **"Use graphics acceleration when available"** to **OFF** ➔ Relaunch. (Ryzen/Intel multi-core CPU handles 4K/1080p software decode with <3% CPU).
+
 ---
 
 ## Getting Started

@@ -890,6 +890,26 @@ setup_browser_multimedia() {
     run_sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
     run_sudo dnf group upgrade -y multimedia --setopt=install_weak_deps=False --exclude=PackageKit-gstreamer-plugin
     run_sudo dnf group upgrade -y sound-and-video
+
+    # WirePlumber Bluetooth High-Definition Audio (prioritize AAC, SBC-XQ, LDAC)
+    log "Configuring WirePlumber Bluetooth audio optimization..."
+    if ! $DRY_RUN; then
+        mkdir -p "$HOME/.config/wireplumber/wireplumber.conf.d"
+        cat > "$HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf" <<'BLUEZ_CONF'
+monitor.bluez.properties = {
+  bluez5.roles = [ a2dp_sink a2dp_source bap_sink bap_source hfp_hf hfp_ag hsp_hs hsp_ag ]
+  bluez5.codecs = [ ldac aac aptx_hd aptx sbc_xq sbc ]
+  bluez5.enable-sbc-xq = true
+  bluez5.enable-msbc = true
+  bluez5.enable-hw-volume = true
+}
+BLUEZ_CONF
+        systemctl --user restart wireplumber 2>/dev/null || true
+        success "WirePlumber Bluetooth HD audio configured"
+    else
+        dry "Deploy WirePlumber 50-bluez.conf and restart wireplumber service"
+    fi
+
     step_complete "Browser & multimedia ready"
 }
 
