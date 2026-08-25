@@ -1458,6 +1458,22 @@ PG_PROFILE
         dry "Install pgdg-fedora-repo, postgresql18-server, run initdb, and enable postgresql-18.service"
     fi
 
+    # pgAdmin 4 (Official PostgreSQL Administration GUI)
+    log "Installing pgAdmin 4 Desktop..."
+    if ! $DRY_RUN; then
+        local pgadmin_repo_rpm="https://ftp.postgresql.org/pub/pgadmin/pgadmin4/yum/pgadmin4-fedora-repo-2-1.noarch.rpm"
+        if ! rpm -q pgadmin4-fedora-repo &>/dev/null; then
+            run_sudo dnf install -y --skip-unavailable "$pgadmin_repo_rpm" 2>/dev/null || true
+        fi
+        if run_sudo dnf install -y pgadmin4-desktop; then
+            success "pgAdmin 4 Desktop installed"
+        else
+            warn "pgAdmin 4 installation failed"
+        fi
+    else
+        dry "Install pgadmin4-fedora-repo and pgadmin4-desktop via dnf"
+    fi
+
     step_complete "Dev tools installed"
 }
 
