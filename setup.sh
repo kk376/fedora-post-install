@@ -1207,7 +1207,7 @@ setup_packages() {
         gcc clang fastfetch make cmake perl wmctrl cargo maven bat eza kitty \
         fd-find ripgrep fzf zoxide python-unversioned-command \
         java-latest-openjdk java-latest-openjdk-devel nodejs python3 python3-pip wget htop duf sassc unzip unrar \
-        p7zip p7zip-plugins ntfs-3g gparted timeshift vlc qbittorrent grim slurp wl-clipboard \
+        p7zip p7zip-plugins ntfs-3g gparted timeshift vlc qbittorrent wl-clipboard \
         telegram-desktop vim neovim gh android-tools libva-utils gstreamer1-plugin-openh264
     )
 
