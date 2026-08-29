@@ -10,3 +10,11 @@ squashfs-root/
 # Test artifacts & local configurations
 .test_env/
 .config/
+
+# Defensive Security: Secrets & Environment variables
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.secret
