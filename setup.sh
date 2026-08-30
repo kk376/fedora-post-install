@@ -712,6 +712,7 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#8a8a8a"
 # ===== Aliases =====
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
+alias less='bat --paging=always --pager="less -R"'
 
 # --- Git Shortcuts ---
 alias gs='git status -sb'
