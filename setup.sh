@@ -1343,7 +1343,7 @@ setup_dev() {
         meson ninja-build automake autoconf libtool pkg-config bear
         gdb valgrind strace ltrace clang-tools-extra
         bc bison flex gperf protobuf-compiler python3-protobuf libxml2 libxslt
-        ImageMagick git-lfs gnupg lzop lz4 pngcrush rsync schedtool squashfs-tools zip
+        ImageMagick git-lfs git-filter-repo gnupg lzop lz4 pngcrush rsync schedtool squashfs-tools zip
         python3-devel python3-virtualenv python3-wheel python3-setuptools
         openssl-devel zlib-devel elfutils-libelf-devel elfutils-devel gnutls-devel sdl12-compat-devel
         glibc-devel.i686 libstdc++-devel.i686 zlib-ng-compat-devel.i686 libX11-devel.i686 readline-devel.i686 ncurses-devel.i686

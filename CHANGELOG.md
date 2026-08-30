@@ -14,6 +14,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 - **PostgreSQL 18 & pgAdmin 4**: Added official PGDG RPM repository (`pgdg-fedora-repo`), automated `postgresql18-server` install, cluster `initdb`, systemd activation, environment PATH (`/etc/profile.d/pgsql18.sh`), and `pgadmin4-desktop` via official pgAdmin repository
 - **Kitty Terminal Suite**: Integrated Kitty terminal configuration with translucent dark glass aesthetics (font size 13, opacity 0.90, blur 50, top tab bar navigation)
 - **WirePlumber Bluetooth HD Audio**: Deployed configuration for high-resolution Bluetooth codecs (LDAC, AptX, AAC) with automatic profile switching
+- **Git History & Sanitization Tooling**: Added `git-filter-repo` to development package dependencies for history rewriting and repository sanitization
 - **Desktop & Creator Utilities**: Integrated Stirling-PDF offline utility suite, GSConnect firewall rules, and NVIDIA Broadcast AI noise reduction for creator setups
 
 ### Changed
