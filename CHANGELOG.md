@@ -15,7 +15,6 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 - **Kitty Terminal Suite**: Integrated Kitty terminal configuration with translucent dark glass aesthetics (font size 13, opacity 0.90, blur 50, top tab bar navigation)
 - **WirePlumber Bluetooth HD Audio**: Deployed configuration for high-resolution Bluetooth codecs (LDAC, AptX, AAC) with automatic profile switching
 - **Desktop & Creator Utilities**: Integrated Stirling-PDF offline utility suite, GSConnect firewall rules, and NVIDIA Broadcast AI noise reduction for creator setups
-- **Modern CLI Tools**: Added `duf`, `sassc`, `wl-clipboard`, `qbittorrent`, `ntfs-3g`, `gparted`, and `timeshift` to package installation
 
 ### Changed
 
