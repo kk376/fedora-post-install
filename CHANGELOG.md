@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v5.3.0] – 2026-08-30
+
+### Added
+
+- **Interactive Code Editor Selection (`setup_editor`)**: Multi-choice selection in `dev` and `full` profiles offering Zed (Recommended), VS Codium, Anti gravity IDE, VS Code (Not recommended), and an option to skip, complete with tailored configuration deployment
+- **Interactive Zed Runner (`~/.local/bin/zed-run`)**: Universal multi-language execution script (Python, Rust, C, C++, Go, JS, TS, Bash, Lua, HTML) featuring a `Ctrl+C` interrupt trap (`INT`/`TERM`) that smoothly drops to an interactive ZSH subshell
+- **Ruff Python Tooling**: Added `ruff` (extreme performance Python linter and formatter) directly to essential DNF development packages
+- **PostgreSQL 18 & pgAdmin 4**: Added official PGDG RPM repository (`pgdg-fedora-repo`), automated `postgresql18-server` install, cluster `initdb`, systemd activation, environment PATH (`/etc/profile.d/pgsql18.sh`), and `pgadmin4-desktop` via official pgAdmin repository
+- **Kitty Terminal Suite**: Integrated Kitty terminal configuration with translucent dark glass aesthetics (font size 13, opacity 0.90, blur 50, top tab bar navigation)
+- **WirePlumber Bluetooth HD Audio**: Deployed configuration for high-resolution Bluetooth codecs (LDAC, AptX, AAC) with automatic profile switching
+- **Desktop & Creator Utilities**: Integrated Stirling-PDF offline utility suite, GSConnect firewall rules, and NVIDIA Broadcast AI noise reduction for creator setups
+- **Modern CLI Tools**: Added `duf`, `sassc`, `wl-clipboard`, `qbittorrent`, `ntfs-3g`, `gparted`, and `timeshift` to package installation
+
+### Changed
+
+- Updated profile matrices (`dev` and `full`) and execution sequence to replace legacy editor steps with `setup_editor`
+- Configured DNF with `defaultyes=True` for streamlined package transactions
+- Standardized Zed installation on the official installer script (`https://zed.dev/install.sh`) without third-party repository dependencies
+
+### Security
+
+- Hardened `.gitignore` with defensive patterns against committing environment files (`.env*`), SSH/GPG keys, and secret credential bundles
+
+---
+
 ## [v5.2.0] – 2026-08-18
 
 ### Changed
@@ -16,8 +41,6 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ### Added
 
-- Interactive Code Editor selection (`setup_editor`) featuring 4 curated choices: Zed (Recommended, bundled with `zed-run` interactive subshell runner, task execution keymaps, and catppuccin theme), VS Codium (FLOSS VS Code build via PaulCarroty repo), Anti gravity IDE (Google AI development suite), and VS Code (Microsoft RPM repository), with full settings deployment and skip capability
-- Added `ruff` (fast Python linter and formatter) to standard DNF development packages in `setup_packages()`
 - Comprehensive Secure Boot and MOK enrollment guidance and disclaimer in `setup_drivers` detailing manual signing steps, `akmods` local key management, and UEFI firmware update handling
 - Custom developer `.zshrc` profile with WSL Antigravity IDE (`anti`) helper, NVM integration, and history optimizations
 

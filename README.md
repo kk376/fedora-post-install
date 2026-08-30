@@ -20,17 +20,15 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ---
 
-## What's New in v5.2.0
+## What's New in v5.3.0
 
 - **Code Editor Selection:** Added interactive editor setup (`setup_editor`) offering four tailored options: Zed (Recommended, with custom keymaps and interactive runner), VS Codium (FLOSS VS Code binary), Anti gravity IDE (Google AI development suite), and VS Code (proprietary Microsoft build), along with an option to skip.
-- **Ruff Python Tooling:** Added `ruff` directly to the essential DNF packages list for instant, high-performance linting and formatting.
-- **Starship Prompt:** Replaced Oh My Zsh and Powerlevel10k with Starship and standalone ZSH plugins (`zsh-autosuggestions`, `zsh-syntax-highlighting`), deploying a custom `~/.config/starship.toml` and clean `.zshrc`.
-- **DNS Brief & Prompts:** Added interactive DNS selection (`setup_dns`) with an informational brief across all profiles (Cloudflare default, Google, or skip).
-- **Safe GDM No-Sleep:** Implemented login screen power management via `/etc/dconf/db/gdm.d/01-power` and `dconf update` to eliminate D-Bus session and SELinux permission errors.
-- **Gaming & MangoHud Profile Filtering:** Restricted Steam and MangoHud installation and configuration (H.264 unlock, `MangoHud.conf`) to gaming-oriented profiles (`gaming`, `workstation`, `creator`, `full`).
-- **Driver Setup Uniformity:** Standardized all profiles to run the pre-driver reboot checkpoint and GPU driver setup at the end of their execution sequence.
-- **COPR & Warp Cleanup:** Removed obsolete `eza` COPR repo (available natively in Fedora) and removed Cloudflare Warp.
-- **Secure Boot & MOK Disclaimer:** Added detailed documentation and MOK enrollment guidance for NVIDIA kernel module signing.
+- **Interactive Zed Runner:** Deployed `~/.local/bin/zed-run` with `Ctrl+C` interrupt trapping, keeping an interactive shell open across Python, Rust, C/C++, Go, JS, TS, Bash, and Lua executions.
+- **Ruff Python Tooling:** Added `ruff` directly to the essential DNF packages list for instant, high-performance linting and formatting alongside standard Python symlinks.
+- **PostgreSQL 18 & pgAdmin 4:** Integrated official PostgreSQL PGDG and pgAdmin repositories, automated cluster `initdb`, systemd service enablement, and PATH configuration.
+- **Kitty Terminal Suite:** Deployed modern Kitty terminal configuration with dark glass transparency, blur, tab navigation, and matching GNOME window headerbars.
+- **Bluetooth HD Audio:** Added WirePlumber configuration for high-resolution Bluetooth codecs (LDAC, AptX, AAC) with automatic profile switching.
+- **Desktop & Creator Utilities:** Integrated Stirling-PDF offline utility suite, GSConnect firewall rules, and NVIDIA Broadcast AI noise reduction for creator setups.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 

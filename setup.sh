@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fedora 44 Post-Install Setup Script
 # Author: Kushagra Kumar
-# Version: 5.2.0
+# Version: 5.3.0
 
 set -euo pipefail
 
@@ -11,7 +11,7 @@ set -euo pipefail
 DRY_RUN=false
 BACKUP_DIR="$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log"
-SCRIPT_VERSION="5.2.0"
+SCRIPT_VERSION="5.3.0"
 PROFILE="full"
 FORCE_RERUN=false
 # State checkpoint tracking enables idempotent step skipping and seamless resumption across driver reboots.
