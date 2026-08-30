@@ -862,31 +862,10 @@ color11 #e0af68
 color12 #7aa2f7
 color13 #bb9af7
 color14 #7dcfff
+color15 #c0caf5
 KITTY_CONF
-
-        # Deploy custom Terminal launcher for Kitty (overrides default icon and name persistently)
-        mkdir -p "$HOME/.local/share/applications"
-        cat > "$HOME/.local/share/applications/kitty.desktop" <<'KITTY_DESKTOP'
-[Desktop Entry]
-Version=1.0
-Type=Application
-Name=Terminal
-GenericName=Terminal emulator
-Comment=Fast, feature-rich, GPU based terminal
-TryExec=kitty
-StartupNotify=true
-Exec=kitty
-Icon=org.gnome.Ptyxis
-Categories=System;TerminalEmulator;
-X-TerminalArgExec=--
-X-TerminalArgTitle=--title
-X-TerminalArgAppId=--class
-X-TerminalArgDir=--working-directory
-X-TerminalArgHold=--hold
-KITTY_DESKTOP
-        update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
     else
-        dry "Install Starship, clone plugins, deploy starship.toml, kitty.conf, kitty.desktop, .zshrc, and .bashrc"
+        dry "Install Starship, clone plugins, deploy starship.toml, kitty.conf, .zshrc, and .bashrc"
     fi
 
     confirm "Set ZSH as default shell?" "Y" && run chsh -s "$(command -v zsh)"
