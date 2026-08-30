@@ -1461,9 +1461,7 @@ setup_editor() {
             log "Installing and configuring Zed Editor (Recommended)..."
             if ! $DRY_RUN; then
                 if ! command -v zed &>/dev/null; then
-                    if rpm -q terra-release &>/dev/null && run_sudo dnf install -y zed 2>/dev/null; then
-                        success "Zed installed via Terra repository"
-                    elif curl -fsSL https://zed.dev/install.sh | bash 2>/dev/null; then
+                    if curl -fsSL https://zed.dev/install.sh | bash 2>/dev/null; then
                         success "Zed installed via official installer script"
                     else
                         warn "Zed installation failed - install manually from https://zed.dev"
@@ -1630,7 +1628,7 @@ ZED_RUN
                 chmod +x "$HOME/.local/bin/zed-run"
                 success "Zed Editor installed and configured"
             else
-                dry "Install Zed (Terra/official script) and deploy settings.json, keymap.json, tasks.json & zed-run"
+                dry "Install Zed via official installer script and deploy settings.json, keymap.json, tasks.json & zed-run"
             fi
             ;;
 
