@@ -1205,7 +1205,7 @@ setup_packages() {
 
     local pkgs_to_install=(
         gcc clang fastfetch make cmake perl wmctrl cargo maven bat eza kitty \
-        fd-find ripgrep fzf zoxide python-unversioned-command \
+        fd-find ripgrep fzf zoxide ruff python-unversioned-command \
         java-latest-openjdk java-latest-openjdk-devel nodejs python3 python3-pip wget htop duf sassc unzip unrar \
         p7zip p7zip-plugins ntfs-3g gparted timeshift vlc qbittorrent wl-clipboard \
         telegram-desktop vim neovim gh android-tools libva-utils gstreamer1-plugin-openh264
@@ -1443,9 +1443,167 @@ setup_dev() {
 VSCODE_SETTINGS
             fi
         done
-        success "Python environment & IDE settings configured"
+        # Deploy Zed Editor User settings, keymaps, tasks & zed-run script
+        mkdir -p "$HOME/.config/zed" "$HOME/.local/bin"
+        backup_file "$HOME/.config/zed/settings.json"
+        cat > "$HOME/.config/zed/settings.json" <<'ZED_SETTINGS'
+{
+  "agent": {
+    "sidebar_side": "right",
+    "favorite_models": [],
+    "model_parameters": []
+  },
+  "project_panel": {
+    "dock": "left"
+  },
+  "icon_theme": "Catppuccin Mocha",
+  "session": {
+    "trust_all_worktrees": true
+  },
+  "terminal": {
+    "font_size": 15.0,
+    "font_family": "FiraCode Nerd Font"
+  },
+  "minimap": {
+    "show": "always"
+  },
+  "autosave": {
+    "after_delay": {
+      "milliseconds": 1000
+    }
+  },
+  "buffer_font_fallbacks": [
+    "Fira Code",
+    "JetBrains Mono",
+    "monospace"
+  ],
+  "buffer_font_family": "FiraCode Nerd Font",
+  "base_keymap": "VSCode",
+  "ui_font_size": 16,
+  "buffer_font_size": 16.0,
+  "theme": {
+    "mode": "system",
+    "light": "Ayu Light",
+    "dark": "Catppuccin Mocha"
+  }
+}
+ZED_SETTINGS
+
+        backup_file "$HOME/.config/zed/keymap.json"
+        cat > "$HOME/.config/zed/keymap.json" <<'ZED_KEYMAP'
+[
+  {
+    "context": "Workspace",
+    "bindings": {
+      "ctrl-alt-n": ["task::Spawn", { "task_name": "Run current file" }],
+      "f5": ["task::Spawn", { "task_name": "Run current file" }],
+      "ctrl-f5": ["task::Rerun", { "reevaluate_context": true }]
+    }
+  },
+  {
+    "context": "Editor",
+    "bindings": {
+      "ctrl-alt-n": ["task::Spawn", { "task_name": "Run current file" }],
+      "f5": ["task::Spawn", { "task_name": "Run current file" }]
+    }
+  }
+]
+ZED_KEYMAP
+
+        backup_file "$HOME/.config/zed/tasks.json"
+        cat > "$HOME/.config/zed/tasks.json" <<'ZED_TASKS'
+[
+  {
+    "label": "Run current file",
+    "command": "zed-run",
+    "args": ["$ZED_FILE"],
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "hide": "always",
+    "show_summary": false,
+    "show_command": false
+  }
+]
+ZED_TASKS
+
+        cat > "$HOME/.local/bin/zed-run" <<'ZED_RUN'
+#!/usr/bin/env bash
+
+FILE="$1"
+if [ -z "$FILE" ]; then
+    echo "[Zed Runner] No file provided."
+    exec "${SHELL:-/bin/zsh}"
+fi
+
+EXT="${FILE##*.}"
+DIR="$(dirname "$FILE")"
+NAME="$(basename "$FILE")"
+BASE="${NAME%.*}"
+
+# Trap Ctrl+C (SIGINT) and SIGTERM so the runner drops into the shell instead of aborting
+drop_to_shell() {
+    echo ""
+    echo -e "\033[1;30m----------------------------------------\033[0m"
+    echo -e "\033[1;33m[Program interrupted (Ctrl+C). Interactive terminal active:]\033[0m"
+    exec "${SHELL:-/bin/zsh}"
+}
+
+trap drop_to_shell INT TERM
+
+echo -e "\033[1;34m==>\033[0m \033[1;32mRunning:\033[0m $NAME"
+cd "$DIR"
+
+case "$EXT" in
+    py)
+        python3 "$FILE"
+        ;;
+    rs)
+        if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ] || [ -f "../../Cargo.toml" ]; then
+            cargo run
+        else
+            rustc "$FILE" -o "/tmp/$BASE" && "/tmp/$BASE"
+        fi
+        ;;
+    c)
+        gcc -O2 "$FILE" -o "/tmp/$BASE" -lm && "/tmp/$BASE"
+        ;;
+    cpp|cc|cxx)
+        g++ -O2 "$FILE" -o "/tmp/$BASE" && "/tmp/$BASE"
+        ;;
+    go)
+        go run "$FILE"
+        ;;
+    js)
+        node "$FILE"
+        ;;
+    ts)
+        npx tsx "$FILE" 2>/dev/null || npx ts-node "$FILE"
+        ;;
+    sh|bash)
+        bash "$FILE"
+        ;;
+    lua)
+        lua "$FILE"
+        ;;
+    html)
+        xdg-open "$FILE"
+        ;;
+    *)
+        echo "[Zed Runner] Unsupported file type: .$EXT"
+        ;;
+esac
+
+echo ""
+echo -e "\033[1;30m----------------------------------------\033[0m"
+echo -e "\033[1;36m[Program finished. Interactive terminal active:]\033[0m"
+exec "${SHELL:-/bin/zsh}"
+ZED_RUN
+        chmod +x "$HOME/.local/bin/zed-run"
+
+        success "Python environment, VSCodium & Zed Editor configurations deployed"
     else
-        dry "Create python symlinks in ~/.local/bin and deploy VSCodium/VS Code settings.json"
+        dry "Create python symlinks in ~/.local/bin and deploy VSCodium & Zed Editor configs"
     fi
 
     # PostgreSQL 18 Server (PGDG Official Repository)
