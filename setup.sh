@@ -738,6 +738,13 @@ alias gstp='git stash pop'
 alias gundo='git reset --soft HEAD~1'
 
 # ===== Environment & PATH =====
+export EDITOR=nvim
+export PAGER=cat
+export SYSTEMD_PAGER=cat
+export MANPAGER=cat
+export BAT_PAGER=""
+export DELTA_PAGER=cat
+export LESS="-F -X -R"
 export PATH="$HOME/.local/bin:$PATH"
 
 # ===== NVM =====
@@ -802,6 +809,15 @@ alias gst='git stash'
 alias gstp='git stash pop'
 alias gundo='git reset --soft HEAD~1'
 
+# ===== Environment & PATH =====
+export PAGER=cat
+export SYSTEMD_PAGER=cat
+export MANPAGER=cat
+export BAT_PAGER=""
+export DELTA_PAGER=cat
+export LESS="-F -X -R"
+export PATH="$HOME/.local/bin:$PATH"
+
 # ===== Starship (ALWAYS LAST) =====
 eval "$(starship init zsh)"
 ZSHRC_NORMAL
@@ -811,7 +827,13 @@ ZSHRC_NORMAL
         if ! grep -q "starship init bash" "$HOME/.bashrc" 2>/dev/null; then
             cat >> "$HOME/.bashrc" << 'BASHRC_STARSHIP'
 
-# ===== Starship & Aliases =====
+# ===== Starship, Aliases & Pager Suppression =====
+export PAGER=cat
+export SYSTEMD_PAGER=cat
+export MANPAGER=cat
+export BAT_PAGER=""
+export DELTA_PAGER=cat
+export LESS="-F -X -R"
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
 eval "$(starship init bash)"
@@ -1429,6 +1451,19 @@ setup_dev() {
         success "Python symlinks configured in ~/.local/bin"
     else
         dry "Create python symlinks in ~/.local/bin"
+    fi
+
+    # Git global defaults (suppress pagers, auto-setup remote, pull rebase)
+    if command -v git &>/dev/null || $DRY_RUN; then
+        if ! $DRY_RUN; then
+            git config --global core.pager cat 2>/dev/null || true
+            git config --global push.autoSetupRemote true 2>/dev/null || true
+            git config --global pull.rebase true 2>/dev/null || true
+            git config --global diff.colorMoved zebra 2>/dev/null || true
+            success "Git global defaults configured (pager suppressed, auto remote tracking)"
+        else
+            dry "Configure git global defaults (core.pager cat, autoSetupRemote true, pull.rebase true)"
+        fi
     fi
 
     # PostgreSQL 18 Server (PGDG Official Repository)
