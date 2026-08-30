@@ -22,6 +22,8 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ## What's New in v5.2.0
 
+- **Code Editor Selection:** Added interactive editor setup (`setup_editor`) offering four tailored options: Zed (Recommended, with custom keymaps and interactive runner), VS Codium (FLOSS VS Code binary), Anti gravity IDE (Google AI development suite), and VS Code (proprietary Microsoft build), along with an option to skip.
+- **Ruff Python Tooling:** Added `ruff` directly to the essential DNF packages list for instant, high-performance linting and formatting.
 - **Starship Prompt:** Replaced Oh My Zsh and Powerlevel10k with Starship and standalone ZSH plugins (`zsh-autosuggestions`, `zsh-syntax-highlighting`), deploying a custom `~/.config/starship.toml` and clean `.zshrc`.
 - **DNS Brief & Prompts:** Added interactive DNS selection (`setup_dns`) with an informational brief across all profiles (Cloudflare default, Google, or skip).
 - **Safe GDM No-Sleep:** Implemented login screen power management via `/etc/dconf/db/gdm.d/01-power` and `dconf update` to eliminate D-Bus session and SELinux permission errors.
@@ -59,11 +61,11 @@ See [CHANGELOG.md](CHANGELOG.md) for the full history.
 | Profile       | What it installs                                                                                             |
 | ------------- | ------------------------------------------------------------------------------------------------------------ |
 | `minimal`     | DNF config, DNS, fonts, shell (Starship), Brave & codecs, GPU drivers (last)                                 |
-| `dev`         | Minimal + power, no-sleep, GNOME tools, dev tools, Antigravity, Docker, KVM/QEMU, GPU drivers (last)        |
+| `dev`         | Minimal + power, no-sleep, GNOME tools, dev tools, Code Editor (Zed/Codium/Antigravity/Code), Docker, KVM/QEMU, GPU drivers (last) |
 | `gaming`      | Minimal + power, GNOME tools, gaming packages (Steam, MangoHud, Vesktop), Flatpaks, GPU drivers (last)       |
 | `workstation` | Minimal + power, GNOME tools, packages, Flatpaks, KVM/QEMU, GPU drivers (last)                               |
 | `creator`     | Gaming + COPR tools (Yazi, Scrcpy), KVM/QEMU, GPU drivers (last)                                            |
-| `full`        | All steps: DNF, DNS, power, no-sleep, fonts, shell, codecs, COPR, GNOME, packages, dev, Antigravity, Flatpaks, Docker, KVM, GPU drivers (last) |
+| `full`        | All steps: DNF, DNS, power, no-sleep, fonts, shell, codecs, COPR, GNOME, packages, dev, Code Editor, Flatpaks, Docker, KVM, GPU drivers (last) |
 
 ---
 
@@ -109,7 +111,7 @@ Intel media driver, AMD freeworld VA/VDPAU, NVIDIA proprietary (akmods, Secure B
 
 ### Dev Tools
 
-GCC, Clang, LLVM, Java, Node.js, Python, Docker + Docker Compose, Corepack, Antigravity CLI (`agy`, via Google's official installer), Rust (optional), Android tools, debuggers, build systems.
+GCC, Clang, LLVM, Java, Node.js, Python, Ruff linter/formatter, PostgreSQL 18, Docker + Docker Compose, Corepack, Code Editor selection (Zed, VS Codium, Antigravity IDE, or VS Code), Rust (optional), Android tools, debuggers, build systems.
 
 ### Gaming
 

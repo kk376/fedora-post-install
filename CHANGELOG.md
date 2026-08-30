@@ -16,6 +16,8 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ### Added
 
+- Interactive Code Editor selection (`setup_editor`) featuring 4 curated choices: Zed (Recommended, bundled with `zed-run` interactive subshell runner, task execution keymaps, and catppuccin theme), VS Codium (FLOSS VS Code build via PaulCarroty repo), Anti gravity IDE (Google AI development suite), and VS Code (Microsoft RPM repository), with full settings deployment and skip capability
+- Added `ruff` (fast Python linter and formatter) to standard DNF development packages in `setup_packages()`
 - Comprehensive Secure Boot and MOK enrollment guidance and disclaimer in `setup_drivers` detailing manual signing steps, `akmods` local key management, and UEFI firmware update handling
 - Custom developer `.zshrc` profile with WSL Antigravity IDE (`anti`) helper, NVM integration, and history optimizations
 

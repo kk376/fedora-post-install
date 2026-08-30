@@ -74,19 +74,19 @@ echo "================================================================"
 
 declare -A EXPECTED_STEPS
 EXPECTED_STEPS[minimal]="setup_dnf setup_dns setup_fonts setup_shell setup_browser_multimedia setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[dev]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_dev setup_vscodium setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[dev]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_dev setup_editor setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
 EXPECTED_STEPS[gaming]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
 EXPECTED_STEPS[workstation]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_kvm setup_pre_driver_reboot setup_drivers"
 EXPECTED_STEPS[creator]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_copr setup_gnome setup_packages setup_flatpaks setup_kvm setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[full]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_copr setup_gnome setup_packages setup_dev setup_vscodium setup_flatpaks setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[full]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_copr setup_gnome setup_packages setup_dev setup_editor setup_flatpaks setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
 
 declare -A EXPECTED_NAMES
 EXPECTED_NAMES[minimal]="DNF Configuration, DNS Configuration, System Fonts, ZSH + Starship, Brave + Multimedia, Pre-Driver Reboot, GPU Drivers"
-EXPECTED_NAMES[dev]="DNF Configuration, DNS Configuration, Power Management, No-Sleep Settings, System Fonts, ZSH + Starship, Brave + Multimedia, GNOME Tools, Essential Packages, Development Tools, VSCodium, Docker Setup, KVM/QEMU Virtualization, Pre-Driver Reboot, GPU Drivers"
+EXPECTED_NAMES[dev]="DNF Configuration, DNS Configuration, Power Management, No-Sleep Settings, System Fonts, ZSH + Starship, Brave + Multimedia, GNOME Tools, Essential Packages, Development Tools, Code Editor, Docker Setup, KVM/QEMU Virtualization, Pre-Driver Reboot, GPU Drivers"
 EXPECTED_NAMES[gaming]="DNF Configuration, DNS Configuration, Power Management, System Fonts, ZSH + Starship, Brave + Multimedia, GNOME Tools, Essential Packages, Flatpak Apps, Pre-Driver Reboot, GPU Drivers"
 EXPECTED_NAMES[workstation]="DNF Configuration, DNS Configuration, Power Management, System Fonts, ZSH + Starship, Brave + Multimedia, GNOME Tools, Essential Packages, Flatpak Apps, KVM/QEMU Virtualization, Pre-Driver Reboot, GPU Drivers"
 EXPECTED_NAMES[creator]="DNF Configuration, DNS Configuration, Power Management, System Fonts, ZSH + Starship, Brave + Multimedia, COPR Packages, GNOME Tools, Essential Packages, Flatpak Apps, KVM/QEMU Virtualization, Pre-Driver Reboot, GPU Drivers"
-EXPECTED_NAMES[full]="DNF Configuration, DNS Configuration, Power Management, No-Sleep Settings, System Fonts, ZSH + Starship, Brave + Multimedia, COPR Packages, GNOME Tools, Essential Packages, Development Tools, VSCodium, Flatpak Apps, Docker Setup, KVM/QEMU Virtualization, Pre-Driver Reboot, GPU Drivers"
+EXPECTED_NAMES[full]="DNF Configuration, DNS Configuration, Power Management, No-Sleep Settings, System Fonts, ZSH + Starship, Brave + Multimedia, COPR Packages, GNOME Tools, Essential Packages, Development Tools, Code Editor, Flatpak Apps, Docker Setup, KVM/QEMU Virtualization, Pre-Driver Reboot, GPU Drivers"
 
 declare -A EXPECTED_COUNTS
 EXPECTED_COUNTS[minimal]=7

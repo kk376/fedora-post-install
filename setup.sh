@@ -323,7 +323,7 @@ check_disk_space() {
 # Show installed versions
 show_versions() {
     log "Checking installed versions..."
-    local packages=("zsh" "brave-browser" "vesktop" "agy" "codium" "docker" "tlp" "steam" "ffmpeg")
+    local packages=("zsh" "brave-browser" "vesktop" "zed" "codium" "agy" "code" "docker" "tlp" "steam" "ffmpeg")
     for pkg in "${packages[@]}"; do
         if rpm -q "$pkg" &>/dev/null; then
             echo "  ✅ $pkg: $(rpm -q --queryformat '%{VERSION}' "$pkg" 2>/dev/null)"
@@ -1373,80 +1373,107 @@ setup_dev() {
         run_sudo corepack enable 2>/dev/null || true
     fi
 
-    log "Configuring Python symlinks and VS Codium environment..."
+    log "Configuring Python development symlinks..."
     if ! $DRY_RUN; then
         mkdir -p "$HOME/.local/bin"
         ln -sf "$(command -v python3 || echo /usr/bin/python3)" "$HOME/.local/bin/python" 2>/dev/null || true
         ln -sf "$(command -v python3 || echo /usr/bin/python3)" "$HOME/.local/bin/python3" 2>/dev/null || true
+        success "Python symlinks configured in ~/.local/bin"
+    else
+        dry "Create python symlinks in ~/.local/bin"
+    fi
 
-        # Deploy VSCodium / VS Code User settings for ligatures, Code Runner terminal execution & Python paths
-        for conf_dir in "$HOME/.config/VSCodium/User" "$HOME/.config/Code/User"; do
-            if [[ -d "${conf_dir%/*}" ]] || [[ "$conf_dir" == *"VSCodium"* ]]; then
-                mkdir -p "$conf_dir"
-                backup_file "$conf_dir/settings.json"
-                cat > "$conf_dir/settings.json" <<'VSCODE_SETTINGS'
-{
-    "workbench.iconTheme": "vscode-icons",
-    "python.defaultInterpreterPath": "/usr/bin/python3",
-    "python.autoSelectWorkspace": true,
-    "python.locator": "js",
-    "python-envs.globalSearchPaths": [
-        "/usr/bin",
-        "/usr/local/bin",
-        "/home/kk376/.local/bin"
-    ],
-    "python.venvFolders": [
-        "envs",
-        ".envs",
-        ".venv",
-        "env",
-        "venv"
-    ],
-    "python.analysis.autoSearchPaths": true,
-    "python.terminal.activateEnvironment": true,
-    "python.terminal.activateEnvInCurrentTerminal": true,
-    "editor.fontFamily": "'FiraCode Nerd Font', 'Fira Code', monospace",
-    "editor.fontLigatures": true,
-    "editor.fontSize": 14,
-    "terminal.integrated.fontFamily": "'FiraCode Nerd Font', 'Fira Code', monospace",
-    "terminal.integrated.fontSize": 14,
-    "terminal.integrated.fontLigatures.enabled": true,
-    "terminal.integrated.gpuAcceleration": "on",
-    "terminal.external.linuxExec": "/home/kk376/.local/bin/kitty",
-    "terminal.integrated.defaultProfile.linux": "zsh",
-    "terminal.integrated.profiles.linux": {
-        "zsh": {
-            "path": "/usr/bin/zsh",
-            "icon": "terminal"
-        },
-        "bash": {
-            "path": "/usr/bin/bash",
-            "icon": "terminal-bash"
-        }
-    },
-    "code-runner.runInTerminal": true,
-    "code-runner.clearPreviousOutput": true,
-    "code-runner.saveFileBeforeRun": true,
-    "code-runner.saveAllFilesBeforeRun": false,
-    "code-runner.ignoreSelection": true,
-    "code-runner.executorMap": {
-        "python": "python3 -u",
-        "c": "cd $dir && gcc -Wall -O2 $fileName -o $fileNameWithoutExt && $dir$fileNameWithoutExt",
-        "cpp": "cd $dir && g++ -Wall -O2 -std=c++20 $fileName -o $fileNameWithoutExt && $dir$fileNameWithoutExt",
-        "rust": "cd $dir && cargo run 2>/dev/null || (rustc $fileName && $dir$fileNameWithoutExt)",
-        "javascript": "node",
-        "typescript": "ts-node",
-        "shellscript": "bash",
-        "go": "go run"
-    }
-}
-VSCODE_SETTINGS
+    # PostgreSQL 18 Server (PGDG Official Repository)
+    log "Installing PostgreSQL 18 Server..."
+    if ! $DRY_RUN; then
+        local fedora_ver
+        fedora_ver=$(rpm -E %fedora 2>/dev/null || echo "44")
+        local arch
+        arch=$(uname -m)
+        local pgdg_rpm="https://download.postgresql.org/pub/repos/yum/reporpms/F-${fedora_ver}-${arch}/pgdg-fedora-repo-latest.noarch.rpm"
+        if ! rpm -q pgdg-fedora-repo &>/dev/null; then
+            run_sudo dnf install -y --skip-unavailable "$pgdg_rpm" 2>/dev/null || true
+        fi
+        if run_sudo dnf install -y postgresql18-server postgresql18 postgresql18-libs; then
+            if [[ ! -f "/var/lib/pgsql/18/data/PG_VERSION" ]]; then
+                log "Initializing PostgreSQL 18 database cluster..."
+                run_sudo /usr/pgsql-18/bin/postgresql-18-setup initdb 2>/dev/null || true
             fi
-        done
-        # Deploy Zed Editor User settings, keymaps, tasks & zed-run script
-        mkdir -p "$HOME/.config/zed" "$HOME/.local/bin"
-        backup_file "$HOME/.config/zed/settings.json"
-        cat > "$HOME/.config/zed/settings.json" <<'ZED_SETTINGS'
+            run_sudo systemctl enable --now postgresql-18 2>/dev/null || true
+            if [[ -d "/usr/pgsql-18/bin" ]]; then
+                run_sudo tee /etc/profile.d/pgsql18.sh > /dev/null <<'PG_PROFILE'
+export PATH="/usr/pgsql-18/bin:$PATH"
+PG_PROFILE
+            fi
+            success "PostgreSQL 18 installed, initialized, and enabled"
+        else
+            warn "PostgreSQL 18 installation failed"
+        fi
+    else
+        dry "Install pgdg-fedora-repo, postgresql18-server, run initdb, and enable postgresql-18.service"
+    fi
+
+    # pgAdmin 4 (Official PostgreSQL Administration GUI)
+    log "Installing pgAdmin 4 Desktop..."
+    if ! $DRY_RUN; then
+        local pgadmin_repo_rpm="https://ftp.postgresql.org/pub/pgadmin/pgadmin4/yum/pgadmin4-fedora-repo-2-1.noarch.rpm"
+        if ! rpm -q pgadmin4-fedora-repo &>/dev/null; then
+            run_sudo dnf install -y --skip-unavailable "$pgadmin_repo_rpm" 2>/dev/null || true
+        fi
+        if run_sudo dnf install -y pgadmin4-desktop; then
+            success "pgAdmin 4 Desktop installed"
+        else
+            warn "pgAdmin 4 installation failed"
+        fi
+    else
+        dry "Install pgadmin4-fedora-repo and pgadmin4-desktop via dnf"
+    fi
+
+    step_complete "Dev tools installed"
+}
+
+# ==============================================================================
+# Code Editor Selection & Configuration
+# ==============================================================================
+setup_editor() {
+    log "Configuring Code Editor..."
+
+    echo ""
+    echo -e "${BLUE}Choose your primary code editor:${NC}"
+    echo -e "  ${GREEN}1) Zed (Recommended)${NC}"
+    echo -e "  2) VS Codium"
+    echo -e "  3) Anti gravity IDE"
+    echo -e "  ${YELLOW}4) VS Code (Not recommended)${NC}"
+    echo -e "  5) Skip editor installation"
+    echo ""
+
+    local editor_choice=""
+    if $DRY_RUN; then
+        editor_choice="1"
+        dry "Prompt user for Code Editor selection: [1] Zed (Recommended), [2] VS Codium, [3] Antigravity IDE, [4] VS Code (Not recommended), [5] Skip"
+    else
+        read -r -p "Enter choice [1-5] (default: 1): " editor_choice
+        editor_choice="${editor_choice:-1}"
+    fi
+
+    case "$editor_choice" in
+        1)
+            log "Installing and configuring Zed Editor (Recommended)..."
+            if ! $DRY_RUN; then
+                if ! command -v zed &>/dev/null; then
+                    if rpm -q terra-release &>/dev/null && run_sudo dnf install -y zed 2>/dev/null; then
+                        success "Zed installed via Terra repository"
+                    elif curl -fsSL https://zed.dev/install.sh | bash 2>/dev/null; then
+                        success "Zed installed via official installer script"
+                    else
+                        warn "Zed installation failed - install manually from https://zed.dev"
+                    fi
+                fi
+
+                # Deploy Zed configurations
+                mkdir -p "$HOME/.config/zed" "$HOME/.local/bin"
+                backup_file "$HOME/.config/zed/settings.json"
+                cat > "$HOME/.config/zed/settings.json" <<'ZED_SETTINGS'
 {
   "agent": {
     "sidebar_side": "right",
@@ -1489,8 +1516,8 @@ VSCODE_SETTINGS
 }
 ZED_SETTINGS
 
-        backup_file "$HOME/.config/zed/keymap.json"
-        cat > "$HOME/.config/zed/keymap.json" <<'ZED_KEYMAP'
+                backup_file "$HOME/.config/zed/keymap.json"
+                cat > "$HOME/.config/zed/keymap.json" <<'ZED_KEYMAP'
 [
   {
     "context": "Workspace",
@@ -1510,8 +1537,8 @@ ZED_SETTINGS
 ]
 ZED_KEYMAP
 
-        backup_file "$HOME/.config/zed/tasks.json"
-        cat > "$HOME/.config/zed/tasks.json" <<'ZED_TASKS'
+                backup_file "$HOME/.config/zed/tasks.json"
+                cat > "$HOME/.config/zed/tasks.json" <<'ZED_TASKS'
 [
   {
     "label": "Run current file",
@@ -1527,7 +1554,8 @@ ZED_KEYMAP
 ]
 ZED_TASKS
 
-        cat > "$HOME/.local/bin/zed-run" <<'ZED_RUN'
+                backup_file "$HOME/.local/bin/zed-run"
+                cat > "$HOME/.local/bin/zed-run" <<'ZED_RUN'
 #!/usr/bin/env bash
 
 FILE="$1"
@@ -1599,70 +1627,18 @@ echo -e "\033[1;30m----------------------------------------\033[0m"
 echo -e "\033[1;36m[Program finished. Interactive terminal active:]\033[0m"
 exec "${SHELL:-/bin/zsh}"
 ZED_RUN
-        chmod +x "$HOME/.local/bin/zed-run"
-
-        success "Python environment, VSCodium & Zed Editor configurations deployed"
-    else
-        dry "Create python symlinks in ~/.local/bin and deploy VSCodium & Zed Editor configs"
-    fi
-
-    # PostgreSQL 18 Server (PGDG Official Repository)
-    log "Installing PostgreSQL 18 Server..."
-    if ! $DRY_RUN; then
-        local fedora_ver
-        fedora_ver=$(rpm -E %fedora 2>/dev/null || echo "44")
-        local arch
-        arch=$(uname -m)
-        local pgdg_rpm="https://download.postgresql.org/pub/repos/yum/reporpms/F-${fedora_ver}-${arch}/pgdg-fedora-repo-latest.noarch.rpm"
-        if ! rpm -q pgdg-fedora-repo &>/dev/null; then
-            run_sudo dnf install -y --skip-unavailable "$pgdg_rpm" 2>/dev/null || true
-        fi
-        if run_sudo dnf install -y postgresql18-server postgresql18 postgresql18-libs; then
-            if [[ ! -f "/var/lib/pgsql/18/data/PG_VERSION" ]]; then
-                log "Initializing PostgreSQL 18 database cluster..."
-                run_sudo /usr/pgsql-18/bin/postgresql-18-setup initdb 2>/dev/null || true
+                chmod +x "$HOME/.local/bin/zed-run"
+                success "Zed Editor installed and configured"
+            else
+                dry "Install Zed (Terra/official script) and deploy settings.json, keymap.json, tasks.json & zed-run"
             fi
-            run_sudo systemctl enable --now postgresql-18 2>/dev/null || true
-            if [[ -d "/usr/pgsql-18/bin" ]]; then
-                run_sudo tee /etc/profile.d/pgsql18.sh > /dev/null <<'PG_PROFILE'
-export PATH="/usr/pgsql-18/bin:$PATH"
-PG_PROFILE
-            fi
-            success "PostgreSQL 18 installed, initialized, and enabled"
-        else
-            warn "PostgreSQL 18 installation failed"
-        fi
-    else
-        dry "Install pgdg-fedora-repo, postgresql18-server, run initdb, and enable postgresql-18.service"
-    fi
+            ;;
 
-    # pgAdmin 4 (Official PostgreSQL Administration GUI)
-    log "Installing pgAdmin 4 Desktop..."
-    if ! $DRY_RUN; then
-        local pgadmin_repo_rpm="https://ftp.postgresql.org/pub/pgadmin/pgadmin4/yum/pgadmin4-fedora-repo-2-1.noarch.rpm"
-        if ! rpm -q pgadmin4-fedora-repo &>/dev/null; then
-            run_sudo dnf install -y --skip-unavailable "$pgadmin_repo_rpm" 2>/dev/null || true
-        fi
-        if run_sudo dnf install -y pgadmin4-desktop; then
-            success "pgAdmin 4 Desktop installed"
-        else
-            warn "pgAdmin 4 installation failed"
-        fi
-    else
-        dry "Install pgadmin4-fedora-repo and pgadmin4-desktop via dnf"
-    fi
-
-    step_complete "Dev tools installed"
-}
-
-# ==============================================================================
-# VSCodium (Free/Libre Open Source Software Binaries of VS Code)
-# ==============================================================================
-setup_vscodium() {
-    log "Installing VSCodium..."
-    if ! $DRY_RUN; then
-        run_sudo rpm --import https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg 2>/dev/null || true
-        run_sudo tee /etc/yum.repos.d/vscodium.repo > /dev/null <<'EOL'
+        2)
+            log "Installing and configuring VS Codium (FLOSS)..."
+            if ! $DRY_RUN; then
+                run_sudo rpm --import https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg 2>/dev/null || true
+                run_sudo tee /etc/yum.repos.d/vscodium.repo > /dev/null <<'EOL'
 [gitlab.com_paulcarroty_vscodium_repo]
 name=gitlab.com_paulcarroty_vscodium_repo
 baseurl=https://paulcarroty.gitlab.io/vscodium-deb-rpm-repo/rpms/
@@ -1672,16 +1648,15 @@ repo_gpgcheck=1
 gpgkey=https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg
 metadata_expire=1h
 EOL
-        if run_sudo dnf makecache; then
-            run_sudo dnf install -y codium || warn "Failed to install VSCodium"
-        else
-            warn "Failed to refresh VSCodium repo metadata"
-        fi
+                if run_sudo dnf makecache; then
+                    run_sudo dnf install -y codium || warn "Failed to install VSCodium"
+                else
+                    warn "Failed to refresh VSCodium repo metadata"
+                fi
 
-        log "Creating VSCodium settings..."
-        mkdir -p "$HOME/.config/VSCodium/User"
-        backup_file "$HOME/.config/VSCodium/User/settings.json"
-        cat > "$HOME/.config/VSCodium/User/settings.json" <<'SETTINGS'
+                mkdir -p "$HOME/.config/VSCodium/User"
+                backup_file "$HOME/.config/VSCodium/User/settings.json"
+                cat > "$HOME/.config/VSCodium/User/settings.json" <<'VSCODIUM_SETTINGS'
 {
     "editor.fontFamily": "'FiraCode Nerd Font', 'Fira Code', monospace",
     "editor.fontWeight": "600",
@@ -1696,12 +1671,92 @@ EOL
     "files.autoSave": "afterDelay",
     "workbench.iconTheme": "vscode-icons"
 }
-SETTINGS
-        success "VSCodium settings created"
-    else
-        dry "Add VSCodium repo, install codium, and configure settings.json"
-    fi
-    step_complete "VSCodium configured"
+VSCODIUM_SETTINGS
+                success "VS Codium installed and settings configured"
+            else
+                dry "Add VSCodium repo, install codium, and configure settings.json"
+            fi
+            ;;
+
+        3)
+            log "Installing and configuring Google Antigravity IDE..."
+            if ! $DRY_RUN; then
+                if ! command -v agy &>/dev/null; then
+                    curl -fsSL https://antigravity.google/cli/install.sh | bash 2>/dev/null || \
+                        warn "Antigravity install failed - try manually: curl -fsSL https://antigravity.google/cli/install.sh | bash"
+                fi
+                mkdir -p "$HOME/.config/antigravity" "$HOME/.config/Code/User" "$HOME/.config/VSCodium/User"
+                for target_dir in "$HOME/.config/antigravity" "$HOME/.config/Code/User" "$HOME/.config/VSCodium/User"; do
+                    if [[ -d "$target_dir" ]]; then
+                        backup_file "$target_dir/settings.json"
+                        cat > "$target_dir/settings.json" <<'ANTI_SETTINGS'
+{
+    "editor.fontFamily": "'FiraCode Nerd Font', 'Fira Code', monospace",
+    "editor.fontWeight": "600",
+    "editor.fontLigatures": true,
+    "editor.fontSize": 14,
+    "terminal.integrated.fontFamily": "'FiraCode Nerd Font', monospace",
+    "terminal.integrated.fontSize": 14,
+    "terminal.integrated.defaultProfile.linux": "zsh",
+    "files.autoSave": "afterDelay"
+}
+ANTI_SETTINGS
+                    fi
+                done
+                success "Antigravity IDE installed and configured"
+            else
+                dry "Install Antigravity CLI/IDE via official script and configure settings"
+            fi
+            ;;
+
+        4)
+            log "Installing and configuring VS Code (Not recommended)..."
+            if ! $DRY_RUN; then
+                run_sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+                run_sudo tee /etc/yum.repos.d/vscode.repo > /dev/null <<'EOL'
+[code]
+name=Visual Studio Code
+baseurl=https://packages.microsoft.com/yumrepos/vscode
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.microsoft.com/keys/microsoft.asc
+EOL
+                if run_sudo dnf makecache; then
+                    run_sudo dnf install -y code || warn "Failed to install VS Code"
+                else
+                    warn "Failed to refresh VS Code repo metadata"
+                fi
+
+                mkdir -p "$HOME/.config/Code/User"
+                backup_file "$HOME/.config/Code/User/settings.json"
+                cat > "$HOME/.config/Code/User/settings.json" <<'VSCODE_SETTINGS'
+{
+    "editor.fontFamily": "'FiraCode Nerd Font', 'Fira Code', monospace",
+    "editor.fontWeight": "600",
+    "editor.fontLigatures": true,
+    "editor.fontSize": 14,
+    "editor.lineHeight": 1.6,
+    "terminal.integrated.fontFamily": "'FiraCode Nerd Font', monospace",
+    "terminal.integrated.fontWeight": "600",
+    "terminal.integrated.fontSize": 14,
+    "terminal.integrated.lineHeight": 1.2,
+    "terminal.integrated.defaultProfile.linux": "zsh",
+    "files.autoSave": "afterDelay",
+    "workbench.iconTheme": "vscode-icons"
+}
+VSCODE_SETTINGS
+                success "VS Code installed and settings configured"
+            else
+                dry "Add Microsoft VS Code repo, install code, and configure settings.json"
+            fi
+            ;;
+
+        5|*)
+            info "Skipped code editor installation"
+            ;;
+    esac
+
+    step_complete "Code editor configured"
 }
 
 # ==============================================================================
@@ -2002,7 +2057,7 @@ main() {
         "setup_gnome:GNOME Tools"
         "setup_packages:Essential Packages"
         "setup_dev:Development Tools"
-        "setup_vscodium:VSCodium"
+        "setup_editor:Code Editor"
         "setup_flatpaks:Flatpak Apps"
         "setup_docker:Docker Setup"
         "setup_kvm:KVM/QEMU Virtualization"
@@ -2013,7 +2068,7 @@ main() {
     # Step matrices mapping profiles to required setup functions
     local -A PROFILE_STEPS
     PROFILE_STEPS[minimal]="setup_dnf setup_dns setup_fonts setup_shell setup_browser_multimedia setup_pre_driver_reboot setup_drivers"
-    PROFILE_STEPS[dev]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_dev setup_vscodium setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
+    PROFILE_STEPS[dev]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_dev setup_editor setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[gaming]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[workstation]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_kvm setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[creator]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_copr setup_gnome setup_packages setup_flatpaks setup_kvm setup_pre_driver_reboot setup_drivers"
