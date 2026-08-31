@@ -702,13 +702,7 @@ setopt HIST_REDUCE_BLANKS
 bindkey '^[[;5D' backward-word
 bindkey '^[[;5C' forward-word
 
-# Clear screen AND scrollback history buffer
-function clear-screen-and-scrollback() {
-    printf '\033[2J\033[3J\033[H'
-    zle redisplay
-}
-zle -N clear-screen-and-scrollback
-bindkey '^L' clear-screen-and-scrollback
+bindkey '^L' clear-screen
 
 # ===== Zsh Autosuggestions color =====
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#8a8a8a"
@@ -908,6 +902,8 @@ map alt+5 goto_tab 5
 map ctrl+shift+enter new_window
 map ctrl+shift+[ previous_window
 map ctrl+shift+] next_window
+map ctrl+shift+k combine : clear_terminal scrollback active : send_text normal,application \x0c
+map ctrl+l combine : clear_terminal scroll active : send_text normal,application \x0c
 
 # --- Audio & Shell ---
 enable_audio_bell no
