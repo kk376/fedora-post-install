@@ -717,7 +717,6 @@ alias clear='printf "\033[2J\033[3J\033[H"'
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
 alias less='bat --paging=always --pager="less -R"'
-alias dnf-terra='sudo dnf --enablerepo=terra'
 alias la='ls -la'
 
 # --- Git Shortcuts ---
