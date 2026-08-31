@@ -702,6 +702,14 @@ setopt HIST_REDUCE_BLANKS
 bindkey '^[[;5D' backward-word
 bindkey '^[[;5C' forward-word
 
+# Clear screen AND scrollback history buffer
+function clear-screen-and-scrollback() {
+    printf '\033[2J\033[3J\033[H'
+    zle redisplay
+}
+zle -N clear-screen-and-scrollback
+bindkey '^L' clear-screen-and-scrollback
+
 # ===== Zsh Autosuggestions color =====
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#8a8a8a"
 
@@ -710,6 +718,7 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#8a8a8a"
 [[ -f ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # ===== Aliases =====
+alias clear='printf "\033[2J\033[3J\033[H"'
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
 alias less='bat --paging=always --pager="less -R"'
