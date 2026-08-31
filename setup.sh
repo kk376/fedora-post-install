@@ -716,6 +716,8 @@ alias clear='printf "\033[2J\033[3J\033[H"'
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
 alias less='bat --paging=always --pager="less -R"'
+alias dnf-terra='sudo dnf --enablerepo=terra'
+alias la='ls -la'
 
 # --- Git Shortcuts ---
 alias gs='git status -sb'
@@ -853,12 +855,12 @@ font_family      Fira Code
 bold_font        auto
 italic_font      auto
 bold_italic_font auto
-font_size        13
+font_size        12
 disable_ligatures never
 
 # --- Translucency & Styling ---
-background_opacity         0.90
-background_blur            50
+background_opacity         0.97
+background_blur            95
 dynamic_background_opacity yes
 window_padding_width       14 16
 hide_window_decorations    no
