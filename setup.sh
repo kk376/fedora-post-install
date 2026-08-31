@@ -218,6 +218,7 @@ restore_backups() {
         "/etc/dnf/dnf.conf"
         "$HOME/.config/MangoHud/MangoHud.conf"
         "$HOME/.config/starship.toml"
+        "$HOME/.config/kitty/kitty.conf"
     )
 
     for orig in "${originals[@]}"; do
@@ -845,11 +846,20 @@ alias cat='bat --paging=never --style=plain'
 eval "$(starship init bash)"
 BASHRC_STARSHIP
         fi
+    else
+        dry "Install Starship, clone plugins, deploy starship.toml, .zshrc, and .bashrc"
+    fi
 
-        # Deploy Kitty terminal configuration (Tokyo Night, FiraCode ligatures, translucency)
-        mkdir -p "$HOME/.config/kitty"
-        backup_file "$HOME/.config/kitty/kitty.conf"
-        cat > "$HOME/.config/kitty/kitty.conf" <<'KITTY_CONF'
+    # Configure Kitty terminal emulator (interactive option)
+    if confirm "Install and configure Kitty terminal emulator?" "Y"; then
+        log "Installing Kitty terminal..."
+        run_sudo dnf install -y --skip-unavailable kitty
+
+        if ! $DRY_RUN; then
+            log "Deploying Kitty terminal configuration..."
+            mkdir -p "$HOME/.config/kitty"
+            backup_file "$HOME/.config/kitty/kitty.conf"
+            cat > "$HOME/.config/kitty/kitty.conf" <<'KITTY_CONF'
 # --- Typography & Font Ligatures ---
 font_family      Fira Code
 bold_font        auto
@@ -942,8 +952,12 @@ color13 #bb9af7
 color14 #7dcfff
 color15 #c0caf5
 KITTY_CONF
+            success "Kitty terminal installed and configured"
+        else
+            dry "Deploy Kitty terminal configuration to ~/.config/kitty/kitty.conf"
+        fi
     else
-        dry "Install Starship, clone plugins, deploy starship.toml, kitty.conf, .zshrc, and .bashrc"
+        info "Skipping Kitty terminal installation and configuration"
     fi
 
     confirm "Set ZSH as default shell?" "Y" && run chsh -s "$(command -v zsh)"
@@ -1282,7 +1296,7 @@ setup_packages() {
     log "Installing essential packages..."
 
     local pkgs_to_install=(
-        gcc clang fastfetch make cmake perl wmctrl cargo maven bat eza kitty \
+        gcc clang fastfetch make cmake perl wmctrl cargo maven bat eza \
         fd-find ripgrep fzf zoxide ruff python-unversioned-command \
         java-latest-openjdk java-latest-openjdk-devel nodejs python3 python3-pip wget htop duf sassc unzip unrar \
         p7zip p7zip-plugins ntfs-3g gparted timeshift vlc qbittorrent wl-clipboard \

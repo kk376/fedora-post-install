@@ -535,6 +535,33 @@ else
     fail "Dry-run dev profile missing Vesktop download log"
 fi
 
+# ==============================================================================
+# Suite 8: Kitty Terminal Emulator Option
+# ==============================================================================
+echo ""
+echo -e "${BLUE}--- Suite 8: Kitty Terminal Emulator Option ---${NC}"
+
+# 8.1: Test setup_packages does NOT unconditionally include kitty in DNF packages
+if grep -A 10 "setup_packages()" "$SETUP_SCRIPT" | grep -w "pkgs_to_install" | grep -q "kitty"; then
+    fail "kitty found in setup_packages() (should be optional in setup_shell)"
+else
+    pass "kitty is NOT unconditionally included in setup_packages() DNF list"
+fi
+
+# 8.2: Test setup_shell prompt logic for Kitty
+if grep -q 'confirm "Install and configure Kitty terminal emulator?"' "$SETUP_SCRIPT"; then
+    pass "setup_shell prompts user for Kitty terminal installation"
+else
+    fail "setup_shell missing Kitty confirmation prompt"
+fi
+
+# 8.3: Test dry-run logs Kitty confirmation prompt
+if echo "$dry_dev_output" | grep -q "Prompt: Install and configure Kitty terminal emulator?"; then
+    pass "Dry-run dev profile logs Kitty confirmation prompt"
+else
+    fail "Dry-run dev profile missing Kitty confirmation prompt log"
+fi
+
 echo ""
 echo "================================================================"
 echo "SUMMARY: Total Tests: $TOTAL, Passed: $PASSED, Failed: $FAILED"
