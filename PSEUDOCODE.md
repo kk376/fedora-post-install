@@ -85,7 +85,7 @@ flowchart TD
         StepResult -- No --> LogStepWarn["Log Warning: 'Step had issues'<br/>Increment FAILED_STEPS"] --> LoopNext
     end
 
-    LoopNext -- No (All steps finished) --> Summary
+    LoopNext -->|"No (All steps finished)"| Summary
 
     subgraph PostSummary ["Phase 3: Health Audit & Next Steps"]
         Summary["Execute show_summary()<br/>(Display total time & pass/fail tallies)"]
@@ -525,23 +525,26 @@ flowchart TD
         ReadStateFile --> StepEvaluator{"For each step in active profile"}
         
         StepEvaluator --> StepInState{"Step function name<br/>present in state.txt?"}
-        StepInState -- Yes (No --force) --> SkipToNext["Skip step execution<br/>(Zero redundant downloads or writes)"] --> StepEvaluator
-        StepInState -- No (Or --force passed) --> PromptAndRun["Prompt user & Execute step function"]
+        StepInState -->|"Yes (No --force)"| SkipToNext["Skip step execution<br/>(Zero redundant downloads or writes)"]
+        SkipToNext --> StepEvaluator
+        StepInState -->|"No (Or --force passed)"| PromptAndRun["Prompt user & Execute step function"]
         
         PromptAndRun --> StepSuccess{"Execution succeeded?"}
-        StepSuccess -- Yes --> AppendState["Append function name to state.txt"] --> StepEvaluator
-        StepSuccess -- No --> PreserveState["Do NOT write to state.txt<br/>(Step will re-prompt on next run)"] --> StepEvaluator
+        StepSuccess -->|"Yes"| AppendState["Append function name to state.txt"]
+        AppendState --> StepEvaluator
+        StepSuccess -->|"No"| PreserveState["Do NOT write to state.txt<br/>(Step will re-prompt on next run)"]
+        PreserveState --> StepEvaluator
     end
 
     subgraph RollbackEngine ["Disaster Recovery & Rollback Subsystem"]
         RunRestore["User launches ./setup.sh -> Confirms 'Restore from previous backup?'"] --> ScanBackups["Find newest directory in ~/.config/fedora-setup-backups/YYYYMMDD_HHMMSS/"]
         ScanBackups --> FoundBackups{"Backup directory found?"}
-        FoundBackups -- No --> LogNoBackup["Log 'No backups found' -> Exit 1"]
-        FoundBackups -- Yes --> ConfirmRestore{"Restore all files from this timestamp? [y/N]"}
+        FoundBackups -->|"No"| LogNoBackup["Log 'No backups found' -> Exit 1"]
+        FoundBackups -->|"Yes"| ConfirmRestore{"Restore all files from this timestamp? [y/N]"}
         
-        ConfirmRestore -- Yes --> RestoreFiles["Restore original files:<br/>- ~/.zshrc<br/>- ~/.bashrc<br/>- /etc/dnf/dnf.conf<br/>- ~/.config/MangoHud/MangoHud.conf<br/>- ~/.config/starship.toml<br/>- ~/.config/kitty/kitty.conf"]
+        ConfirmRestore -->|"Yes"| RestoreFiles["Restore original files:<br/>- ~/.zshrc<br/>- ~/.bashrc<br/>- /etc/dnf/dnf.conf<br/>- ~/.config/MangoHud/MangoHud.conf<br/>- ~/.config/starship.toml<br/>- ~/.config/kitty/kitty.conf"]
         RestoreFiles --> WipeState["Delete ~/.config/fedora-setup/state.txt<br/>(Resets state so future runs re-evaluate cleanly)"]
         WipeState --> ExitRestore(["Exit 0 (System restored to original clean state)"])
-        ConfirmRestore -- No --> CancelRestore(["Cancel restore"])
+        ConfirmRestore -->|"No"| CancelRestore(["Cancel restore"])
     end
 ```
