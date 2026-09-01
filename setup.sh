@@ -1122,7 +1122,7 @@ setup_drivers() {
         log "NVIDIA GPU Detected."
 
         # Install akmod tooling, NVIDIA drivers, CUDA, v4l2loopback for virtual cameras, and MOK utility
-        run_sudo dnf install -y kmodtool akmods mokutil openssl nvtop akmod-nvidia xorg-x11-drv-nvidia-cuda libva-nvidia-driver akmod-v4l2loopback v4l2loopback v4l-utils dkms
+        run_sudo dnf install -y kmodtool akmods mokutil openssl nvtop akmod-nvidia kernel-devel-matched xorg-x11-drv-nvidia-kmodsrc xorg-x11-drv-nvidia-cuda libva-nvidia-driver akmod-v4l2loopback v4l2loopback v4l-utils dkms
 
         # Force immediate akmod compilation for running kernel
         log "Building NVIDIA kernel modules (this may take a few minutes)..."
@@ -2059,7 +2059,7 @@ setup_kvm() {
 
     if confirm "Install KVM/QEMU virtualization packages?" "Y"; then
         log "Installing virtualization packages..."
-        run_sudo dnf install -y @virtualization qemu-kvm libvirt virt-install virt-manager libvirt-devel virt-top guestfs-tools
+        run_sudo dnf install -y @virtualization qemu-kvm libvirt virt-install virt-manager libvirt-devel virt-top guestfs-tools gnome-boxes
     fi
 
     # Switch from legacy monolithic libvirtd daemon to on-demand modular socket activation (virtqemud.socket)
