@@ -2,7 +2,8 @@
 
 This document provides a **complete visual flowchart and logic breakdown** of the Fedora 44 Post-Install Setup Script (`setup.sh`).
 
-It is designed for humans to visually trace every decision diamond, hardware detection path, package transaction, user prompt, and configuration state transition from launch to completion.
+> 💡 **Looking for a friendly, non-technical walkthrough instead?**  
+> Check out **[HOW_IT_WORKS.md](HOW_IT_WORKS.md)** for the plain-English story, "Before vs After" transformation, peace-of-mind safety rules, and beginner FAQ!
 
 ---
 
