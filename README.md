@@ -23,7 +23,7 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 ## What's New in v5.4.0
 
 - **COPR & Debian Packaging Isolation:** Confined COPR repository setup (`setup_copr`) and Debian packaging tooling (`dpkg-dev`) strictly to the `full` profile, keeping `creator`, `dev`, and `workstation` profiles lean and repository-isolated.
-- **Android ROM & Multilib Stack Removal:** Removed obsolete Android ROM / AOSP / Kernel development tools (`schedtool`, `lzop`, `pngcrush`, `squashfs-tools`, `gperf`, `sdl12-compat-devel`, `android-tools`) and 32-bit multilib libraries (`glibc-devel.i686`, `libstdc++-devel.i686`, `zlib-ng-compat-devel.i686`, `libX11-devel.i686`, `readline-devel.i686`, `ncurses-devel.i686`).
+- **Android ROM & Multilib Stack Removal:** Removed obsolete Android ROM / AOSP / Kernel development tools (`schedtool`, `lzop`, `pngcrush`, `squashfs-tools`, `gperf`, `sdl12-compat-devel`) and 32-bit multilib libraries (`glibc-devel.i686`, `libstdc++-devel.i686`, `zlib-ng-compat-devel.i686`, `libX11-devel.i686`, `readline-devel.i686`, `ncurses-devel.i686`), while retaining `android-tools` (ADB/Fastboot) for device communication.
 - **Interactive Utility Prompts with Decision Guidance:** Added interactive prompts with short descriptions and clear recommendations ("Should you install it?") for niche desktop, media, and hardware utilities (Vesktop, Stirling-PDF, NVIDIA Broadcast for Linux, Scrcpy, Yazi, and VirtIO Windows VM drivers).
 - **Security & Integrity:** Added `verify_checksum()` SHA256 integrity helper, shallow `--depth 1` repository clones, hardened Zed worktree security, and updated 6/6 test suites.
 

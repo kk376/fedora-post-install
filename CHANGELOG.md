@@ -27,9 +27,8 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 ### Removed
 
 - **Android ROM / AOSP / Kernel & 32-bit Multilib Development Stack**:
-  - Removed `android-tools` from general package installation
   - Removed AOSP ROM build dependencies (`schedtool`, `lzop`, `pngcrush`, `squashfs-tools`, `gperf`, `sdl12-compat-devel`) from `setup_dev()`
-  - Removed 32-bit multilib development libraries (`glibc-devel.i686`, `libstdc++-devel.i686`, `zlib-ng-compat-devel.i686`, `libX11-devel.i686`, `readline-devel.i686`, `ncurses-devel.i686`) from `setup_dev()`
+  - Removed 32-bit multilib development libraries (`glibc-devel.i686`, `libstdc++-devel.i686`, `zlib-ng-compat-devel.i686`, `libX11-devel.i686`, `readline-devel.i686`, `ncurses-devel.i686`) from `setup_dev()` (retaining `android-tools` in `setup_packages` for ADB/Fastboot device connectivity)
 
 ### Security
 

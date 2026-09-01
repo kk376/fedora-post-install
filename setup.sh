@@ -1346,7 +1346,7 @@ setup_packages() {
         fd-find ripgrep fzf zoxide ruff python-unversioned-command \
         java-latest-openjdk java-latest-openjdk-devel nodejs python3 python3-pip wget htop duf sassc unzip unrar \
         p7zip p7zip-plugins ntfs-3g gparted timeshift vlc qbittorrent wl-clipboard \
-        telegram-desktop vim neovim gh libva-utils gstreamer1-plugin-openh264
+        telegram-desktop vim neovim gh libva-utils gstreamer1-plugin-openh264 android-tools
     )
 
     if is_gaming_profile; then

@@ -571,11 +571,12 @@ fi
 echo ""
 echo -e "${BLUE}--- Suite 9: AOSP/Multilib Removal & dpkg-dev Profile Isolation ---${NC}"
 
-# 9.1: Verify android-tools removed from setup_packages
-if grep -A 15 "setup_packages()" "$SETUP_SCRIPT" | grep -w "pkgs_to_install" | grep -q "android-tools"; then
-    fail "android-tools unexpectedly present in setup_packages()"
+# 9.1: Verify android-tools is included in setup_packages for phone connectivity/debugging
+pkgs_to_install_array=$(sed -n '/setup_packages()/,/^}/p' "$SETUP_SCRIPT" | sed -n '/local pkgs_to_install=(/,/)/p')
+if echo "$pkgs_to_install_array" | grep -q "android-tools"; then
+    pass "android-tools is included in setup_packages() for Android device connectivity"
 else
-    pass "android-tools is excluded from setup_packages()"
+    fail "android-tools missing from setup_packages()"
 fi
 
 # 9.2: Verify AOSP build packages removed from setup_dev
