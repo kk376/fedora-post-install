@@ -959,6 +959,24 @@ KITTY_CONF
         info "Skipping Kitty terminal installation and configuration"
     fi
 
+    # Option: KKFetch System Information CLI (Created by Kushagra Kumar)
+    echo ""
+    info "KKFetch (by Kushagra Kumar / kk376, script author):"
+    info "  • Ultra-fast, zero-dependency cross-platform system information CLI written in Rust (Linux, macOS, Windows & Android)."
+    info "  • Why KKFetch? Sub-millisecond startup, zero-fork kernel probers, RPM MTIME package caching, and vibrant 256-color ANSI distro art with lower memory footprint than Neofetch or Fastfetch."
+    if confirm "Install KKFetch system information tool via Copr (kk376/kkfetch)?" "Y"; then
+        log "Enabling Copr repo kk376/kkfetch and installing kkfetch..."
+        local repo="kk376/kkfetch"
+        if run_sudo dnf copr enable -y "$repo"; then
+            run_sudo dnf install -y --skip-unavailable kkfetch || warn "kkfetch package installation failed"
+            success "KKFetch installed successfully"
+        else
+            warn "Failed to enable Copr repository $repo"
+        fi
+    else
+        info "Skipping KKFetch installation"
+    fi
+
     confirm "Set ZSH as default shell?" "Y" && run chsh -s "$(command -v zsh)"
 
     step_complete "Shell configured"
