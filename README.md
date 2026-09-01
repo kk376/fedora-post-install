@@ -20,15 +20,12 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ---
 
-## What's New in v5.3.0
+## What's New in v5.4.0
 
-- **Code Editor Selection:** Added interactive editor setup (`setup_editor`) offering four tailored options: Zed (Recommended, with custom keymaps and interactive runner), VS Codium (FLOSS VS Code binary), Anti gravity IDE (Google AI development suite), and VS Code (proprietary Microsoft build), along with an option to skip.
-- **Interactive Zed Runner:** Deployed `~/.local/bin/zed-run` with `Ctrl+C` interrupt trapping, keeping an interactive shell open across Python, Rust, C/C++, Go, JS, TS, Bash, and Lua executions.
-- **Ruff Python Tooling:** Added `ruff` directly to the essential DNF packages list for instant, high-performance linting and formatting alongside standard Python symlinks.
-- **PostgreSQL 18 & pgAdmin 4:** Integrated official PostgreSQL PGDG and pgAdmin repositories, automated cluster `initdb`, systemd service enablement, and PATH configuration.
-- **Kitty Terminal Suite:** Deployed modern Kitty terminal configuration with dark glass transparency, blur, tab navigation, and matching GNOME window headerbars.
-- **Bluetooth HD Audio:** Added WirePlumber configuration for high-resolution Bluetooth codecs (LDAC, AptX, AAC) with automatic profile switching.
-- **Desktop & Creator Utilities:** Integrated Stirling-PDF offline utility suite, GSConnect firewall rules, and NVIDIA Broadcast AI noise reduction for creator setups.
+- **COPR & Debian Packaging Isolation:** Confined COPR repository setup (`setup_copr`) and Debian packaging tooling (`dpkg-dev`) strictly to the `full` profile, keeping `creator`, `dev`, and `workstation` profiles lean and repository-isolated.
+- **Android ROM & Multilib Stack Removal:** Removed obsolete Android ROM / AOSP / Kernel development tools (`schedtool`, `lzop`, `pngcrush`, `squashfs-tools`, `gperf`, `sdl12-compat-devel`, `android-tools`) and 32-bit multilib libraries (`glibc-devel.i686`, `libstdc++-devel.i686`, `zlib-ng-compat-devel.i686`, `libX11-devel.i686`, `readline-devel.i686`, `ncurses-devel.i686`).
+- **Interactive Utility Prompts with Decision Guidance:** Added interactive prompts with short descriptions and clear recommendations ("Should you install it?") for niche desktop, media, and hardware utilities (Vesktop, Stirling-PDF, NVIDIA Broadcast for Linux, Scrcpy, Yazi, and VirtIO Windows VM drivers).
+- **Security & Integrity:** Added `verify_checksum()` SHA256 integrity helper, shallow `--depth 1` repository clones, hardened Zed worktree security, and updated 6/6 test suites.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
@@ -62,8 +59,8 @@ See [CHANGELOG.md](CHANGELOG.md) for the full history.
 | `dev`         | Minimal + power, no-sleep, GNOME tools, dev tools, Code Editor (Zed/Codium/Antigravity/Code), Docker, KVM/QEMU, GPU drivers (last) |
 | `gaming`      | Minimal + power, GNOME tools, gaming packages (Steam, MangoHud, Vesktop), Flatpaks, GPU drivers (last)       |
 | `workstation` | Minimal + power, GNOME tools, packages, Flatpaks, KVM/QEMU, GPU drivers (last)                               |
-| `creator`     | Gaming + COPR tools (Yazi, Scrcpy), KVM/QEMU, GPU drivers (last)                                            |
-| `full`        | All steps: DNF, DNS, power, no-sleep, fonts, shell, codecs, COPR, GNOME, packages, dev, Code Editor, Flatpaks, Docker, KVM, GPU drivers (last) |
+| `creator`     | Gaming + Creator tools (OBS, V4L2, GStreamer, GTK4/Adwaita), Flatpaks, KVM/QEMU, GPU drivers (last)          |
+| `full`        | All steps: DNF, DNS, power, no-sleep, fonts, shell, codecs, COPR & Debian packaging, GNOME, packages, dev, Code Editor, Flatpaks, Docker, KVM, GPU drivers (last) |
 
 ---
 

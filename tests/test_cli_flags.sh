@@ -95,11 +95,11 @@ run_test "Profile workstation step count (= syntax)" 0 "of 12" --profile=worksta
 run_test "Profile workstation (space syntax)" 0 "Profile: workstation" --profile workstation -n
 run_test "Profile workstation step count (space syntax)" 0 "of 12" --profile workstation -n
 
-# Creator profile (13 steps)
+# Creator profile (12 steps)
 run_test "Profile creator (= syntax)" 0 "Profile: creator" --profile=creator -n
-run_test "Profile creator step count (= syntax)" 0 "of 13" --profile=creator -n
+run_test "Profile creator step count (= syntax)" 0 "of 12" --profile=creator -n
 run_test "Profile creator (space syntax)" 0 "Profile: creator" --profile creator -n
-run_test "Profile creator step count (space syntax)" 0 "of 13" --profile creator -n
+run_test "Profile creator step count (space syntax)" 0 "of 12" --profile creator -n
 
 # Full profile (17 steps)
 run_test "Profile full (= syntax)" 0 "Profile: full" --profile=full -n

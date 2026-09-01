@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v5.4.0] – 2026-09-01
+
+### Added
+
+- **Interactive Prompts & Decision Guidance for Niche Utilities**:
+  - **Scrcpy**: Interactive confirmation with feature summary (Android screen mirroring & control over USB/Wi-Fi) and recommendation guidance in `setup_copr`
+  - **Yazi**: Interactive confirmation with feature summary (blazing fast terminal file manager in Rust) and recommendation guidance in `setup_copr`
+  - **Vesktop**: Interactive confirmation with feature summary (Discord client with screen share audio & Vencord) and recommendation guidance in `setup_packages`
+  - **Stirling-PDF**: Interactive confirmation with feature summary (offline local web-based PDF suite) and recommendation guidance in `setup_packages`
+  - **NVIDIA Broadcast for Linux**: Interactive confirmation with feature summary (AI microphone noise suppression & speaker cleanup) and recommendation guidance in `setup_packages`
+  - **VirtIO Windows VM Guest Drivers (`virtio-win`)**: Interactive confirmation with guidance for users running Windows guest VMs in `setup_kvm`
+- **SHA256 Checksum Verification**: Added `verify_checksum()` helper function for cryptographic download integrity verification
+
+### Changed
+
+- **Profile Isolation for COPR & Debian Toolchains**:
+  - Isolated COPR repositories (`setup_copr`) exclusively to the `full` profile (removed from `creator` profile, keeping creator to a clean 12-step flow)
+  - Isolated `dpkg-dev` (Debian/Ubuntu package building toolchain) strictly to the `full` profile in `setup_dev()`
+- **Repository Cloning Optimization**: Pinned shallow `--depth 1` git clone for third-party source repos
+
+### Removed
+
+- **Android ROM / AOSP / Kernel & 32-bit Multilib Development Stack**:
+  - Removed `android-tools` from general package installation
+  - Removed AOSP ROM build dependencies (`schedtool`, `lzop`, `pngcrush`, `squashfs-tools`, `gperf`, `sdl12-compat-devel`) from `setup_dev()`
+  - Removed 32-bit multilib development libraries (`glibc-devel.i686`, `libstdc++-devel.i686`, `zlib-ng-compat-devel.i686`, `libX11-devel.i686`, `readline-devel.i686`, `ncurses-devel.i686`) from `setup_dev()`
+
+### Security
+
+- Removed insecure `trust_all_worktrees` directive from embedded Zed configuration template
+
+---
+
 ## [v5.3.0] – 2026-08-30
 
 ### Added

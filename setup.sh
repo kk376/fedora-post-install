@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fedora 44 Post-Install Setup Script
 # Author: Kushagra Kumar
-# Version: 5.3.0
+# Version: 5.4.0
 
 set -euo pipefail
 
@@ -11,7 +11,7 @@ set -euo pipefail
 DRY_RUN=false
 BACKUP_DIR="$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)"
 LOG_FILE="/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log"
-SCRIPT_VERSION="5.3.0"
+SCRIPT_VERSION="5.4.0"
 PROFILE="full"
 FORCE_RERUN=false
 # State checkpoint tracking enables idempotent step skipping and seamless resumption across driver reboots.
@@ -52,8 +52,8 @@ while [[ $# -gt 0 ]]; do
             echo "                           dev         - Complete dev stack, Docker, Antigravity, KVM"
             echo "                           gaming      - Multimedia, Steam, MangoHud, Flatpaks, GPU drivers"
             echo "                           workstation - Productive desktop, Steam, KVM, GPU drivers"
-            echo "                           creator     - Gaming + COPR tools (Yazi, Scrcpy)"
-            echo "                           full        - All steps (default)"
+            echo "                           creator     - Gaming, Creator tools, KVM, GPU drivers"
+            echo "                           full        - All steps including COPR & Debian packaging (default)"
             echo "  --force, -f            Re-run completed steps"
             echo "  --help, -h             Show this help message"
             echo ""
@@ -1207,16 +1207,32 @@ setup_drivers() {
 setup_copr() {
     log "Installing COPR packages..."
     local coprs=(
-        "zeno/scrcpy:scrcpy"
-        "lihaohong/yazi:yazi file ffmpeg 7zip jq poppler-utils fd-find ripgrep fzf zoxide resvg xclip wl-clipboard xsel ImageMagick"
+        "zeno/scrcpy:scrcpy:Scrcpy - Android Screen Mirroring & Control:Low-latency Android device screen mirroring and control over USB/Wi-Fi without root.:Install if you mirror Android devices or test mobile apps. Otherwise skip."
+        "lihaohong/yazi:yazi file ffmpeg 7zip jq poppler-utils fd-find ripgrep fzf zoxide resvg xclip wl-clipboard xsel ImageMagick:Yazi - Terminal File Manager with Rich Previews:Blazing-fast terminal file manager in Rust with async I/O and inline image/video/PDF previews.:Install if you prefer keyboard-driven terminal navigation with rich media previews. Otherwise skip."
     )
     for entry in "${coprs[@]}"; do
-        local repo="${entry%%:*}"
-        local pkgs="${entry#*:}"
-        if run_sudo dnf copr enable -y "$repo"; then
-            run_sudo dnf install -y --skip-unavailable $pkgs || warn "$pkgs install failed"
+        local repo pkgs title desc rec
+        repo="${entry%%:*}"
+        local rest="${entry#*:}"
+        pkgs="${rest%%:*}"
+        rest="${rest#*:}"
+        title="${rest%%:*}"
+        rest="${rest#*:}"
+        desc="${rest%%:*}"
+        rec="${rest#*:}"
+
+        echo ""
+        info "$title (COPR: $repo):"
+        info "  • $desc"
+        info "  • Recommendation: $rec"
+        if confirm "Enable COPR repo '$repo' and install $title?" "Y"; then
+            if run_sudo dnf copr enable -y "$repo"; then
+                run_sudo dnf install -y --skip-unavailable $pkgs || warn "$pkgs install failed"
+            else
+                warn "Failed to enable COPR repo $repo"
+            fi
         else
-            warn "Failed to enable COPR repo $repo"
+            info "Skipping $title installation"
         fi
     done
     step_complete "COPR packages installed"
@@ -1330,7 +1346,7 @@ setup_packages() {
         fd-find ripgrep fzf zoxide ruff python-unversioned-command \
         java-latest-openjdk java-latest-openjdk-devel nodejs python3 python3-pip wget htop duf sassc unzip unrar \
         p7zip p7zip-plugins ntfs-3g gparted timeshift vlc qbittorrent wl-clipboard \
-        telegram-desktop vim neovim gh android-tools libva-utils gstreamer1-plugin-openh264
+        telegram-desktop vim neovim gh libva-utils gstreamer1-plugin-openh264
     )
 
     if is_gaming_profile; then
@@ -1399,57 +1415,88 @@ EOF
         fi
     fi
 
-    if ! $DRY_RUN; then
-        local arch
-        arch=$(uname -m)
-        local fallback_url="https://github.com/Vencord/Vesktop/releases/download/v1.5.3/vesktop-1.5.3.${arch}.rpm"
-        log "Downloading Vesktop RPM..."
-        if github_download "Vencord/Vesktop" "vesktop.*\.${arch}\.rpm" "/tmp/vesktop.rpm" "$fallback_url"; then
-            if run_sudo dnf install -y /tmp/vesktop.rpm 2>/dev/null; then
-                success "Vesktop installed"
-            else
-                warn "Vesktop install failed"
-            fi
-            run rm -f /tmp/vesktop.rpm
-        else
-            warn "Failed to download Vesktop"
-            info "Manual install: https://github.com/Vencord/Vesktop/releases"
-        fi
-
-        # Stirling-PDF (Full-featured offline/desktop PDF tool suite)
-        if ! command -v stirling-pdf &>/dev/null && ! rpm -q stirling-pdf &>/dev/null; then
-            log "Installing Stirling-PDF..."
-            local stirling_rpm="/tmp/stirling-pdf.rpm"
-            local stirling_fallback="https://github.com/Stirling-Tools/Stirling-PDF/releases/latest/download/Stirling-PDF-linux-x86_64.rpm"
-            if curl -fsSL "https://files.stirlingpdf.com/linux-installer.rpm" -o "$stirling_rpm" 2>/dev/null || \
-               github_download "Stirling-Tools/Stirling-PDF" "Stirling-PDF-linux-.*\.rpm" "$stirling_rpm" "$stirling_fallback"; then
-                if run_sudo dnf install -y "$stirling_rpm" 2>/dev/null; then
-                    success "Stirling-PDF installed"
+    # Vesktop (Discord Desktop App with Vencord plugins)
+    echo ""
+    info "Vesktop (Discord Client with Vencord & Wayland Screen Audio):"
+    info "  • Custom Discord desktop app with Vencord plugins, Wayland screen share audio support, and custom themes."
+    info "  • Recommendation: Install if you use Discord on Linux. Otherwise skip."
+    if confirm "Install Vesktop?" "Y"; then
+        if ! $DRY_RUN; then
+            local arch
+            arch=$(uname -m)
+            local fallback_url="https://github.com/Vencord/Vesktop/releases/download/v1.5.3/vesktop-1.5.3.${arch}.rpm"
+            log "Downloading Vesktop RPM..."
+            if github_download "Vencord/Vesktop" "vesktop.*\.${arch}\.rpm" "/tmp/vesktop.rpm" "$fallback_url"; then
+                if run_sudo dnf install -y /tmp/vesktop.rpm 2>/dev/null; then
+                    success "Vesktop installed"
                 else
-                    warn "Stirling-PDF RPM install failed"
+                    warn "Vesktop install failed"
                 fi
-                run rm -f "$stirling_rpm"
+                run rm -f /tmp/vesktop.rpm
             else
-                warn "Could not download Stirling-PDF RPM"
+                warn "Failed to download Vesktop"
+                info "Manual install: https://github.com/Vencord/Vesktop/releases"
             fi
-        fi
-
-        # NVIDIA Broadcast for Linux (AI Noise Removal, Virtual Camera, Room Echo Removal)
-        if is_creator_profile && lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' | grep -qi nvidia; then
-            if [[ ! -d "$HOME/nvidia-broadcast-linux" || ! -f "$HOME/.local/bin/nvbroadcast" ]]; then
-                log "Installing NVIDIA Broadcast for Linux..."
-                if [[ ! -d "$HOME/nvidia-broadcast-linux" ]]; then
-                    git clone --depth 1 https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$HOME/nvidia-broadcast-linux" || true
-                fi
-                if [[ -f "$HOME/nvidia-broadcast-linux/install.sh" ]]; then
-                    (cd "$HOME/nvidia-broadcast-linux" && ./install.sh --runtime cuda) || warn "NVIDIA Broadcast install finished with warnings"
-                fi
-            fi
+        else
+            dry "Download and install Vesktop RPM from GitHub Releases"
         fi
     else
-        dry "Download and install Vesktop RPM from GitHub Releases"
-        dry "Download and install Stirling-PDF from https://files.stirlingpdf.com/linux-installer.rpm"
-        dry "Clone and install NVIDIA Broadcast for Linux (NVIDIA GPU)"
+        info "Skipping Vesktop installation"
+    fi
+
+    # Stirling-PDF (Full-featured offline/desktop PDF tool suite)
+    if ! command -v stirling-pdf &>/dev/null && ! rpm -q stirling-pdf &>/dev/null; then
+        echo ""
+        info "Stirling-PDF (Offline Desktop PDF Swiss Army Knife):"
+        info "  • Full-featured offline desktop PDF tool suite for splitting, merging, converting, OCR, signing, and editing."
+        info "  • Recommendation: Install if you work with PDF documents frequently. Otherwise skip."
+        if confirm "Install Stirling-PDF?" "Y"; then
+            if ! $DRY_RUN; then
+                log "Installing Stirling-PDF..."
+                local stirling_rpm="/tmp/stirling-pdf.rpm"
+                local stirling_fallback="https://github.com/Stirling-Tools/Stirling-PDF/releases/latest/download/Stirling-PDF-linux-x86_64.rpm"
+                if curl -fsSL "https://files.stirlingpdf.com/linux-installer.rpm" -o "$stirling_rpm" 2>/dev/null || \
+                   github_download "Stirling-Tools/Stirling-PDF" "Stirling-PDF-linux-.*\.rpm" "$stirling_rpm" "$stirling_fallback"; then
+                    if run_sudo dnf install -y "$stirling_rpm" 2>/dev/null; then
+                        success "Stirling-PDF installed"
+                    else
+                        warn "Stirling-PDF RPM install failed"
+                    fi
+                    run rm -f "$stirling_rpm"
+                else
+                    warn "Could not download Stirling-PDF RPM"
+                fi
+            else
+                dry "Download and install Stirling-PDF from https://files.stirlingpdf.com/linux-installer.rpm"
+            fi
+        else
+            info "Skipping Stirling-PDF installation"
+        fi
+    fi
+
+    # NVIDIA Broadcast for Linux (AI Noise Removal, Virtual Camera, Room Echo Removal)
+    if is_creator_profile && lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' | grep -qi nvidia; then
+        if [[ ! -d "$HOME/nvidia-broadcast-linux" || ! -f "$HOME/.local/bin/nvbroadcast" ]]; then
+            echo ""
+            info "NVIDIA Broadcast for Linux (AI Noise Removal & Virtual Camera FX):"
+            info "  • Real-time AI noise removal, room echo elimination, and virtual camera effects for NVIDIA GPUs."
+            info "  • Recommendation: Install if you stream, record, or attend meetings with an NVIDIA RTX/GTX GPU. Otherwise skip."
+            if confirm "Install NVIDIA Broadcast for Linux?" "Y"; then
+                if ! $DRY_RUN; then
+                    log "Installing NVIDIA Broadcast for Linux..."
+                    if [[ ! -d "$HOME/nvidia-broadcast-linux" ]]; then
+                        git clone --depth 1 https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$HOME/nvidia-broadcast-linux" || true
+                    fi
+                    if [[ -f "$HOME/nvidia-broadcast-linux/install.sh" ]]; then
+                        (cd "$HOME/nvidia-broadcast-linux" && ./install.sh --runtime cuda) || warn "NVIDIA Broadcast install finished with warnings"
+                    fi
+                else
+                    dry "Clone and install NVIDIA Broadcast for Linux (NVIDIA GPU)"
+                fi
+            else
+                info "Skipping NVIDIA Broadcast installation"
+            fi
+        fi
     fi
 
     step_complete "Essential packages installed"
@@ -1464,12 +1511,15 @@ setup_dev() {
     local dev_pkgs=(
         meson ninja-build automake autoconf libtool pkg-config bear
         gdb valgrind strace ltrace clang-tools-extra
-        bc bison flex gperf protobuf-compiler python3-protobuf libxml2 libxslt
-        ImageMagick git-lfs git-filter-repo gnupg dpkg-dev lzop lz4 pngcrush rsync schedtool squashfs-tools zip
+        bc bison flex protobuf-compiler python3-protobuf libxml2 libxslt
+        ImageMagick git-lfs git-filter-repo gnupg lz4 rsync zip
         python3-devel python3-virtualenv python3-wheel python3-setuptools
-        openssl-devel zlib-devel elfutils-libelf-devel elfutils-devel gnutls-devel sdl12-compat-devel
-        glibc-devel.i686 libstdc++-devel.i686 zlib-ng-compat-devel.i686 libX11-devel.i686 readline-devel.i686 ncurses-devel.i686
+        openssl-devel zlib-devel elfutils-libelf-devel elfutils-devel gnutls-devel
     )
+
+    if [[ "$PROFILE" == "full" ]]; then
+        dev_pkgs+=(dpkg-dev)
+    fi
 
     run_sudo dnf install -y --skip-unavailable "${dev_pkgs[@]}"
 
@@ -2028,11 +2078,17 @@ setup_kvm() {
     fi
 
     # VirtIO paravirtualized storage/network drivers repository for Windows guest VMs
+    echo ""
+    info "VirtIO Drivers for Windows Guest VMs:"
+    info "  • Paravirtualized storage (virtio-blk/scsi) and network (virtio-net) drivers for Windows guest VMs under KVM/QEMU."
+    info "  • Recommendation: Install if you plan to run Windows virtual machines with high performance disk/network I/O. Otherwise skip."
     if confirm "Install VirtIO drivers (required for Windows VMs)?" "Y"; then
         log "Installing VirtIO drivers..."
         run_sudo wget https://fedorapeople.org/groups/virt/virtio-win/virtio-win.repo \
             -O /etc/yum.repos.d/virtio-win.repo 2>/dev/null || warn "Failed to add virtio-win repo"
         run_sudo dnf install -y virtio-win || warn "VirtIO drivers installation failed"
+    else
+        info "Skipping VirtIO drivers installation"
     fi
 
     # Apply virtual-host tuned profile for optimized kernel dirty memory ratios and scheduler latency
@@ -2202,7 +2258,7 @@ main() {
     PROFILE_STEPS[dev]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_dev setup_editor setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[gaming]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[workstation]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_kvm setup_pre_driver_reboot setup_drivers"
-    PROFILE_STEPS[creator]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_copr setup_gnome setup_packages setup_flatpaks setup_kvm setup_pre_driver_reboot setup_drivers"
+    PROFILE_STEPS[creator]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_kvm setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[full]=""
 
     info "Profile: $PROFILE"

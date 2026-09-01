@@ -137,8 +137,8 @@ for p in "dev" "gaming" "workstation" "creator" "full"; do
     fi
 done
 
-# 2.3 COPR step is only in creator and full
-for p in "minimal" "dev" "gaming" "workstation"; do
+# 2.3 COPR step is only in full profile
+for p in "minimal" "dev" "gaming" "workstation" "creator"; do
     steps_var=$(get_steps_for_profile "$p")
     if [[ ! " $steps_var " =~ " setup_copr " ]]; then
         pass "Profile '$p' excludes setup_copr"
@@ -147,7 +147,7 @@ for p in "minimal" "dev" "gaming" "workstation"; do
     fi
 done
 
-for p in "creator" "full"; do
+for p in "full"; do
     steps_var=$(get_steps_for_profile "$p")
     if [[ " $steps_var " =~ " setup_copr " ]]; then
         pass "Profile '$p' includes setup_copr"
@@ -186,6 +186,7 @@ run_mock_setup_packages() {
         success() { :; }
         step_complete() { :; }
         backup_file() { :; }
+        confirm() { return 0; }
 
         run_sudo() {
             if [[ "$1" == "dnf" && "$2" == "install" ]]; then
@@ -372,6 +373,7 @@ run_mock_setup_copr() {
         error() { :; }
         success() { :; }
         step_complete() { :; }
+        confirm() { return 0; }
 
         run_sudo() {
             if [[ "$1" == "dnf" && "$2" == "copr" && "$3" == "enable" ]]; then
@@ -455,6 +457,7 @@ test_mangohud_content() {
         success() { :; }
         step_complete() { :; }
         backup_file() { :; }
+        confirm() { return 0; }
         run_sudo() { return 0; }
         run() { return 0; }
         flatpak() { return 1; }
@@ -560,6 +563,51 @@ if echo "$dry_dev_output" | grep -q "Prompt: Install and configure Kitty termina
     pass "Dry-run dev profile logs Kitty confirmation prompt"
 else
     fail "Dry-run dev profile missing Kitty confirmation prompt log"
+fi
+
+# ==============================================================================
+# Suite 9: AOSP/Multilib Removal & dpkg-dev Profile Isolation
+# ==============================================================================
+echo ""
+echo -e "${BLUE}--- Suite 9: AOSP/Multilib Removal & dpkg-dev Profile Isolation ---${NC}"
+
+# 9.1: Verify android-tools removed from setup_packages
+if grep -A 15 "setup_packages()" "$SETUP_SCRIPT" | grep -w "pkgs_to_install" | grep -q "android-tools"; then
+    fail "android-tools unexpectedly present in setup_packages()"
+else
+    pass "android-tools is excluded from setup_packages()"
+fi
+
+# 9.2: Verify AOSP build packages removed from setup_dev
+for aosp_pkg in "schedtool" "lzop" "pngcrush" "squashfs-tools" "gperf" "sdl12-compat-devel"; do
+    if grep -A 15 "setup_dev()" "$SETUP_SCRIPT" | grep -w "dev_pkgs" | grep -q "$aosp_pkg"; then
+        fail "AOSP package '$aosp_pkg' unexpectedly present in setup_dev()"
+    else
+        pass "AOSP package '$aosp_pkg' is excluded from setup_dev()"
+    fi
+done
+
+# 9.3: Verify 32-bit multilib packages removed from setup_dev
+for multilib_pkg in "glibc-devel.i686" "libstdc++-devel.i686" "zlib-ng-compat-devel.i686" "libX11-devel.i686" "readline-devel.i686" "ncurses-devel.i686"; do
+    if grep -A 15 "setup_dev()" "$SETUP_SCRIPT" | grep -q "$multilib_pkg"; then
+        fail "Multilib package '$multilib_pkg' unexpectedly present in setup_dev()"
+    else
+        pass "Multilib package '$multilib_pkg' is excluded from setup_dev()"
+    fi
+done
+
+# 9.4: Verify dpkg-dev is NOT in unconditional dev_pkgs list and only appended for full profile
+dev_pkgs_array=$(sed -n '/setup_dev()/,/^}/p' "$SETUP_SCRIPT" | sed -n '/local dev_pkgs=(/,/)/p')
+if echo "$dev_pkgs_array" | grep -q "dpkg-dev"; then
+    fail "dpkg-dev is unconditionally present in dev_pkgs"
+else
+    pass "dpkg-dev is not in unconditional dev_pkgs array"
+fi
+
+if grep -A 5 '\[\[ "\$PROFILE" == "full" \]\]' "$SETUP_SCRIPT" | grep -q "dev_pkgs+=(dpkg-dev)"; then
+    pass "dpkg-dev is strictly gated on PROFILE=full"
+else
+    fail "dpkg-dev is missing full profile gate in setup_dev"
 fi
 
 echo ""

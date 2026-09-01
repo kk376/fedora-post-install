@@ -140,8 +140,10 @@ WARN_MESSAGES=()
 COMPLETED=""
 
 log() { echo "LOG: \$1"; }
+info() { :; }
 warn() { echo "WARN: \$1"; }
 step_complete() { echo "STEP: \$1"; }
+confirm() { return 0; }
 run_sudo() {
     echo "SUDO: \$*"
     return 0
@@ -167,8 +169,10 @@ test_copr_enable_failure() {
     bash <<EOF
 set -u
 log() { :; }
+info() { :; }
 warn() { echo "WARN: \$1"; }
 step_complete() { echo "STEP: \$1"; }
+confirm() { return 0; }
 run_sudo() {
     local cmd="\$*"
     if [[ "\$cmd" == *"copr enable -y zeno/scrcpy"* ]]; then
@@ -365,11 +369,11 @@ for prof in minimal dev gaming workstation creator; do
     fi
 done
 
-# setup_copr must ONLY be in creator (and full by omission/default)
-if [[ "${PROFILE_STEPS[creator]}" == *"setup_copr"* ]]; then
-    pass "Profile 'creator' includes setup_copr"
+# setup_copr must ONLY be in full (and excluded from minimal, dev, gaming, workstation, creator)
+if [[ "${PROFILE_STEPS[creator]}" != *"setup_copr"* ]]; then
+    pass "Profile 'creator' excludes setup_copr"
 else
-    fail "Profile 'creator' includes setup_copr" "Steps: ${PROFILE_STEPS[creator]}"
+    fail "Profile 'creator' should NOT include setup_copr" "Steps: ${PROFILE_STEPS[creator]}"
 fi
 
 for prof in minimal dev gaming workstation; do
