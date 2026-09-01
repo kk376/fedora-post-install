@@ -17,6 +17,7 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 - **Profile-based**: six profiles so you only install what you actually need
 - **Dry-run mode**: preview everything without touching the system
 - **Backup and restore**: backs up config files before modifying them
+- **Transparent logic**: read [PSEUDOCODE.md](PSEUDOCODE.md) for a full layman explanation, visual flowcharts, and function-by-function pseudocode
 
 ---
 
@@ -176,7 +177,14 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-Each step prompts before running.
+## Architecture & Logic Breakdown
+
+Want to know exactly what the script executes under the hood before running it?
+Check out **[PSEUDOCODE.md](PSEUDOCODE.md)** for:
+- High-level design principles and safety invariants.
+- Mermaid execution lifecycle flowchart.
+- Layman breakdowns and profile comparison matrix.
+- Structured, human-readable pseudocode covering all 18 setup functions.
 
 ## Contributing
 
