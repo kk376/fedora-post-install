@@ -138,6 +138,19 @@ is_dev_profile() {
     [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]
 }
 
+verify_checksum() {
+    local file="$1" expected="$2"
+    local actual
+    actual=$(sha256sum "$file" | cut -d' ' -f1)
+    if [[ "$actual" != "$expected" ]]; then
+        log_error "Checksum mismatch for $file"
+        log_error "  Expected: $expected"
+        log_error "  Actual:   $actual"
+        return 1
+    fi
+    log_info "Checksum verified: $file"
+}
+
 # Download a release asset from GitHub with progressive JSON parser fallback (jq -> python3 -> regex).
 # Usage: github_download <owner/repo> <asset_pattern> <output_path> [fallback_url]
 # asset_pattern is a grep -E regex to match the asset filename.
@@ -1426,7 +1439,7 @@ EOF
             if [[ ! -d "$HOME/nvidia-broadcast-linux" || ! -f "$HOME/.local/bin/nvbroadcast" ]]; then
                 log "Installing NVIDIA Broadcast for Linux..."
                 if [[ ! -d "$HOME/nvidia-broadcast-linux" ]]; then
-                    git clone https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$HOME/nvidia-broadcast-linux" || true
+                    git clone --depth 1 https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$HOME/nvidia-broadcast-linux" || true
                 fi
                 if [[ -f "$HOME/nvidia-broadcast-linux/install.sh" ]]; then
                     (cd "$HOME/nvidia-broadcast-linux" && ./install.sh --runtime cuda) || warn "NVIDIA Broadcast install finished with warnings"
@@ -1604,9 +1617,7 @@ setup_editor() {
     "dock": "left"
   },
   "icon_theme": "Catppuccin Mocha",
-  "session": {
-    "trust_all_worktrees": true
-  },
+  "session": {},
   "terminal": {
     "font_size": 15.0,
     "font_family": "FiraCode Nerd Font"
