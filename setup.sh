@@ -1518,7 +1518,14 @@ setup_dev() {
     )
 
     if [[ "$PROFILE" == "full" ]]; then
-        dev_pkgs+=(dpkg-dev)
+        dev_pkgs+=(
+            dpkg-dev
+            libX11-devel
+            libxkbcommon-x11-devel
+            libxcb-devel
+            fontconfig-devel
+            alsa-lib-devel
+        )
     fi
 
     run_sudo dnf install -y --skip-unavailable "${dev_pkgs[@]}"
