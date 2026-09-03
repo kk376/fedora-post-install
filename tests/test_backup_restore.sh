@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2317,SC2034,SC2155,SC2012,SC1090
 # ==============================================================================
 # Unit & Integration Tests: Backup & Restore Subsystem
 # Target: /home/kk376/code/fedora-post-install/setup.sh

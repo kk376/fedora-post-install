@@ -285,7 +285,7 @@ restore_backups() {
     elif compgen -G "$latest_backup/*/*" >/dev/null; then
         while IFS= read -r -d '' bfile; do
             [[ "$(basename "$bfile")" == ".manifest" ]] && continue
-            local rel_path="${bfile#$latest_backup/}"
+            local rel_path="${bfile#"$latest_backup"/}"
             local orig="/$rel_path"
 
             if $DRY_RUN; then
@@ -635,8 +635,12 @@ setup_shell() {
     if ! $DRY_RUN; then
         mkdir -p "$HOME/.zsh/plugins" "$HOME/.config"
 
-        [[ ! -d "$HOME/.zsh/plugins/zsh-autosuggestions" ]] && run git clone --depth=1 --branch v0.7.1 https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/plugins/zsh-autosuggestions" 2>/dev/null || true
-        [[ ! -d "$HOME/.zsh/plugins/zsh-syntax-highlighting" ]] && run git clone --depth=1 --branch 0.8.0 https://github.com/zsh-users/zsh-syntax-highlighting "$HOME/.zsh/plugins/zsh-syntax-highlighting" 2>/dev/null || true
+        if [[ ! -d "$HOME/.zsh/plugins/zsh-autosuggestions" ]]; then
+            run git clone --depth=1 --branch v0.7.1 https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/plugins/zsh-autosuggestions" 2>/dev/null || true
+        fi
+        if [[ ! -d "$HOME/.zsh/plugins/zsh-syntax-highlighting" ]]; then
+            run git clone --depth=1 --branch 0.8.0 https://github.com/zsh-users/zsh-syntax-highlighting "$HOME/.zsh/plugins/zsh-syntax-highlighting" 2>/dev/null || true
+        fi
 
         backup_file "$HOME/.config/starship.toml"
         cat > "$HOME/.config/starship.toml" <<'STARSHIP_CONFIG'
@@ -2271,7 +2275,8 @@ setup_kvm() {
 # Summary
 # ==============================================================================
 show_summary() {
-    local end_time=$(date +%s)
+    local end_time
+    end_time=$(date +%s)
     local duration=$((end_time - START_TIME))
     local mins=$((duration / 60)) secs=$((duration % 60))
 
@@ -2395,7 +2400,7 @@ main() {
     local filtered_steps=()
     for step in "${steps[@]}"; do
         IFS=':' read -r func _ <<< "$step"
-        if [[ -z "${PROFILE_STEPS[$PROFILE]}" ]] || [[ " ${PROFILE_STEPS[$PROFILE]} " =~ " $func " ]]; then
+        if [[ -z "${PROFILE_STEPS[$PROFILE]}" ]] || [[ " ${PROFILE_STEPS[$PROFILE]} " == *" $func "* ]]; then
             filtered_steps+=("$step")
         fi
     done
@@ -2443,7 +2448,9 @@ main() {
 }
 
 cleanup() {
-    [[ -n "${SUDO_PID:-}" ]] && kill "$SUDO_PID" 2>/dev/null || true
+    if [[ -n "${SUDO_PID:-}" ]]; then
+        kill "$SUDO_PID" 2>/dev/null || true
+    fi
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

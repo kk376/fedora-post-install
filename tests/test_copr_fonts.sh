@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016,SC2088
 # ==============================================================================
 # Test Suite: COPR & Fonts Subsystem (setup_copr & setup_fonts)
 # Covers:
@@ -112,7 +113,7 @@ required_yazi_deps=(
 )
 
 for dep in "${required_yazi_deps[@]}"; do
-    if [[ " $yazi_pkgs " =~ " $dep " ]]; then
+    if [[ " $yazi_pkgs " == *" $dep "* ]]; then
         pass "Yazi dependency list contains '$dep'"
     else
         fail "Yazi dependency list contains '$dep'" "Missing from: $yazi_pkgs"

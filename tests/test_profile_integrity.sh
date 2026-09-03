@@ -20,7 +20,7 @@ assert_eq() {
 
 assert_contains() {
     local label="$1" needle="$2" haystack="$3"
-    if [[ " $haystack " =~ " $needle " ]]; then
+    if [[ " $haystack " == *" $needle "* ]]; then
         echo "  [PASS] $label"
         PASSED=$((PASSED + 1))
     else
@@ -31,7 +31,7 @@ assert_contains() {
 
 assert_not_contains() {
     local label="$1" needle="$2" haystack="$3"
-    if [[ ! " $haystack " =~ " $needle " ]]; then
+    if [[ " $haystack " != *" $needle "* ]]; then
         echo "  [PASS] $label"
         PASSED=$((PASSED + 1))
     else
@@ -114,7 +114,7 @@ echo ""
 echo "--- 2. Testing Driver Steps Order Across All Profiles ---"
 for p in "${ALL_PROFILES[@]}"; do
     actual_steps=$(get_profile_steps "$p")
-    steps_arr=($actual_steps)
+    read -r -a steps_arr <<< "$actual_steps"
     total=${#steps_arr[@]}
     
     second_to_last="${steps_arr[$((total - 2))]}"

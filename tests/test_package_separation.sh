@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2016
 # Test Suite for Package & App Separation
 # Tests package distribution in setup_packages and setup_copr in setup.sh:
 # 1. steam, mangohud, Steam H264 unlock, and MangoHud config profile gating
@@ -108,11 +109,6 @@ get_steps_for_profile() {
 }
 
 minimal_steps=$(get_steps_for_profile "minimal")
-dev_steps=$(get_steps_for_profile "dev")
-gaming_steps=$(get_steps_for_profile "gaming")
-workstation_steps=$(get_steps_for_profile "workstation")
-creator_steps=$(get_steps_for_profile "creator")
-full_steps=$(get_steps_for_profile "full")
 
 # 2.1 minimal skips setup_packages and setup_copr
 if [[ ! " $minimal_steps " =~ " setup_packages " ]]; then
@@ -147,14 +143,13 @@ for p in "minimal" "dev" "gaming" "workstation" "creator"; do
     fi
 done
 
-for p in "full"; do
-    steps_var=$(get_steps_for_profile "$p")
-    if [[ " $steps_var " =~ " setup_copr " ]]; then
-        pass "Profile '$p' includes setup_copr"
-    else
-        fail "Profile '$p' missing setup_copr"
-    fi
-done
+p="full"
+steps_var=$(get_steps_for_profile "$p")
+if [[ " $steps_var " =~ " setup_copr " ]]; then
+    pass "Profile '$p' includes setup_copr"
+else
+    fail "Profile '$p' missing setup_copr"
+fi
 
 # ==============================================================================
 # Suite 3: Mock Execution Tests for setup_packages

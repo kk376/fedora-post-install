@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC1090,SC2181,SC2016,SC2034
 # Test Suite for setup.sh Helper Functions
 # Covers: set_zshrc_line, github_download, check_disk_space, confirm
 set -u
