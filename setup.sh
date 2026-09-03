@@ -3,74 +3,75 @@
 # Author: Kushagra Kumar
 # Version: 5.4.0
 
-set -euo pipefail
-
 # ==============================================================================
 # Configuration & Flags
 # ==============================================================================
-DRY_RUN=false
-BACKUP_DIR="$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)"
-LOG_FILE="/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log"
-SCRIPT_VERSION="5.4.0"
-PROFILE="full"
-FORCE_RERUN=false
+: "${DRY_RUN:=false}"
+: "${BACKUP_DIR:=$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)}"
+: "${LOG_FILE:=/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log}"
+: "${SCRIPT_VERSION:=5.4.0}"
+: "${PROFILE:=full}"
+: "${FORCE_RERUN:=false}"
 # State checkpoint tracking enables idempotent step skipping and seamless resumption across driver reboots.
-STATE_FILE="$HOME/.config/fedora-setup/state.txt"
+: "${STATE_FILE:=$HOME/.config/fedora-setup/state.txt}"
+: "${SUDO_PID:=}"
 
 # Parse command line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --dry-run|-n)
-            DRY_RUN=true
-            shift
-            ;;
-        --profile=*)
-            PROFILE="${1#*=}"
-            shift
-            ;;
-        --profile)
-            if [[ $# -lt 2 ]]; then
-                echo "Error: Option --profile requires an argument." >&2
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --dry-run|-n)
+                DRY_RUN=true
+                shift
+                ;;
+            --profile=*)
+                PROFILE="${1#*=}"
+                shift
+                ;;
+            --profile)
+                if [[ $# -lt 2 ]]; then
+                    echo "Error: Option --profile requires an argument." >&2
+                    exit 1
+                fi
+                PROFILE="$2"
+                shift 2
+                ;;
+            --force|-f)
+                FORCE_RERUN=true
+                shift
+                ;;
+            --help|-h)
+                echo "Fedora 44 Post-Install Setup Script v${SCRIPT_VERSION}"
+                echo ""
+                echo "Usage: $0 [OPTIONS]"
+                echo ""
+                echo "Options:"
+                echo "  --dry-run, -n          Preview changes without executing"
+                echo "  --profile=PROFILE      Choose setup profile:"
+                echo "                           minimal     - DNF, DNS, fonts, shell, browser/codecs"
+                echo "                           dev         - Complete dev stack, Docker, Antigravity, KVM"
+                echo "                           gaming      - Multimedia, Steam, MangoHud, Flatpaks, GPU drivers"
+                echo "                           workstation - Productive desktop, Steam, KVM, GPU drivers"
+                echo "                           creator     - Gaming, Creator tools, KVM, GPU drivers"
+                echo "                           full        - All steps including COPR & Debian packaging (default)"
+                echo "  --force, -f            Re-run completed steps"
+                echo "  --help, -h             Show this help message"
+                echo ""
+                exit 0
+                ;;
+            *)
+                echo "Unknown option: $1"
                 exit 1
-            fi
-            PROFILE="$2"
-            shift 2
-            ;;
-        --force|-f)
-            FORCE_RERUN=true
-            shift
-            ;;
-        --help|-h)
-            echo "Fedora 44 Post-Install Setup Script v${SCRIPT_VERSION}"
-            echo ""
-            echo "Usage: $0 [OPTIONS]"
-            echo ""
-            echo "Options:"
-            echo "  --dry-run, -n          Preview changes without executing"
-            echo "  --profile=PROFILE      Choose setup profile:"
-            echo "                           minimal     - DNF, DNS, fonts, shell, browser/codecs"
-            echo "                           dev         - Complete dev stack, Docker, Antigravity, KVM"
-            echo "                           gaming      - Multimedia, Steam, MangoHud, Flatpaks, GPU drivers"
-            echo "                           workstation - Productive desktop, Steam, KVM, GPU drivers"
-            echo "                           creator     - Gaming, Creator tools, KVM, GPU drivers"
-            echo "                           full        - All steps including COPR & Debian packaging (default)"
-            echo "  --force, -f            Re-run completed steps"
-            echo "  --help, -h             Show this help message"
-            echo ""
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            exit 1
-            ;;
-    esac
-done
+                ;;
+        esac
+    done
 
-# Validate profile
-case "$PROFILE" in
-    minimal|dev|gaming|workstation|creator|full) ;;
-    *) echo "Unknown profile: $PROFILE (use minimal, dev, gaming, workstation, creator, or full)"; exit 1 ;;
-esac
+    # Validate profile
+    case "$PROFILE" in
+        minimal|dev|gaming|workstation|creator|full) ;;
+        *) echo "Unknown profile: $PROFILE (use minimal, dev, gaming, workstation, creator, or full)"; exit 1 ;;
+    esac
+}
 
 # Colors
 GREEN='\033[0;32m'
@@ -78,9 +79,6 @@ BLUE='\033[0;34m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
-
-# Enable logging to file
-exec > >(tee -a "$LOG_FILE") 2>&1
 
 # Logging functions
 log() { echo -e "${BLUE}[SETUP]${NC} $1"; }
@@ -136,6 +134,19 @@ is_creator_profile() {
 
 is_dev_profile() {
     [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]
+}
+
+set_zshrc_line() {
+    local pattern="$1" desired="$2"
+    grep -qxF "$desired" "$HOME/.zshrc" 2>/dev/null && return 0
+    if grep -qE "$pattern" "$HOME/.zshrc" 2>/dev/null; then
+        PAT="$pattern" REPL="$desired" awk '
+            BEGIN { pat = ENVIRON["PAT"]; repl = ENVIRON["REPL"] }
+            $0 ~ pat { print repl; next }
+            { print }
+        ' "$HOME/.zshrc" > "$HOME/.zshrc.tmp" && mv "$HOME/.zshrc.tmp" "$HOME/.zshrc"
+    fi
+    grep -qxF "$desired" "$HOME/.zshrc" 2>/dev/null || echo "$desired" >> "$HOME/.zshrc"
 }
 
 verify_checksum() {
@@ -236,6 +247,7 @@ backup_file() {
 # Purges STATE_FILE upon restoration to force full step re-evaluation on subsequent runs.
 restore_backups() {
     local latest_backup
+    # shellcheck disable=SC2012
     latest_backup=$(ls -td ~/.config/fedora-setup-backups/*/ 2>/dev/null | head -1 || true)
     if [[ -z "$latest_backup" ]]; then
         warn "No backups found"
@@ -413,14 +425,7 @@ show_versions() {
     done
 }
 
-# Refresh sudo timestamp in background subshell loop to prevent auth expiry during long DNF or compilation tasks.
-# Loop terminates automatically when parent script process ($$) exits.
-SUDO_PID=""
-if ! $DRY_RUN; then
-    sudo -v || { error "Requires sudo"; exit 1; }
-    while true; do sudo -n true; sleep 60; kill -0 "$$" 2>/dev/null || exit; done &
-    SUDO_PID=$!
-fi
+
 
 # ==============================================================================
 # DNF Configuration
@@ -615,15 +620,23 @@ setup_shell() {
     if ! command -v starship &>/dev/null && ! $DRY_RUN; then
         if ! run_sudo dnf install -y --skip-unavailable starship 2>/dev/null; then
             log "Installing Starship via official installer..."
-            curl -sS https://starship.rs/install.sh | sh -s -- -y >/dev/null 2>&1 || true
+            local starship_installer
+            starship_installer=$(mktemp /tmp/starship-install-XXXXXX.sh)
+            if curl -fsSL https://starship.rs/install.sh -o "$starship_installer"; then
+                sh "$starship_installer" -y >/dev/null 2>&1 || true
+                rm -f "$starship_installer"
+            else
+                warn "Failed to download Starship installer"
+                rm -f "$starship_installer"
+            fi
         fi
     fi
 
     if ! $DRY_RUN; then
         mkdir -p "$HOME/.zsh/plugins" "$HOME/.config"
 
-        [[ ! -d "$HOME/.zsh/plugins/zsh-autosuggestions" ]] && run git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/plugins/zsh-autosuggestions" 2>/dev/null || true
-        [[ ! -d "$HOME/.zsh/plugins/zsh-syntax-highlighting" ]] && run git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting "$HOME/.zsh/plugins/zsh-syntax-highlighting" 2>/dev/null || true
+        [[ ! -d "$HOME/.zsh/plugins/zsh-autosuggestions" ]] && run git clone --depth=1 --branch v0.7.1 https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/plugins/zsh-autosuggestions" 2>/dev/null || true
+        [[ ! -d "$HOME/.zsh/plugins/zsh-syntax-highlighting" ]] && run git clone --depth=1 --branch 0.8.0 https://github.com/zsh-users/zsh-syntax-highlighting "$HOME/.zsh/plugins/zsh-syntax-highlighting" 2>/dev/null || true
 
         backup_file "$HOME/.config/starship.toml"
         cat > "$HOME/.config/starship.toml" <<'STARSHIP_CONFIG'
@@ -1291,6 +1304,7 @@ setup_copr() {
         info "  • Recommendation: $rec"
         if confirm "Enable COPR repo '$repo' and install $title?" "Y"; then
             if run_sudo dnf copr enable -y "$repo"; then
+                # shellcheck disable=SC2086
                 run_sudo dnf install -y --skip-unavailable $pkgs || warn "$pkgs install failed"
             else
                 warn "Failed to enable COPR repo $repo"
@@ -1560,7 +1574,7 @@ EOF
                 if ! $DRY_RUN; then
                     log "Installing NVIDIA Broadcast for Linux..."
                     if [[ ! -d "$HOME/nvidia-broadcast-linux" ]]; then
-                        git clone --depth 1 https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$HOME/nvidia-broadcast-linux" || true
+                        git clone --depth 1 --branch v1.5.2 https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$HOME/nvidia-broadcast-linux" || true
                     fi
                     if [[ -f "$HOME/nvidia-broadcast-linux/install.sh" ]]; then
                         (cd "$HOME/nvidia-broadcast-linux" && ./install.sh --runtime cuda) || warn "NVIDIA Broadcast install finished with warnings"
@@ -1728,10 +1742,18 @@ setup_editor() {
             log "Installing and configuring Zed Editor (Recommended)..."
             if ! $DRY_RUN; then
                 if ! command -v zed &>/dev/null; then
-                    if curl -fsSL https://zed.dev/install.sh | bash 2>/dev/null; then
-                        success "Zed installed via official installer script"
+                    local zed_installer
+                    zed_installer=$(mktemp /tmp/zed-install-XXXXXX.sh)
+                    if curl -fsSL https://zed.dev/install.sh -o "$zed_installer"; then
+                        if bash "$zed_installer" 2>/dev/null; then
+                            success "Zed installed via official installer script"
+                        else
+                            warn "Zed installation failed - install manually from https://zed.dev"
+                        fi
+                        rm -f "$zed_installer"
                     else
-                        warn "Zed installation failed - install manually from https://zed.dev"
+                        warn "Failed to download Zed installer from https://zed.dev"
+                        rm -f "$zed_installer"
                     fi
                 fi
 
@@ -1945,8 +1967,16 @@ VSCODIUM_SETTINGS
             log "Installing and configuring Google Antigravity IDE..."
             if ! $DRY_RUN; then
                 if ! command -v agy &>/dev/null; then
-                    curl -fsSL https://antigravity.google/cli/install.sh | bash 2>/dev/null || \
-                        warn "Antigravity install failed - try manually: curl -fsSL https://antigravity.google/cli/install.sh | bash"
+                    local agy_installer
+                    agy_installer=$(mktemp /tmp/agy-install-XXXXXX.sh)
+                    if curl -fsSL https://antigravity.google/cli/install.sh -o "$agy_installer"; then
+                        bash "$agy_installer" 2>/dev/null || \
+                            warn "Antigravity install failed - try manually: curl -fsSL https://antigravity.google/cli/install.sh | bash"
+                        rm -f "$agy_installer"
+                    else
+                        warn "Failed to download Antigravity installer from https://antigravity.google/cli/install.sh"
+                        rm -f "$agy_installer"
+                    fi
                 fi
                 mkdir -p "$HOME/.config/antigravity" "$HOME/.config/Code/User" "$HOME/.config/VSCodium/User"
                 for target_dir in "$HOME/.config/antigravity" "$HOME/.config/Code/User" "$HOME/.config/VSCodium/User"; do
@@ -2276,6 +2306,19 @@ show_summary() {
 # Main
 # ==============================================================================
 main() {
+    parse_args "$@"
+
+    # Enable logging to file only during active execution
+    exec > >(tee -a "$LOG_FILE") 2>&1
+
+    # Refresh sudo timestamp in background subshell loop to prevent auth expiry during long DNF or compilation tasks.
+    # Loop terminates automatically when parent script process ($$) exits.
+    if ! $DRY_RUN; then
+        sudo -v || { error "Requires sudo"; exit 1; }
+        while true; do sudo -n true; sleep 60; kill -0 "$$" 2>/dev/null || exit; done &
+        SUDO_PID=$!
+    fi
+
     if $DRY_RUN; then
         echo -e "\033[0;35m========================================${NC}"
         echo -e "\033[0;35m   DRY-RUN MODE - No changes will be made${NC}"
@@ -2370,12 +2413,19 @@ main() {
         echo ""
         echo -e "${BLUE}Step: $name${NC}"
         if confirm "Run this step?" "Y"; then
-            if $func; then
+            local step_status=0
+            (
+                set -eo pipefail
+                $func
+            ) || step_status=$?
+
+            if [[ $step_status -eq 0 ]]; then
                 if ! $DRY_RUN; then
                     mark_step_completed "$func"
                 fi
+                COMPLETED_STEPS=$((COMPLETED_STEPS + 1))
             else
-                warn "$name had issues"
+                warn "$name had issues (exit status: $step_status)"
                 FAILED_STEPS=$((FAILED_STEPS + 1))
             fi
         else
@@ -2393,8 +2443,12 @@ main() {
 }
 
 cleanup() {
-    [[ -n "$SUDO_PID" ]] && kill "$SUDO_PID" 2>/dev/null || true
+    [[ -n "${SUDO_PID:-}" ]] && kill "$SUDO_PID" 2>/dev/null || true
 }
-trap 'echo -e "\n${RED}Interrupted${NC}"; cleanup; exit 1' INT TERM
-trap cleanup EXIT
-main "$@"
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    set -euo pipefail
+    trap 'echo -e "\n${RED}Interrupted${NC}"; cleanup; exit 1' INT TERM
+    trap cleanup EXIT
+    main "$@"
+fi

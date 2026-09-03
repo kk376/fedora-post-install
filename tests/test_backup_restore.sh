@@ -36,12 +36,9 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Extract functions directly from setup.sh
+# Sourcing helper and backup/restore functions directly from setup.sh
 setup_extracted_functions() {
-    local fn_file="$TEST_TMP_DIR/extracted_fns.sh"
-    # Extract helper and backup/restore functions up to check_network
-    sed -n '/^# Logging functions/,/^check_network()/p' "$SETUP_SCRIPT" | sed '$d' > "$fn_file"
-    source "$fn_file"
+    source "$SETUP_SCRIPT"
 }
 
 # ==============================================================================

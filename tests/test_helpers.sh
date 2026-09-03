@@ -8,111 +8,24 @@ PASSED=0
 FAILED=0
 
 pass() {
-    ((TOTAL++))
-    ((PASSED++))
+    TOTAL=$((TOTAL + 1))
+    PASSED=$((PASSED + 1))
     echo "  [PASS] $1"
 }
 
 fail() {
-    ((TOTAL++))
-    ((FAILED++))
+    TOTAL=$((TOTAL + 1))
+    FAILED=$((FAILED + 1))
     echo "  [FAIL] $1"
     [[ -n "${2:-}" ]] && echo "         Detail: $2"
 }
 
 # ==============================================================================
-# Helper Functions Defined as in setup.sh
+# Sourcing Helper Functions from setup.sh (guarded by BASH_SOURCE)
 # ==============================================================================
-DRY_RUN=false
-log() { echo -e "[SETUP] $1"; }
-success() { echo -e "[OK] $1"; }
-warn() { echo -e "[WARN] $1"; }
-error() { echo -e "[ERROR] $1"; }
-info() { echo -e "[INFO] $1"; }
-dry() { echo -e "[DRY-RUN] Would execute: $1"; }
-
-github_download() {
-    local repo="$1" pattern="$2" output="$3" fallback="${4:-}"
-    local api_url="https://api.github.com/repos/$repo/releases/latest"
-    local download_url=""
-    local api_response
-
-    api_response=$(curl -sfL --max-time 10 "$api_url" 2>/dev/null)
-    if [[ -n "$api_response" ]]; then
-        if command -v jq &>/dev/null; then
-            download_url=$(echo "$api_response" | jq -r ".assets[] | select(.name | test(\"$pattern\")) | .browser_download_url" 2>/dev/null | head -1)
-        else
-            download_url=$(echo "$api_response" | grep -oP '"browser_download_url":\s*"\K[^"]*' | grep -E "$pattern" | head -1)
-        fi
-    fi
-
-    [[ -z "$download_url" ]] && download_url="$fallback"
-
-    if [[ -n "$download_url" ]]; then
-        curl -fL --max-time 120 -o "$output" "$download_url" 2>/dev/null
-        return $?
-    fi
-    return 1
-}
-
-set_zshrc_line() {
-    local pattern="$1" desired="$2"
-    grep -qxF "$desired" "$HOME/.zshrc" 2>/dev/null && return 0
-    if grep -qE "$pattern" "$HOME/.zshrc" 2>/dev/null; then
-        PAT="$pattern" REPL="$desired" awk '
-            BEGIN { pat = ENVIRON["PAT"]; repl = ENVIRON["REPL"] }
-            $0 ~ pat { print repl; next }
-            { print }
-        ' "$HOME/.zshrc" > "$HOME/.zshrc.tmp" && mv "$HOME/.zshrc.tmp" "$HOME/.zshrc"
-    fi
-    grep -qxF "$desired" "$HOME/.zshrc" 2>/dev/null || echo "$desired" >> "$HOME/.zshrc"
-}
-
-confirm() {
-    local prompt="$1" default="${2:-N}" yn
-    if $DRY_RUN; then
-        if [[ "$default" == "Y" ]]; then
-            dry "Prompt: $prompt (auto-yes in dry-run)"
-            return 0
-        else
-            dry "Prompt: $prompt (auto-no in dry-run)"
-            return 1
-        fi
-    fi
-    if [[ "$default" == "Y" ]]; then
-        read -p "$prompt (Y/n): " -n 1 -r yn || yn=""
-    else
-        read -p "$prompt (y/N): " -n 1 -r yn || yn=""
-    fi
-    echo >&2
-    if [[ "$default" == "Y" ]]; then
-        [[ -z "$yn" || "$yn" =~ ^[Yy]$ ]]
-    else
-        [[ "$yn" =~ ^[Yy]$ ]]
-    fi
-}
-
-check_disk_space() {
-    local required_gb=${1:-20}
-    local target_dir=${2:-$HOME}
-    local available_gb
-    available_gb=$(df -BG "$target_dir" 2>/dev/null | awk 'NR==2 {print $4}' | sed 's/G//')
-
-    if [[ -z "$available_gb" ]]; then
-        warn "Could not determine free disk space for $target_dir - skipping check"
-        return 0
-    fi
-
-    if (( available_gb < required_gb )); then
-        warn "Low disk space: ${available_gb}GB available (${required_gb}GB recommended)"
-        if ! confirm "Continue anyway?" "N"; then
-            error "Aborting due to low disk space"
-            exit 1
-        fi
-    else
-        info "Disk space OK: ${available_gb}GB available"
-    fi
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SETUP_SCRIPT="${SCRIPT_DIR}/setup.sh"
+source "$SETUP_SCRIPT"
 
 # Sandboxing
 TEST_DIR=$(mktemp -d)
@@ -478,7 +391,42 @@ else
     fail "Default omitted failed"
 fi
 
+# ==============================================================================
+# Suite 5: verify_checksum Tests
+# ==============================================================================
+echo "=== Suite 5: verify_checksum ==="
+
+test_chk_file="$TEST_DIR/test_checksum.txt"
+echo "hello world" > "$test_chk_file"
+expected_chk_hash=$(sha256sum "$test_chk_file" | cut -d' ' -f1)
+
+# 5.1 Valid checksum returns 0
+if verify_checksum "$test_chk_file" "$expected_chk_hash" >/dev/null 2>&1; then
+    pass "Valid checksum matches and returns 0"
+else
+    fail "Valid checksum check failed"
+fi
+
+# 5.2 Mismatched checksum returns 1
+bad_chk_hash="0000000000000000000000000000000000000000000000000000000000000000"
+if verify_checksum "$test_chk_file" "$bad_chk_hash" >/dev/null 2>&1; then
+    fail "Mismatched checksum unexpectedly returned 0"
+else
+    pass "Mismatched checksum returns 1"
+fi
+
+# 5.3 Non-existent file returns 1
+if verify_checksum "$TEST_DIR/nonexistent_file.rpm" "$expected_chk_hash" >/dev/null 2>&1; then
+    fail "Nonexistent file unexpectedly returned 0"
+else
+    pass "Nonexistent file returns 1"
+fi
+
 echo ""
 echo "=============================================================================="
 echo "Final Summary: Total: $TOTAL, Passed: $PASSED, Failed: $FAILED"
 echo "=============================================================================="
+
+if [[ $FAILED -gt 0 ]]; then
+    exit 1
+fi
