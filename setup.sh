@@ -141,21 +141,26 @@ is_dev_profile() {
 verify_checksum() {
     local file="$1" expected="$2"
     local actual
-    actual=$(sha256sum "$file" | cut -d' ' -f1)
-    if [[ "$actual" != "$expected" ]]; then
-        log_error "Checksum mismatch for $file"
-        log_error "  Expected: $expected"
-        log_error "  Actual:   $actual"
+    if [[ ! -f "$file" ]]; then
+        error "File not found for checksum verification: $file"
         return 1
     fi
-    log_info "Checksum verified: $file"
+    actual=$(sha256sum "$file" | cut -d' ' -f1)
+    if [[ "$actual" != "$expected" ]]; then
+        error "Checksum mismatch for $file"
+        error "  Expected: $expected"
+        error "  Actual:   $actual"
+        return 1
+    fi
+    info "Checksum verified: $file"
+    return 0
 }
 
 # Download a release asset from GitHub with progressive JSON parser fallback (jq -> python3 -> regex).
-# Usage: github_download <owner/repo> <asset_pattern> <output_path> [fallback_url]
+# Usage: github_download <owner/repo> <asset_pattern> <output_path> [fallback_url] [expected_sha256]
 # asset_pattern is a grep -E regex to match the asset filename.
 github_download() {
-    local repo="$1" pattern="$2" output="$3" fallback="${4:-}"
+    local repo="$1" pattern="$2" output="$3" fallback="${4:-}" expected_sha256="${5:-}"
     local api_url="https://api.github.com/repos/$repo/releases/latest"
     local download_url=""
     local api_response
@@ -188,24 +193,42 @@ except Exception:
     [[ -z "$download_url" ]] && download_url="$fallback"
 
     if [[ -n "$download_url" ]]; then
-        curl -fL --max-time 120 -o "$output" "$download_url" 2>/dev/null
-        return $?
+        if curl -fL --max-time 120 -o "$output" "$download_url" 2>/dev/null; then
+            if [[ -n "$expected_sha256" ]]; then
+                if ! verify_checksum "$output" "$expected_sha256"; then
+                    rm -f "$output"
+                    return 1
+                fi
+            fi
+            return 0
+        fi
     fi
     return 1
 }
 
-# Backup a file before modifying
+# Backup a file before modifying (preserves directory hierarchy to avoid basename collisions)
 backup_file() {
     local file="$1"
     if [[ -f "$file" ]]; then
+        local abs_file
+        if [[ "$file" = /* ]]; then
+            abs_file="$file"
+        else
+            abs_file="$(pwd)/$file"
+        fi
+        local rel_path="${abs_file#/}"
+        local backup_path="$BACKUP_DIR/$rel_path"
+
         if $DRY_RUN; then
-            dry "Backup: $file → $BACKUP_DIR/$(basename "$file").backup"
+            dry "Backup: $file → $backup_path"
             return 0
         fi
+        mkdir -p "$(dirname "$backup_path")"
+        cp -p "$abs_file" "$backup_path"
         mkdir -p "$BACKUP_DIR"
-        local backup_name=$(basename "$file").backup
-        cp "$file" "$BACKUP_DIR/$backup_name"
-        info "Backed up: $file → $BACKUP_DIR/$backup_name"
+        echo "$abs_file" >> "$BACKUP_DIR/.manifest"
+        sort -u "$BACKUP_DIR/.manifest" -o "$BACKUP_DIR/.manifest"
+        info "Backed up: $file → $backup_path"
     fi
 }
 
@@ -225,35 +248,76 @@ restore_backups() {
         return 0
     fi
 
-    local originals=(
-        "$HOME/.zshrc"
-        "$HOME/.bashrc"
-        "/etc/dnf/dnf.conf"
-        "$HOME/.config/MangoHud/MangoHud.conf"
-        "$HOME/.config/starship.toml"
-        "$HOME/.config/kitty/kitty.conf"
-    )
+    if [[ -f "$latest_backup/.manifest" ]]; then
+        while IFS= read -r orig; do
+            [[ -z "$orig" ]] && continue
+            local rel_path="${orig#/}"
+            local backup_path="$latest_backup/$rel_path"
 
-    for orig in "${originals[@]}"; do
-        local name backup_path
-        name="$(basename "$orig")"
-        backup_path="$latest_backup/$name.backup"
+            if [[ ! -f "$backup_path" ]]; then
+                warn "No backup for $orig at $backup_path"
+                continue
+            fi
 
-        if [[ ! -f "$backup_path" ]]; then
-            warn "No backup for $orig"
-            continue
-        fi
+            if $DRY_RUN; then
+                dry "cp $backup_path $orig"
+            elif [[ "$orig" == /etc/* ]]; then
+                run_sudo cp "$backup_path" "$orig"
+                success "Restored: $orig"
+            else
+                mkdir -p "$(dirname "$orig")"
+                cp "$backup_path" "$orig"
+                success "Restored: $orig"
+            fi
+        done < "$latest_backup/.manifest"
+    elif compgen -G "$latest_backup/*/*" >/dev/null; then
+        while IFS= read -r -d '' bfile; do
+            [[ "$(basename "$bfile")" == ".manifest" ]] && continue
+            local rel_path="${bfile#$latest_backup/}"
+            local orig="/$rel_path"
 
-        if $DRY_RUN; then
-            dry "cp $backup_path $orig"
-        elif [[ "$orig" == /etc/* ]]; then
-            run_sudo cp "$backup_path" "$orig"
-            success "Restored: $orig"
-        else
-            cp "$backup_path" "$orig"
-            success "Restored: $orig"
-        fi
-    done
+            if $DRY_RUN; then
+                dry "cp $bfile $orig"
+            elif [[ "$orig" == /etc/* ]]; then
+                run_sudo cp "$bfile" "$orig"
+                success "Restored: $orig"
+            else
+                mkdir -p "$(dirname "$orig")"
+                cp "$bfile" "$orig"
+                success "Restored: $orig"
+            fi
+        done < <(find "$latest_backup" -mindepth 2 -type f -print0)
+    else
+        # Legacy flat backup fallback (.backup files in root of backup dir)
+        local originals=(
+            "$HOME/.zshrc"
+            "$HOME/.bashrc"
+            "/etc/dnf/dnf.conf"
+            "$HOME/.config/MangoHud/MangoHud.conf"
+            "$HOME/.config/starship.toml"
+            "$HOME/.config/kitty/kitty.conf"
+        )
+
+        for orig in "${originals[@]}"; do
+            local name backup_path
+            name="$(basename "$orig")"
+            backup_path="$latest_backup/$name.backup"
+
+            if [[ ! -f "$backup_path" ]]; then
+                continue
+            fi
+
+            if $DRY_RUN; then
+                dry "cp $backup_path $orig"
+            elif [[ "$orig" == /etc/* ]]; then
+                run_sudo cp "$backup_path" "$orig"
+                success "Restored: $orig"
+            else
+                cp "$backup_path" "$orig"
+                success "Restored: $orig"
+            fi
+        done
+    fi
 
     if ! $DRY_RUN; then
         rm -f "$STATE_FILE"
@@ -1248,9 +1312,20 @@ setup_fonts() {
         google-noto-sans-fonts google-noto-serif-fonts google-noto-mono-fonts google-carlito-fonts google-caladea-fonts \
         curl cabextract xorg-x11-font-utils fontconfig
 
-    run curl -sLO https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm
-    run_sudo rpm -ivh --nodigest --nofiledigest msttcore-fonts-installer-2.6-1.noarch.rpm 2>/dev/null || true
-    run rm -f msttcore-fonts-installer-2.6-1.noarch.rpm
+    local msttcore_rpm="msttcore-fonts-installer-2.6-1.noarch.rpm"
+    local msttcore_hash="55d7f3a86533225634ff3ea2384b4356d9665a29cc7eeacff16602a1714afbb4"
+    if run curl -sLO "https://downloads.sourceforge.net/project/mscorefonts2/rpms/$msttcore_rpm"; then
+        if $DRY_RUN; then
+            dry "verify_checksum $msttcore_rpm $msttcore_hash && sudo rpm -ivh $msttcore_rpm"
+        else
+            if verify_checksum "$msttcore_rpm" "$msttcore_hash"; then
+                run_sudo rpm -ivh "$msttcore_rpm" 2>/dev/null || true
+            else
+                warn "Failed to verify checksum for $msttcore_rpm, skipping RPM installation"
+            fi
+            run rm -f "$msttcore_rpm"
+        fi
+    fi
 
     log "Downloading FiraCode Nerd Font..."
     if ! $DRY_RUN; then

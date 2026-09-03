@@ -86,28 +86,62 @@ test_backup_file_normal() {
 
     # Verify backed up files exist and have exact content
     local ok=true
-    for f in ".zshrc.backup" ".bashrc.backup" "dnf.conf.backup" "MangoHud.conf.backup"; do
+    local zshrc_rel="${zshrc#/}"
+    local bashrc_rel="${bashrc#/}"
+    local dnf_rel="${dnf_conf#/}"
+    local mango_rel="${mangohud_conf#/}"
+
+    for f in "$zshrc_rel" "$bashrc_rel" "$dnf_rel" "$mango_rel"; do
         if [[ ! -f "$BACKUP_DIR/$f" ]]; then
-            fail "Test 1" "Expected backup file $BACKUP_DIR/$f not found"
+            fail "Test 1" "Expected hierarchical backup file $BACKUP_DIR/$f not found"
             ok=false
         fi
     done
 
-    if [[ -f "$BACKUP_DIR/nonexistent.txt.backup" ]]; then
+    if [[ -f "$BACKUP_DIR/${nonexistent#/}" ]]; then
         fail "Test 1" "Non-existent file was incorrectly backed up"
         ok=false
     fi
 
-    if [[ "$(cat "$BACKUP_DIR/.zshrc.backup")" != "# test zshrc content v1" ]] || \
-       [[ "$(cat "$BACKUP_DIR/.bashrc.backup")" != "# test bashrc content v1" ]] || \
-       [[ "$(cat "$BACKUP_DIR/dnf.conf.backup")" != "# test dnf.conf content v1" ]] || \
-       [[ "$(cat "$BACKUP_DIR/MangoHud.conf.backup")" != "# test MangoHud content v1" ]]; then
+    if [[ "$(cat "$BACKUP_DIR/$zshrc_rel")" != "# test zshrc content v1" ]] || \
+       [[ "$(cat "$BACKUP_DIR/$bashrc_rel")" != "# test bashrc content v1" ]] || \
+       [[ "$(cat "$BACKUP_DIR/$dnf_rel")" != "# test dnf.conf content v1" ]] || \
+       [[ "$(cat "$BACKUP_DIR/$mango_rel")" != "# test MangoHud content v1" ]]; then
         fail "Test 1" "Backup file content mismatch"
         ok=false
     fi
 
+    # Verify manifest was generated
+    if [[ ! -f "$BACKUP_DIR/.manifest" ]]; then
+        fail "Test 1" "Backup manifest .manifest was not created"
+        ok=false
+    fi
+
+    # Verify collision prevention for identical basenames (e.g., Zed vs Code settings.json)
+    mkdir -p "$sandbox/home/.config/zed" "$sandbox/home/.config/Code/User"
+    local zed_settings="$sandbox/home/.config/zed/settings.json"
+    local code_settings="$sandbox/home/.config/Code/User/settings.json"
+    echo '{"editor":"zed"}' > "$zed_settings"
+    echo '{"editor":"code"}' > "$code_settings"
+
+    backup_file "$zed_settings"
+    backup_file "$code_settings"
+
+    local zed_rel="${zed_settings#/}"
+    local code_rel="${code_settings#/}"
+    if [[ ! -f "$BACKUP_DIR/$zed_rel" ]] || [[ ! -f "$BACKUP_DIR/$code_rel" ]]; then
+        fail "Test 1" "Hierarchical backup files not found for settings.json"
+        ok=false
+    fi
+
+    if [[ "$(cat "$BACKUP_DIR/$zed_rel")" != '{"editor":"zed"}' ]] || \
+       [[ "$(cat "$BACKUP_DIR/$code_rel")" != '{"editor":"code"}' ]]; then
+        fail "Test 1" "Basename collision overwrote settings.json backup content"
+        ok=false
+    fi
+
     if $ok; then
-        pass "backup_file correctly created timestamped directory and backed up existing configs"
+        pass "backup_file correctly preserved directory hierarchy and prevented basename collisions"
     fi
 }
 
@@ -488,6 +522,54 @@ test_backup_directory_handling() {
     fi
 }
 
+# ==============================================================================
+# Test 11: Dynamic Hierarchical Restoration via .manifest
+# ==============================================================================
+test_restore_backups_hierarchical_manifest() {
+    info_test "Test 11: Dynamic hierarchical restore from .manifest"
+    local sandbox="$TEST_TMP_DIR/test11"
+    mkdir -p "$sandbox/home/.config/zed" "$sandbox/home/.config/Code/User" "$sandbox/home/.config/fedora-setup"
+    
+    export HOME="$sandbox/home"
+    export DRY_RUN=false
+    export STATE_FILE="$HOME/.config/fedora-setup/state.txt"
+    echo "step_1" > "$STATE_FILE"
+
+    local zed_settings="$sandbox/home/.config/zed/settings.json"
+    local code_settings="$sandbox/home/.config/Code/User/settings.json"
+
+    local backup_dir="$HOME/.config/fedora-setup-backups/20260817_190000"
+    mkdir -p "$(dirname "$backup_dir/${zed_settings#/}")"
+    mkdir -p "$(dirname "$backup_dir/${code_settings#/}")"
+    echo '{"editor":"zed-restored"}' > "$backup_dir/${zed_settings#/}"
+    echo '{"editor":"code-restored"}' > "$backup_dir/${code_settings#/}"
+    echo "$zed_settings" > "$backup_dir/.manifest"
+    echo "$code_settings" >> "$backup_dir/.manifest"
+
+    echo '{"editor":"zed-dirty"}' > "$zed_settings"
+    echo '{"editor":"code-dirty"}' > "$code_settings"
+
+    setup_extracted_functions
+    confirm() { return 0; }
+
+    restore_backups
+
+    local ok=true
+    if [[ "$(cat "$zed_settings")" != '{"editor":"zed-restored"}' ]]; then
+        fail "Test 11" "Zed settings.json was not restored dynamically"
+        ok=false
+    fi
+
+    if [[ "$(cat "$code_settings")" != '{"editor":"code-restored"}' ]]; then
+        fail "Test 11" "Code settings.json was not restored dynamically"
+        ok=false
+    fi
+
+    if $ok; then
+        pass "restore_backups dynamically restored hierarchical configs via .manifest"
+    fi
+}
+
 # Run all test suites
 echo "========================================================"
 echo "Running Backup & Restore Subsystem Test Suite"
@@ -504,6 +586,7 @@ test_dry_run_restore_execution_loop
 test_restore_system_file
 test_unknown_backup_files_ignored
 test_backup_directory_handling
+test_restore_backups_hierarchical_manifest
 
 echo "========================================================"
 echo "Test Results: $TESTS_PASSED passed, $TESTS_FAILED failed"

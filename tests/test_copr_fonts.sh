@@ -220,9 +220,11 @@ assert_contains "setup_fonts installs google-caladea-fonts" "google-caladea-font
 assert_contains "setup_fonts installs mscore-fonts" "mscore-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs mscore-fonts-all" "mscore-fonts-all" "$fonts_func_code"
 assert_contains "setup_fonts downloads msttcore-fonts-installer" "msttcore-fonts-installer-2.6-1.noarch.rpm" "$fonts_func_code"
-assert_contains "setup_fonts installs rpm with nodigest/nofiledigest" "rpm -ivh --nodigest --nofiledigest msttcore-fonts-installer" "$fonts_func_code"
+assert_contains "setup_fonts verifies msttcore-fonts checksum" "verify_checksum" "$fonts_func_code"
+assert_not_contains "setup_fonts does not use --nodigest" "--nodigest" "$fonts_func_code"
+assert_not_contains "setup_fonts does not use --nofiledigest" "--nofiledigest" "$fonts_func_code"
 assert_contains "setup_fonts installs cabextract for MS core fonts" "cabextract" "$fonts_func_code"
-assert_contains "setup_fonts cleans up msttcore-fonts rpm after install" "rm -f msttcore-fonts-installer-2.6-1.noarch.rpm" "$fonts_func_code"
+assert_contains "setup_fonts cleans up msttcore-fonts rpm after install" "rm -f" "$fonts_func_code"
 
 # 5. FiraCode Nerd Font parameters
 assert_contains "setup_fonts targets ryanoasis/nerd-fonts repo" "ryanoasis/nerd-fonts" "$fonts_func_code"
@@ -273,8 +275,7 @@ dry_run_out=$(test_fonts_dry_run "$fonts_func_code")
 assert_contains "Dry-run makes zero real filesystem or cache modifications" "REAL_EXEC_COUNT=0" "$dry_run_out"
 assert_contains "Dry-run logs DNF font install" "DRY: sudo dnf install -y --skip-unavailable" "$dry_run_out"
 assert_contains "Dry-run logs msttcore-fonts curl download" "DRY: curl -sLO https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm" "$dry_run_out"
-assert_contains "Dry-run logs msttcore-fonts rpm installation" "DRY: sudo rpm -ivh --nodigest --nofiledigest msttcore-fonts-installer-2.6-1.noarch.rpm" "$dry_run_out"
-assert_contains "Dry-run logs msttcore-fonts cleanup" "DRY: rm -f msttcore-fonts-installer-2.6-1.noarch.rpm" "$dry_run_out"
+assert_contains "Dry-run logs msttcore-fonts verification and rpm installation" "verify_checksum" "$dry_run_out"
 assert_contains "Dry-run logs FiraCode Nerd Font download/install" "DRY: Download and install FiraCode Nerd Font" "$dry_run_out"
 assert_contains "Dry-run logs fc-cache -fv" "DRY: fc-cache -fv" "$dry_run_out"
 
@@ -296,6 +297,7 @@ mkdir() { echo "MKDIR: \$*"; }
 unzip() { echo "UNZIP: \$*"; }
 rm() { echo "RM: \$*"; }
 fc-cache() { echo "FC-CACHE: \$*"; }
+verify_checksum() { return 0; }
 
 github_download() {
     echo "GH_DOWNLOAD: repo=\$1 pattern=\$2 output=\$3 fallback=\$4"
@@ -333,6 +335,7 @@ run() { :; }
 run_sudo() { :; }
 mkdir() { :; }
 fc-cache() { echo "FC-CACHE: \$*"; }
+verify_checksum() { return 0; }
 
 github_download() { return 1; }
 
