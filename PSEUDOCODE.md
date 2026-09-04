@@ -429,7 +429,7 @@ flowchart TD
     InstallKVMPkgs["Install Virtualization Packages:<br/>@virtualization, qemu-kvm, libvirt, virt-manager, gnome-boxes, guestfs-tools"]
     InstallKVMPkgs --> ModularSockets["Switch to Modular Socket Activation:<br/>systemctl disable --now libvirtd.service<br/>systemctl enable --now virtqemud.socket"]
     ModularSockets --> OpenFirewallLibvirt["Configure Firewalld:<br/>firewall-cmd --permanent --add-service=libvirt && reload"]
-    OpenFirewallLibvirt --> VirtIOPrompt{"Install VirtIO Windows VM Drivers? [Y/n]"}
+    OpenFirewallLibvirt --> VirtIOPrompt{"Install VirtIO Windows VM Drivers? [y/N]"}
     
     VirtIOPrompt -- Yes --> InstallVirtIO["Add virtio-win repo & install virtio-win RPM"] --> TunedProfile
     VirtIOPrompt -- No --> TunedProfile

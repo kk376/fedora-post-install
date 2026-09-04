@@ -2196,9 +2196,10 @@ setup_kvm() {
     # VirtIO paravirtualized storage/network drivers repository for Windows guest VMs
     echo ""
     info "VirtIO Drivers for Windows Guest VMs:"
-    info "  • Paravirtualized storage (virtio-blk/scsi) and network (virtio-net) drivers for Windows guest VMs under KVM/QEMU."
-    info "  • Recommendation: Install if you plan to run Windows virtual machines with high performance disk/network I/O. Otherwise skip."
-    if confirm "Install VirtIO drivers (required for Windows VMs)?" "Y"; then
+    info "  • Paravirtualized storage (virtio-blk/scsi) and network (virtio-net) drivers for Windows guests under KVM/QEMU."
+    info "  • Dual-boot note: If you dual boot Windows on bare metal, you do NOT need this."
+    info "  • Recommendation: Install only if you specifically plan to run Windows in a virtual machine. Otherwise skip."
+    if confirm "Install VirtIO drivers for Windows virtual machines?" "N"; then
         log "Installing VirtIO drivers..."
         run_sudo wget https://fedorapeople.org/groups/virt/virtio-win/virtio-win.repo \
             -O /etc/yum.repos.d/virtio-win.repo 2>/dev/null || warn "Failed to add virtio-win repo"
