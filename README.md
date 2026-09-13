@@ -22,15 +22,11 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ---
 
-## What's New in v5.5.7
+## What's New in v5.5.8
 
-- **Full HEVC (H.265) & E-AC3/AC3 Codec Unlocking:** Replaces Fedora's stripped `ffmpeg-free` / `libavcodec-free` stack with full RPM Fusion `ffmpeg-libs` (resolving VLC *"Codec not supported: hevc / eac3"* errors).
-- **Freeworld Media & Hardware Acceleration:** Integrates `gstreamer1-plugins-bad-freeworld` (pulling in `libde265`), `gstreamer1-plugins-ugly`, `gstreamer1-vaapi`, and `mesa-va-drivers-freeworld` for full hardware-accelerated video decode on AMD Radeon GPUs.
-- **Heroic Games Launcher (Native RPM):** Seamless Epic Games, GOG, and sideloaded PC gaming with automatic GitHub release RPM installation.
-- **Instant Game Exit (UMU Lag Fix):** Pre-configures `"disableUMU": true` to eliminate the 4-7 second hang on closing Proton games.
-- **MangoHud Scaling & HUD Tuning:** Default 32px font size, subtle transparency, and rounded corners for high-DPI displays.
-- **Mutter Hang Watchdog Fix:** Sets `org.gnome.mutter check-alive-timeout 0` to permanently eliminate false-positive "Window is not responding" freeze popups during Wine/Proton shader compilation.
-- **ProtonPlus Eradication:** Purged redundant `com.vysp3r.ProtonPlus` Flatpak in favor of Heroic's native zero-overhead Wine/Proton manager.
+- **Complete Microsoft Office Font Interoperability:** Automatically installs modern **Aptos** (Microsoft 365 default body typeface across Word, Excel, PowerPoint, and Outlook), extracts genuine **Cambria Regular** (`cambria.ttc`, including Cambria Math) from official Microsoft cabinet archives, and installs the **Segoe UI** font family into `~/.local/share/fonts/ms-fonts/`.
+- **Metric-Compatible Font Fallbacks:** Added `google-crosextra-caladea-fonts` alongside `google-carlito-fonts` in system DNF packages for native metric-compatible Cambria and Calibri substitution in LibreOffice.
+- **Process Monitoring:** Replaced `htop` with modern `btop` across essential utilities.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 

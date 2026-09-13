@@ -68,7 +68,7 @@ get_profile_steps() {
 }
 
 echo "================================================================"
-echo "TEST SUITE: Profile Integrity & Execution Order (v5.5.7)"
+echo "TEST SUITE: Profile Integrity & Execution Order (v5.5.8)"
 echo "Target Script: $SCRIPT_PATH"
 echo "================================================================"
 

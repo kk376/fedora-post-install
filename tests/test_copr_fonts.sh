@@ -218,6 +218,7 @@ assert_contains "setup_fonts installs google-noto-serif-fonts" "google-noto-seri
 assert_contains "setup_fonts installs google-noto-mono-fonts" "google-noto-mono-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs google-carlito-fonts" "google-carlito-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs google-caladea-fonts" "google-caladea-fonts" "$fonts_func_code"
+assert_contains "setup_fonts installs google-crosextra-caladea-fonts" "google-crosextra-caladea-fonts" "$fonts_func_code"
 
 # 4. Microsoft fonts
 assert_contains "setup_fonts installs mscore-fonts" "mscore-fonts" "$fonts_func_code"
@@ -228,6 +229,10 @@ assert_not_contains "setup_fonts does not use --nodigest" "--nodigest" "$fonts_f
 assert_not_contains "setup_fonts does not use --nofiledigest" "--nofiledigest" "$fonts_func_code"
 assert_contains "setup_fonts installs cabextract for MS core fonts" "cabextract" "$fonts_func_code"
 assert_contains "setup_fonts cleans up msttcore-fonts rpm after install" "rm -f" "$fonts_func_code"
+assert_contains "setup_fonts downloads PowerPointViewer for Cambria Regular" "PowerPointViewer.exe" "$fonts_func_code"
+assert_contains "setup_fonts extracts cambria.ttc" "cambria.ttc" "$fonts_func_code"
+assert_contains "setup_fonts installs Aptos font family" "ttf-aptos" "$fonts_func_code"
+assert_contains "setup_fonts installs Segoe UI font family" "segoe-ui-linux" "$fonts_func_code"
 
 # 5. FiraCode Nerd Font parameters
 assert_contains "setup_fonts targets ryanoasis/nerd-fonts repo" "ryanoasis/nerd-fonts" "$fonts_func_code"
@@ -280,6 +285,9 @@ assert_contains "Dry-run makes zero real filesystem or cache modifications" "REA
 assert_contains "Dry-run logs DNF font install" "DRY: sudo dnf install -y --skip-unavailable" "$dry_run_out"
 assert_contains "Dry-run logs msttcore-fonts curl download" "DRY: curl -sLO https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm" "$dry_run_out"
 assert_contains "Dry-run logs msttcore-fonts verification and rpm installation" "verify_checksum" "$dry_run_out"
+assert_contains "Dry-run logs Cambria Regular extraction" "Download and extract Cambria Regular" "$dry_run_out"
+assert_contains "Dry-run logs Aptos font download" "Download Aptos font family" "$dry_run_out"
+assert_contains "Dry-run logs Segoe UI font download" "Download Segoe UI font family" "$dry_run_out"
 assert_contains "Dry-run logs FiraCode Nerd Font download/install" "DRY: Download and install FiraCode Nerd Font" "$dry_run_out"
 assert_contains "Dry-run logs Symbols Nerd Font download/install" "DRY: Download and install Symbols Nerd Font and 10-nerd-font-symbols.conf fontconfig" "$dry_run_out"
 assert_contains "Dry-run logs fc-cache -fv" "DRY: fc-cache -fv" "$dry_run_out"
@@ -318,6 +326,7 @@ EOF
 
 live_exec_out=$(test_fonts_live_execution "$fonts_func_code")
 assert_contains "Live mode creates font directory ~/.local/share/fonts" "MKDIR: -p $HOME/.local/share/fonts" "$live_exec_out"
+assert_contains "Live mode creates ms-fonts directory" "MKDIR: -p $HOME/.local/share/fonts/ms-fonts" "$live_exec_out"
 assert_contains "Live mode downloads FiraCode" "GH_DOWNLOAD: repo=ryanoasis/nerd-fonts pattern=FiraCode\\.zip output=/tmp/FiraCode.zip" "$live_exec_out"
 assert_contains "Live mode unzips font archive" "UNZIP: -oq /tmp/FiraCode.zip -d $HOME/.local/share/fonts/" "$live_exec_out"
 assert_contains "Live mode removes temporary zip" "RM: -f /tmp/FiraCode.zip" "$live_exec_out"

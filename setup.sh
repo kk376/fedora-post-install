@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fedora 44 Post-Install Setup Script
 # Author: Kushagra Kumar
-# Version: 5.5.7
+# Version: 5.5.8
 
 # ==============================================================================
 # Configuration & Flags
@@ -9,7 +9,7 @@
 : "${DRY_RUN:=false}"
 : "${BACKUP_DIR:=$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)}"
 : "${LOG_FILE:=/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log}"
-: "${SCRIPT_VERSION:=5.5.7}"
+: "${SCRIPT_VERSION:=5.5.8}"
 : "${PROFILE:=full}"
 : "${DEV_TYPE:=all}"
 PROFILE_SPECIFIED=false
@@ -1592,7 +1592,7 @@ setup_fonts() {
     log "Installing fonts..."
     run_sudo dnf install -y --skip-unavailable unzip mscore-fonts mscore-fonts-all dejavu-sans-fonts dejavu-serif-fonts \
         dejavu-sans-mono-fonts liberation-sans-fonts liberation-serif-fonts liberation-mono-fonts \
-        google-noto-sans-fonts google-noto-serif-fonts google-noto-mono-fonts google-carlito-fonts google-caladea-fonts \
+        google-noto-sans-fonts google-noto-serif-fonts google-noto-mono-fonts google-carlito-fonts google-caladea-fonts google-crosextra-caladea-fonts \
         curl cabextract xorg-x11-font-utils fontconfig
 
     local msttcore_rpm="msttcore-fonts-installer-2.6-1.noarch.rpm"
@@ -1608,6 +1608,69 @@ setup_fonts() {
             fi
             run rm -f "$msttcore_rpm"
         fi
+    fi
+
+    log "Installing extended Microsoft fonts (Cambria Regular, Aptos, Segoe UI)..."
+    if ! $DRY_RUN; then
+        local ms_fonts_dir="$HOME/.local/share/fonts/ms-fonts"
+        mkdir -p "$ms_fonts_dir"
+
+        # 1. Cambria Regular (cambria.ttc) from PowerPointViewer cabinet
+        if [[ ! -f "$ms_fonts_dir/cambria.ttc" && ! -f "/usr/share/fonts/msttcore/cambria.ttc" ]]; then
+            local tmp_cab_dir
+            tmp_cab_dir=$(mktemp -d /tmp/cambria-extract-XXXXXX 2>/dev/null || echo "/tmp/cambria-extract-$$")
+            if run curl -fsSL --max-time 60 -o "$tmp_cab_dir/ppv.exe" "http://downloads.sourceforge.net/project/mscorefonts2/cabs/PowerPointViewer.exe"; then
+                if run cabextract -q -F ppviewer.cab -d "$tmp_cab_dir" "$tmp_cab_dir/ppv.exe" && \
+                   run cabextract -q --lowercase -F cambria.ttc -d "$ms_fonts_dir" "$tmp_cab_dir/ppviewer.cab"; then
+                    success "Cambria Regular (cambria.ttc) installed"
+                else
+                    warn "Failed to extract cambria.ttc from PowerPointViewer cabinet"
+                fi
+            else
+                warn "Failed to download PowerPointViewer cabinet for Cambria Regular"
+            fi
+            rm -rf "$tmp_cab_dir"
+        fi
+
+        # 2. Modern Aptos typeface family (Microsoft 365 default)
+        local aptos_base_url="https://raw.githubusercontent.com/XCroatoanX/ttf-aptos/master"
+        local aptos_fonts=(
+            "aptos.ttf" "aptos-bold.ttf" "aptos-italic.ttf" "aptos-bold-italic.ttf"
+            "aptos-light.ttf" "aptos-light-italic.ttf" "aptos-semibold.ttf" "aptos-semibold-italic.ttf"
+            "aptos-extrabold.ttf" "aptos-extrabold-italic.ttf" "aptos-black.ttf" "aptos-black-italic.ttf"
+            "aptos-narrow.ttf" "aptos-narrow-bold.ttf" "aptos-narrow-italic.ttf" "aptos-narrow-bold-italic.ttf"
+            "aptos-mono.ttf" "aptos-mono-bold.ttf" "aptos-mono-italic.ttf" "aptos-mono-bold-italic.ttf"
+            "aptos-serif.ttf" "aptos-serif-bold.ttf" "aptos-serif-italic.ttf" "aptos-serif-bold-italic.ttf"
+        )
+        local aptos_count=0
+        for font in "${aptos_fonts[@]}"; do
+            if [[ ! -f "$ms_fonts_dir/$font" ]]; then
+                if run curl -fsSL --max-time 30 -o "$ms_fonts_dir/$font" "$aptos_base_url/$font"; then
+                    ((aptos_count++))
+                fi
+            fi
+        done
+        [[ $aptos_count -gt 0 ]] && success "Aptos font family installed ($aptos_count fonts)"
+
+        # 3. Segoe UI typeface family
+        local segoe_base_url="https://raw.githubusercontent.com/mrbvrz/segoe-ui-linux/master/font"
+        local segoe_fonts=(
+            "segoeui.ttf" "segoeuib.ttf" "segoeuii.ttf" "segoeuiz.ttf"
+            "seguisb.ttf" "seguisbi.ttf" "seguisym.ttf"
+        )
+        local segoe_count=0
+        for font in "${segoe_fonts[@]}"; do
+            if [[ ! -f "$ms_fonts_dir/$font" ]]; then
+                if run curl -fsSL --max-time 30 -o "$ms_fonts_dir/$font" "$segoe_base_url/$font"; then
+                    ((segoe_count++))
+                fi
+            fi
+        done
+        [[ $segoe_count -gt 0 ]] && success "Segoe UI font family installed ($segoe_count fonts)"
+    else
+        dry "Download and extract Cambria Regular (cambria.ttc) from PowerPointViewer"
+        dry "Download Aptos font family (Microsoft 365 default) into ~/.local/share/fonts/ms-fonts/"
+        dry "Download Segoe UI font family into ~/.local/share/fonts/ms-fonts/"
     fi
 
     log "Downloading FiraCode Nerd Font..."

@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v5.5.8] - 2026-09-14
+
+### Added
+
+- **Complete Microsoft Office Font Suite**: Added automated extraction and installation of modern **Aptos** (the default body typeface across Microsoft 365 since late 2023, including Regular, Bold, Italic, Light, Semibold, ExtraBold, Black, Narrow, Mono, and Serif variants), **Cambria Regular** (`cambria.ttc`, including Cambria Math extracted from Microsoft PowerPointViewer cabinet archives to solve the upstream Linux installer omission), and **Segoe UI** into `~/.local/share/fonts/ms-fonts/`.
+- **Caladea Metric Twin for Cambria**: Added `google-crosextra-caladea-fonts` to the system DNF package list to provide native metric-compatible serif substitution in LibreOffice and OpenOffice.
+
+### Changed
+
+- **Process Monitor Modernization**: Replaced `htop` with modern `btop` in the essential packages list.
+
 ## [v5.5.7] – 2026-09-09
 
 ### Added
