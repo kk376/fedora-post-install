@@ -195,7 +195,7 @@ run_mock_setup_packages() {
                     esac
                 done
                 return 0
-            elif [[ "$1" == "dnf" && "$2" == "config-manager" ]]; then
+            elif [[ "$1" == "dnf" && ( "$2" == "remove" || "$2" == "config-manager" ) ]]; then
                 return 0
             fi
             "$@"
@@ -753,6 +753,27 @@ if echo "$dry_personal_output" | grep -q "Install cliamp, configure YouTube Musi
     pass "Dry-run personal profile logs cliamp and ani-cli setup"
 else
     fail "Dry-run personal profile missing media tools log"
+fi
+
+# 10.5: Verify setup_packages contains LibreOffice removal in personal profile
+if echo "$setup_pkg_body" | grep -q 'dnf remove -y "libreoffice\*"'; then
+    pass "setup_packages() removes LibreOffice in personal profile"
+else
+    fail "setup_packages() missing LibreOffice removal command"
+fi
+
+# 10.6: Verify setup_packages installs ONLYOFFICE Desktop Editors RPM in personal profile
+if echo "$setup_pkg_body" | grep -q "download.onlyoffice.com/install/desktop/editors/linux/onlyoffice-desktopeditors.x86_64.rpm"; then
+    pass "setup_packages() installs ONLYOFFICE Desktop Editors RPM in personal profile"
+else
+    fail "setup_packages() missing ONLYOFFICE Desktop Editors RPM installation"
+fi
+
+# 10.7: Verify dry-run personal profile logs ONLYOFFICE swap
+if echo "$dry_personal_output" | grep -q "Swap LibreOffice with ONLYOFFICE Desktop Editors"; then
+    pass "Dry-run personal profile logs LibreOffice to ONLYOFFICE swap"
+else
+    fail "Dry-run personal profile missing ONLYOFFICE swap log"
 fi
 
 echo ""

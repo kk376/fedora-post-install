@@ -73,7 +73,7 @@ parse_args() {
                 echo "                           workstation - Productive desktop, multimedia, Flatpaks, GPU drivers"
                 echo "                           creator     - OBS Studio, v4l2loopback, GStreamer, NV Broadcast"
                 echo "                           full        - Complete public suite: Workstation + Dev + Gaming + Creator (default)"
-                echo "                           personal    - Author's bespoke workflow: Full + Postgres 18, ccache, kkfetch, cliamp, ani-cli"
+                echo "                           personal    - Author's bespoke workflow: Full + ONLYOFFICE (LibreOffice swap), Postgres 18, ccache, kkfetch, cliamp, ani-cli"
                 echo "  --dev-type=GENRE       Choose developer genre for dev profile (comma-separated):"
                 echo "                           systems     - C, C++, Rust, CMake, Meson, GDB, Valgrind, Hyperfine"
                 echo "                           web         - Node.js, PNPM/Yarn, Python 3, Docker, jq"
@@ -445,7 +445,7 @@ select_profile_menu() {
     echo "  4) creator     - Minimal + power, GNOME, OBS Studio, loopback, NV Broadcast (11 steps)"
     echo "  5) dev         - Developer stack, Docker, Antigravity, KVM/QEMU (16 steps)"
     echo "  6) full        - Complete public suite: Workstation + Dev + Gaming + Creator (default) (17 steps)"
-    echo "  7) personal    - Author's bespoke workflow: Full + Postgres, ccache, kkfetch, cliamp, ani-cli (17 steps)"
+    echo "  7) personal    - Author's bespoke workflow: Full + ONLYOFFICE, Postgres, ccache, kkfetch, cliamp, ani-cli (17 steps)"
     echo ""
 
     local choice=""
@@ -2042,10 +2042,29 @@ HEROIC_EOF
         fi
     fi
 
-    # Personal Profile Media Suite: Cliamp (Retro TUI Music Player) & ani-cli (Anime Streaming CLI)
+    # Personal Profile Suite: ONLYOFFICE swap, Cliamp, and ani-cli
     if [[ "$PROFILE" == "personal" ]]; then
-        log "Setting up personal media tools (cliamp & ani-cli)..."
+        log "Setting up personal productivity & media tools (ONLYOFFICE, cliamp & ani-cli)..."
         if ! $DRY_RUN; then
+            # 1. Swap LibreOffice with ONLYOFFICE Desktop Editors
+            log "Configuring personal office suite (ONLYOFFICE Desktop Editors)..."
+            if rpm -qa "libreoffice*" 2>/dev/null | grep -q libreoffice || command -v libreoffice &>/dev/null; then
+                log "Removing LibreOffice in favor of ONLYOFFICE..."
+                run_sudo dnf remove -y "libreoffice*" 2>/dev/null || true
+                success "LibreOffice removed"
+            fi
+
+            if ! rpm -q onlyoffice-desktopeditors &>/dev/null; then
+                log "Installing ONLYOFFICE Desktop Editors..."
+                if run_sudo dnf install -y https://download.onlyoffice.com/install/desktop/editors/linux/onlyoffice-desktopeditors.x86_64.rpm; then
+                    success "ONLYOFFICE Desktop Editors installed"
+                else
+                    warn "Failed to install ONLYOFFICE Desktop Editors RPM"
+                fi
+            else
+                info "ONLYOFFICE Desktop Editors is already installed"
+            fi
+
             mkdir -p "$HOME/.local/bin" "$HOME/.config/cliamp" "$HOME/.config/yt-dlp"
             run_sudo dnf install -y --skip-unavailable mpv 2>/dev/null || true
 
@@ -2096,6 +2115,7 @@ CLIAMP_CONF
                 warn "Failed to download patched ani-cli"
             fi
         else
+            dry "Swap LibreOffice with ONLYOFFICE Desktop Editors (remove libreoffice*, install onlyoffice-desktopeditors RPM)"
             dry "Install cliamp, configure YouTube Music in ~/.config/cliamp/config.toml, and deploy patched ani-cli to ~/.local/bin/ani-cli"
         fi
     fi

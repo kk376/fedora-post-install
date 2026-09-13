@@ -26,6 +26,7 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 - **Complete Microsoft Office Font Interoperability:** Automatically installs modern **Aptos** (Microsoft 365 default body typeface across Word, Excel, PowerPoint, and Outlook), extracts genuine **Cambria Regular** (`cambria.ttc`, including Cambria Math) from official Microsoft cabinet archives, and installs the **Segoe UI** font family into `~/.local/share/fonts/ms-fonts/`.
 - **Metric-Compatible Font Fallbacks:** Added `google-crosextra-caladea-fonts` alongside `google-carlito-fonts` in system DNF packages for native metric-compatible Cambria and Calibri substitution in LibreOffice.
+- **Personal Profile Office Suite Swap:** Automatically purges default `libreoffice*` packages and installs native `onlyoffice-desktopeditors` RPM from ONLYOFFICE for seamless 1:1 Microsoft Office compatibility in the `personal` profile.
 - **Process Monitoring:** Replaced `htop` with modern `btop` across essential utilities.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
@@ -64,7 +65,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 | `creator`     | 11    | Minimal + power, GNOME tools, creator tools (OBS, akmod-v4l2loopback, GStreamer, NV Broadcast), Flatpaks, GPU drivers (last) |
 | `dev`         | 16    | Minimal + power, no-sleep, GNOME tools, dev genre packages (`--dev-type`), Code Editor, Flatpaks (Android Studio), Docker, KVM/QEMU, GPU drivers (last) |
 | `full`        | 17    | Complete public power-user superset: workstation + dev + gaming + creator, COPR packages                     |
-| `personal`    | 17    | Author's bespoke workflow: Full + PostgreSQL 18 service, pgAdmin 4, 50GB ccache, dpkg-dev, X11 dev headers, kkfetch |
+| `personal`    | 17    | Author's bespoke workflow: Full + ONLYOFFICE (LibreOffice swap), PostgreSQL 18, ccache, kkfetch, cliamp, ani-cli |
 
 ---
 
