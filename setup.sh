@@ -1729,7 +1729,7 @@ setup_packages() {
     log "Installing essential packages..."
 
     local pkgs_to_install=(
-        fastfetch bat eza fd-find ripgrep fzf zoxide wget htop duf plocate tree compsize \
+        fastfetch bat eza fd-find ripgrep fzf zoxide wget btop duf plocate tree compsize \
         unzip unrar p7zip p7zip-plugins ntfs-3g gparted timeshift vlc qbittorrent wl-clipboard \
         wmctrl vim libva-utils gstreamer1-plugin-openh264 telegram-desktop android-tools
     )
