@@ -1780,6 +1780,19 @@ GTK_CSS
         else
             dry "gsettings set org.gnome.mutter check-alive-timeout 0"
         fi
+
+        # Personal profile: top bar clock display (show seconds and weekday)
+        if [[ "$PROFILE" == "personal" ]]; then
+            log "Configuring personal top bar clock display (seconds & weekday)..."
+            if ! $DRY_RUN; then
+                gsettings set org.gnome.desktop.interface clock-show-seconds true 2>/dev/null || true
+                gsettings set org.gnome.desktop.interface clock-show-weekday true 2>/dev/null || true
+                success "Top bar clock configured (seconds and weekday enabled)"
+            else
+                dry "gsettings set org.gnome.desktop.interface clock-show-seconds true"
+                dry "gsettings set org.gnome.desktop.interface clock-show-weekday true"
+            fi
+        fi
     fi
 
     step_complete "GNOME tools and GSConnect configured"
