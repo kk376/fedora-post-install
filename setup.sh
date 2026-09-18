@@ -1364,7 +1364,7 @@ setup_browser_multimedia() {
         run_sudo mkdir -p /etc/wireplumber/wireplumber.conf.d
         run_sudo tee /etc/wireplumber/wireplumber.conf.d/50-bluez.conf > /dev/null <<'BLUEZ_CONF'
 monitor.bluez.properties = {
-  bluez5.roles = [ a2dp_sink a2dp_source bap_sink bap_source hfp_hf hfp_ag hsp_hs hsp_ag ]
+  bluez5.roles = [ a2dp_sink a2dp_source hfp_hf hfp_ag ]
   bluez5.codecs = [ ldac aac aptx_hd aptx sbc_xq sbc ]
   bluez5.enable-sbc-xq = true
   bluez5.enable-msbc = true
