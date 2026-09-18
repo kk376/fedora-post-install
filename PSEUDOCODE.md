@@ -258,8 +258,8 @@ flowchart TD
     AddBraveRepo --> InstallBrave["Install brave-browser and mozilla-openh264"]
     InstallBrave --> SwapFFmpeg["Atomic FFmpeg Swap:<br/>dnf swap -y ffmpeg-free ffmpeg --allowerasing"]
     SwapFFmpeg --> GroupUpgrade["Upgrade multimedia groups:<br/>dnf group upgrade -y multimedia sound-and-video"]
-    GroupUpgrade --> WriteWirePlumber["Deploy WirePlumber Bluetooth Config:<br/>~/.config/wireplumber/wireplumber.conf.d/50-bluez.conf<br/>(Prioritize LDAC, AAC, aptX, SBC-XQ; enable hardware volume)"]
-    WriteWirePlumber --> RestartWirePlumber["Restart user wireplumber.service"]
+    GroupUpgrade --> WriteAudioConfig["Deploy System-Wide Audio Optimization:<br/>/etc/wireplumber/wireplumber.conf.d/50-bluez.conf<br/>/etc/pipewire/pipewire.conf.d/99-clock-rates.conf<br/>(LDAC/AAC/SBC-XQ + Dynamic 44.1k-192k bit-perfect rates)"]
+    WriteAudioConfig --> RestartWirePlumber["Restart active user audio services"]
     RestartWirePlumber --> EndMedia(["Mark completed"])
 ```
 

@@ -1358,11 +1358,11 @@ setup_browser_multimedia() {
     run_sudo dnf group upgrade -y multimedia --setopt=install_weak_deps=False --exclude=PackageKit-gstreamer-plugin 2>/dev/null || true
     run_sudo dnf group upgrade -y sound-and-video 2>/dev/null || true
 
-    # WirePlumber Bluetooth High-Definition Audio (prioritize AAC, SBC-XQ, LDAC)
-    log "Configuring WirePlumber Bluetooth audio optimization..."
+    # System-wide WirePlumber Bluetooth High-Definition Audio (prioritize LDAC, AAC, aptX, SBC-XQ across all user profiles)
+    log "Configuring system-wide WirePlumber Bluetooth audio optimization..."
     if ! $DRY_RUN; then
-        mkdir -p "$HOME/.config/wireplumber/wireplumber.conf.d"
-        cat > "$HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf" <<'BLUEZ_CONF'
+        run_sudo mkdir -p /etc/wireplumber/wireplumber.conf.d
+        run_sudo tee /etc/wireplumber/wireplumber.conf.d/50-bluez.conf > /dev/null <<'BLUEZ_CONF'
 monitor.bluez.properties = {
   bluez5.roles = [ a2dp_sink a2dp_source bap_sink bap_source hfp_hf hfp_ag hsp_hs hsp_ag ]
   bluez5.codecs = [ ldac aac aptx_hd aptx sbc_xq sbc ]
@@ -1371,10 +1371,27 @@ monitor.bluez.properties = {
   bluez5.enable-hw-volume = true
 }
 BLUEZ_CONF
-        systemctl --user restart wireplumber 2>/dev/null || true
-        success "WirePlumber Bluetooth HD audio configured"
+        success "WirePlumber Bluetooth HD audio configured system-wide"
     else
-        dry "Deploy WirePlumber 50-bluez.conf and restart wireplumber service"
+        dry "Deploy /etc/wireplumber/wireplumber.conf.d/50-bluez.conf"
+    fi
+
+    # System-wide PipeWire Dynamic Multi-Rate Bit-Perfect Audio (44.1k to 192k across all user profiles)
+    log "Configuring system-wide PipeWire bit-perfect dynamic clock rates..."
+    if ! $DRY_RUN; then
+        run_sudo mkdir -p /etc/pipewire/pipewire.conf.d
+        run_sudo tee /etc/pipewire/pipewire.conf.d/99-clock-rates.conf > /dev/null <<'CLOCK_CONF'
+context.properties = {
+    default.clock.rate = 48000
+    default.clock.allowed-rates = [ 44100 48000 88200 96000 176400 192000 ]
+}
+CLOCK_CONF
+        if systemctl --user is-active wireplumber &>/dev/null; then
+            systemctl --user restart pipewire wireplumber 2>/dev/null || true
+        fi
+        success "PipeWire dynamic clock rates configured system-wide"
+    else
+        dry "Deploy /etc/pipewire/pipewire.conf.d/99-clock-rates.conf"
     fi
 
     step_complete "Browser & multimedia ready"
