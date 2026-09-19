@@ -22,12 +22,12 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ---
 
-## What's New in v5.5.8
+## What's New in v5.6.0
 
-- **Complete Microsoft Office Font Interoperability:** Automatically installs modern **Aptos** (Microsoft 365 default body typeface across Word, Excel, PowerPoint, and Outlook), extracts genuine **Cambria Regular** (`cambria.ttc`, including Cambria Math) from official Microsoft cabinet archives, and installs the **Segoe UI** font family into `~/.local/share/fonts/ms-fonts/`.
-- **Metric-Compatible Font Fallbacks:** Added `google-crosextra-caladea-fonts` alongside `google-carlito-fonts` in system DNF packages for native metric-compatible Cambria and Calibri substitution in LibreOffice.
-- **Personal Profile Office Suite Swap:** Automatically purges default `libreoffice*` packages and installs native `onlyoffice-desktopeditors` RPM from ONLYOFFICE for seamless 1:1 Microsoft Office compatibility in the `personal` profile.
-- **Process Monitoring:** Replaced `htop` with modern `btop` across essential utilities.
+- **Bit-Perfect Dynamic Audio & Bluetooth HD:** System-wide WirePlumber configuration (`/etc/wireplumber/wireplumber.conf.d/50-bluez.conf`) prioritizing LDAC, AAC, aptX, and SBC-XQ with hardware volume synchronization and stabilized A2DP/HFP roles, paired with system-wide PipeWire dynamic multi-rate clocking (`/etc/pipewire/pipewire.conf.d/99-clock-rates.conf`) supporting 44.1 kHz through 192 kHz without lossy resampling.
+- **Download Security & Supply Chain Hardening:** Enforced `--proto '=https' --tlsv1.2` across remote installer downloads, migrated legacy HTTP SourceForge URLs to secure HTTPS, and replaced unverified `curl | sh` execution for `cliamp` with direct verified binary release downloads via `github_download()`.
+- **GNOME Top Bar Live Clock:** Configured top bar clock to display live seconds and weekday in the `personal` profile.
+- **Personal Profile ONLYOFFICE Integration:** Automatically purges default `libreoffice*` packages and installs native `onlyoffice-desktopeditors` RPM from ONLYOFFICE for seamless 1:1 Microsoft Office compatibility.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 

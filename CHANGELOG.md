@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v5.6.0] - 2026-09-19
+
+### Added
+
+- **System-Wide High-Definition Bluetooth Audio**: Deployed `/etc/wireplumber/wireplumber.conf.d/50-bluez.conf` system-wide, prioritizing high-resolution codecs (LDAC, AAC, aptX, SBC-XQ), enabling wideband speech (mSBC), and enforcing hardware volume synchronization. Roles are explicitly stabilized to `[ a2dp_sink a2dp_source hfp_hf hfp_ag ]` to eliminate SDP negotiation resets on Bluetooth Classic audio devices.
+- **Bit-Perfect Dynamic Sample-Rate Clocking**: Deployed `/etc/pipewire/pipewire.conf.d/99-clock-rates.conf` system-wide, unlocking dynamic sample-rate switching across `[ 44100 48000 88200 96000 176400 192000 ]` Hz across all user profiles to eliminate lossy software resampling.
+- **GNOME Top Bar Live Clock**: Configured the GNOME top bar clock in the `personal` profile to display live seconds and weekday (`clock-show-seconds = true`, `clock-show-weekday = true`).
+- **Personal Profile ONLYOFFICE Integration**: Added automated removal of `libreoffice*` and native installation of `onlyoffice-desktopeditors` RPM in the `personal` profile for 1:1 Microsoft Office document fidelity.
+
+### Security & Hardening
+
+- **Download Protocol Security**: Enforced `--proto '=https' --tlsv1.2` across `curl` commands downloading external installer scripts (`starship`, `zed`, `antigravity`) to eliminate protocol downgrade attacks and block non-HTTPS redirects.
+- **PowerPointViewer HTTPS Migration**: Switched Microsoft PowerPointViewer cabinet archive download URL from plaintext HTTP to secure HTTPS.
+- **Verified Binary Download for `cliamp`**: Replaced unverified `curl | sh` execution from GitHub `HEAD` with direct binary download and verification via `github_download()`.
+
 ## [v5.5.8] - 2026-09-14
 
 ### Added

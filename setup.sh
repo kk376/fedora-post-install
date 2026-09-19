@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fedora 44 Post-Install Setup Script
 # Author: Kushagra Kumar
-# Version: 5.5.8
+# Version: 5.6.0
 
 # ==============================================================================
 # Configuration & Flags
@@ -9,7 +9,7 @@
 : "${DRY_RUN:=false}"
 : "${BACKUP_DIR:=$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)}"
 : "${LOG_FILE:=/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log}"
-: "${SCRIPT_VERSION:=5.5.8}"
+: "${SCRIPT_VERSION:=5.6.0}"
 : "${PROFILE:=full}"
 : "${DEV_TYPE:=all}"
 PROFILE_SPECIFIED=false
