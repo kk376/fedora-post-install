@@ -765,7 +765,7 @@ setup_shell() {
             log "Installing Starship via official installer..."
             local starship_installer
             starship_installer=$(mktemp /tmp/starship-install-XXXXXX.sh)
-            if curl -fsSL https://starship.rs/install.sh -o "$starship_installer"; then
+            if curl --proto '=https' --tlsv1.2 -fsSL https://starship.rs/install.sh -o "$starship_installer"; then
                 sh "$starship_installer" -y >/dev/null 2>&1 || true
                 rm -f "$starship_installer"
             else
@@ -1636,7 +1636,7 @@ setup_fonts() {
         if [[ ! -f "$ms_fonts_dir/cambria.ttc" && ! -f "/usr/share/fonts/msttcore/cambria.ttc" ]]; then
             local tmp_cab_dir
             tmp_cab_dir=$(mktemp -d /tmp/cambria-extract-XXXXXX 2>/dev/null || echo "/tmp/cambria-extract-$$")
-            if run curl -fsSL --max-time 60 -o "$tmp_cab_dir/ppv.exe" "http://downloads.sourceforge.net/project/mscorefonts2/cabs/PowerPointViewer.exe"; then
+            if run curl --proto '=https' --tlsv1.2 -fsSL --max-time 60 -o "$tmp_cab_dir/ppv.exe" "https://downloads.sourceforge.net/project/mscorefonts2/cabs/PowerPointViewer.exe"; then
                 if run cabextract -q -F ppviewer.cab -d "$tmp_cab_dir" "$tmp_cab_dir/ppv.exe" && \
                    run cabextract -q --lowercase -F cambria.ttc -d "$ms_fonts_dir" "$tmp_cab_dir/ppviewer.cab"; then
                     success "Cambria Regular (cambria.ttc) installed"
@@ -2117,11 +2117,13 @@ YTDLP_CONF
             # 2. cliamp
             if ! command -v cliamp &>/dev/null; then
                 log "Installing cliamp retro music player..."
-                local cliamp_installer
-                cliamp_installer=$(mktemp /tmp/cliamp-install-XXXXXX.sh)
-                if curl -fsSL https://raw.githubusercontent.com/bjarneo/cliamp/HEAD/install.sh -o "$cliamp_installer" 2>/dev/null; then
-                    sh "$cliamp_installer" >/dev/null 2>&1 || true
-                    rm -f "$cliamp_installer"
+                local cliamp_arch="amd64"
+                [[ "$(uname -m)" == "aarch64" ]] && cliamp_arch="arm64"
+                if github_download "bjarneo/cliamp" "cliamp-linux-${cliamp_arch}" "$HOME/.local/bin/cliamp"; then
+                    chmod +x "$HOME/.local/bin/cliamp"
+                    success "cliamp installed"
+                else
+                    warn "Failed to download cliamp release binary"
                 fi
             fi
 
@@ -2410,7 +2412,7 @@ setup_editor() {
                 if ! command -v zed &>/dev/null; then
                     local zed_installer
                     zed_installer=$(mktemp /tmp/zed-install-XXXXXX.sh)
-                    if curl -fsSL https://zed.dev/install.sh -o "$zed_installer"; then
+                    if curl --proto '=https' --tlsv1.2 -fsSL https://zed.dev/install.sh -o "$zed_installer"; then
                         if bash "$zed_installer" 2>/dev/null; then
                             success "Zed installed via official installer script"
                         else
@@ -2635,9 +2637,9 @@ VSCODIUM_SETTINGS
                 if ! command -v agy &>/dev/null; then
                     local agy_installer
                     agy_installer=$(mktemp /tmp/agy-install-XXXXXX.sh)
-                    if curl -fsSL https://antigravity.google/cli/install.sh -o "$agy_installer"; then
+                    if curl --proto '=https' --tlsv1.2 -fsSL https://antigravity.google/cli/install.sh -o "$agy_installer"; then
                         bash "$agy_installer" 2>/dev/null || \
-                            warn "Antigravity install failed - try manually: curl -fsSL https://antigravity.google/cli/install.sh | bash"
+                            warn "Antigravity install failed - install manually from https://antigravity.google"
                         rm -f "$agy_installer"
                     else
                         warn "Failed to download Antigravity installer from https://antigravity.google/cli/install.sh"
