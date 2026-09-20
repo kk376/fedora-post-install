@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v5.7.0] - 2026-09-21
+
+### Added
+
+- **Hybrid Graphics Vulkan Loader Optimization**: Deployed `/etc/environment.d/10-vulkan-hybrid.conf` automatically on hybrid laptops (AMD+NVIDIA or Intel+NVIDIA), setting `VK_LOADER_DRIVERS_SELECT` to match the integrated GPU (`*radeon*` or `*intel*`). This prevents GTK4 and Libadwaita applications (Files, Settings, Text Editor) from probing the discrete NVIDIA GPU and triggering an ACPI D3cold to D0 hardware power transition, eliminating 2+ second cold launch freezes while preserving on-demand discrete GPU offloading via `switcheroo-control` for games and compute.
+
 ## [v5.6.0] - 2026-09-19
 
 ### Added

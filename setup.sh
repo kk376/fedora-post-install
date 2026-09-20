@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fedora 44 Post-Install Setup Script
 # Author: Kushagra Kumar
-# Version: 5.6.0
+# Version: 5.7.0
 
 # ==============================================================================
 # Configuration & Flags
@@ -9,7 +9,7 @@
 : "${DRY_RUN:=false}"
 : "${BACKUP_DIR:=$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)}"
 : "${LOG_FILE:=/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log}"
-: "${SCRIPT_VERSION:=5.6.0}"
+: "${SCRIPT_VERSION:=5.7.0}"
 : "${PROFILE:=full}"
 : "${DEV_TYPE:=all}"
 PROFILE_SPECIFIED=false
@@ -1496,12 +1496,41 @@ setup_drivers() {
             warn "NVIDIA module not yet available - will build during boot"
         fi
 
-        if [[ "$CHASSIS" == "laptop" || "$CHASSIS" == "notebook" || "$CHASSIS" == "convertible" ]]; then
+        local IS_LAPTOP=false
+        if [[ "$CHASSIS" == "laptop" || "$CHASSIS" == "notebook" || "$CHASSIS" == "convertible" || "$CHASSIS" == "portable" ]] || compgen -G "/sys/class/power_supply/BAT*" > /dev/null; then
+            IS_LAPTOP=true
+        fi
+
+        if $IS_LAPTOP; then
             log "Laptop detected. Checking for Optimus/Hybrid setup..."
-            if [[ -n "$GPU_INTEL" || -n "$GPU_AMD" ]]; then
-                log "Hybrid Graphics (Optimus) detected."
+            if [[ -n "$GPU_AMD" || -n "$GPU_INTEL" ]]; then
+                log "Hybrid Graphics detected: Configuring Vulkan loader to prevent dGPU wake latency..."
+                local VULKAN_CONF="/etc/environment.d/10-vulkan-hybrid.conf"
+                local SELECTED_DRIVER=""
+
+                if [[ -n "$GPU_AMD" ]]; then
+                    SELECTED_DRIVER="*radeon*"
+                elif [[ -n "$GPU_INTEL" ]]; then
+                    SELECTED_DRIVER="*intel*"
+                fi
+
+                if [[ -n "$SELECTED_DRIVER" ]]; then
+                    if ! $DRY_RUN; then
+                        run_sudo mkdir -p /etc/environment.d
+                        run_sudo tee "$VULKAN_CONF" > /dev/null <<EOF
+# Prevent Vulkan loader from waking discrete NVIDIA GPU on desktop app launch
+VK_LOADER_DRIVERS_SELECT=$SELECTED_DRIVER
+EOF
+                        if systemctl --user is-system-running &>/dev/null; then
+                            systemctl --user set-environment VK_LOADER_DRIVERS_SELECT="$SELECTED_DRIVER" 2>/dev/null || true
+                        fi
+                        success "Vulkan driver priority set to $SELECTED_DRIVER in $VULKAN_CONF"
+                    else
+                        dry "Configure Vulkan driver priority ($SELECTED_DRIVER) in $VULKAN_CONF"
+                    fi
+                fi
             else
-                log "Dedicated Nvidia only (MUX Switch or Desktop replacement)."
+                log "Dedicated Nvidia only (MUX Switch or Desktop replacement). Skipping Vulkan driver priority override."
             fi
         fi
 

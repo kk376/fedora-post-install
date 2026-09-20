@@ -423,6 +423,76 @@ else
     pass "Nonexistent file returns 1"
 fi
 
+# ==============================================================================
+# Suite 6: Hybrid GPU Vulkan Configuration Tests
+# ==============================================================================
+echo "=== Suite 6: Hybrid GPU Vulkan Configuration ==="
+
+test_vulkan_logic() {
+    local chassis="$1"
+    local has_battery="$2"
+    local gpu_nvidia="$3"
+    local gpu_amd="$4"
+    local gpu_intel="$5"
+
+    local is_laptop=false
+    if [[ "$chassis" == "laptop" || "$chassis" == "notebook" || "$chassis" == "convertible" || "$chassis" == "portable" ]] || [[ "$has_battery" == "true" ]]; then
+        is_laptop=true
+    fi
+
+    local selected_driver=""
+    if $is_laptop; then
+        if [[ -n "$gpu_nvidia" && ( -n "$gpu_amd" || -n "$gpu_intel" ) ]]; then
+            if [[ -n "$gpu_amd" ]]; then
+                selected_driver="*radeon*"
+            elif [[ -n "$gpu_intel" ]]; then
+                selected_driver="*intel*"
+            fi
+        fi
+    fi
+    echo "$selected_driver"
+}
+
+# 6.1 AMD + NVIDIA on Laptop
+driver=$(test_vulkan_logic "laptop" "true" "NVIDIA Corporation" "Advanced Micro Devices" "")
+if [[ "$driver" == "*radeon*" ]]; then
+    pass "AMD + NVIDIA on laptop selects *radeon*"
+else
+    fail "AMD + NVIDIA on laptop failed" "$driver"
+fi
+
+# 6.2 Intel + NVIDIA on Laptop
+driver=$(test_vulkan_logic "notebook" "true" "NVIDIA Corporation" "" "Intel Corporation")
+if [[ "$driver" == "*intel*" ]]; then
+    pass "Intel + NVIDIA on laptop selects *intel*"
+else
+    fail "Intel + NVIDIA on laptop failed" "$driver"
+fi
+
+# 6.3 Dedicated NVIDIA only on Laptop (MUX switch)
+driver=$(test_vulkan_logic "laptop" "true" "NVIDIA Corporation" "" "")
+if [[ -z "$driver" ]]; then
+    pass "NVIDIA only on laptop leaves Vulkan config unset"
+else
+    fail "NVIDIA only on laptop failed" "$driver"
+fi
+
+# 6.4 AMD + NVIDIA on Desktop PC
+driver=$(test_vulkan_logic "desktop" "false" "NVIDIA Corporation" "Advanced Micro Devices" "")
+if [[ -z "$driver" ]]; then
+    pass "AMD + NVIDIA on desktop leaves Vulkan config unset"
+else
+    fail "AMD + NVIDIA on desktop failed" "$driver"
+fi
+
+# 6.5 Intel + NVIDIA on Desktop PC
+driver=$(test_vulkan_logic "desktop" "false" "NVIDIA Corporation" "" "Intel Corporation")
+if [[ -z "$driver" ]]; then
+    pass "Intel + NVIDIA on desktop leaves Vulkan config unset"
+else
+    fail "Intel + NVIDIA on desktop failed" "$driver"
+fi
+
 echo ""
 echo "=============================================================================="
 echo "Final Summary: Total: $TOTAL, Passed: $PASSED, Failed: $FAILED"
@@ -431,3 +501,4 @@ echo "==========================================================================
 if [[ $FAILED -gt 0 ]]; then
     exit 1
 fi
+

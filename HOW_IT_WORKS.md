@@ -277,6 +277,7 @@ Here is a simple walkthrough of each room the setup crew visits:
   - 🔵 **Intel GPUs:** Installs `intel-media-driver` for hardware video decoding.
   - 🔴 **AMD GPUs:** Swaps in Mesa freeworld drivers for full video decode acceleration.
   - 🟢 **NVIDIA GPUs:** Installs `akmod-nvidia`, CUDA, virtual camera modules, and provides an idiot-proof step-by-step walkthrough to enroll your **MOK (Machine Owner Key)** on the blue boot screen so Secure Boot stays 100% enabled.
+  - ⚡ **Hybrid Graphics Optimization (Optimus / MUXless Laptops):** On laptops with both an integrated GPU (AMD Radeon or Intel) and an NVIDIA discrete GPU, configures `/etc/environment.d/10-vulkan-hybrid.conf` (`VK_LOADER_DRIVERS_SELECT`) so GTK4 and Libadwaita applications (Files, Settings, Text Editor) open instantly on the iGPU instead of stalling 2+ seconds waking the dGPU from PCIe D3cold sleep.
 * **Decision:** Always say **YES**.
 
 ---

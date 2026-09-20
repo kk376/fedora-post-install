@@ -489,7 +489,7 @@ flowchart TD
     CheckNVIDIA -- Yes --> InstallNVIDIA["Install NVIDIA Driver Stack:<br/>akmod-nvidia, akmods, kernel-devel-matched, xorg-x11-drv-nvidia-kmodsrc,<br/>xorg-x11-drv-nvidia-cuda, libva-nvidia-driver, akmod-v4l2loopback, mokutil"]
     InstallNVIDIA --> BuildModules["Force module compilation: sudo akmods --force"]
     BuildModules --> CheckOptimus{"Is Laptop Chassis AND Hybrid GPU present?"}
-    CheckOptimus -- Yes --> LogOptimus["Log 'NVIDIA Optimus Hybrid Graphics detected'"] --> SecureBootGuide
+    CheckOptimus -- Yes --> ConfigVulkan["Configure /etc/environment.d/10-vulkan-hybrid.conf:<br/>Set VK_LOADER_DRIVERS_SELECT to *radeon* or *intel*<br/>to prevent dGPU wake latency in GTK4 apps"] --> SecureBootGuide
     CheckOptimus -- No --> SecureBootGuide
     
     SecureBootGuide["Display Comprehensive Secure Boot & MOK Guide:<br/>1. Key generation (kmodgenca -a)<br/>2. Key import (mokutil --import public_key.der)<br/>3. Blue MOK Manager enrollment walkthrough on reboot"] --> EndDrivers
