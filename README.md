@@ -6,6 +6,9 @@ An interactive post-installation script for Fedora 44 Workstation (GNOME).
 
 Built from years of actual Fedora usage, covering the things I find myself setting up on every fresh install: driver detection, multimedia codecs, dev tools, gaming, shell customization, Docker, and virtualization.
 
+> [!WARNING]
+> **Hardware Architecture Requirement:** This script is exclusively engineered for **x86_64** architecture systems with **AMD, Intel, and NVIDIA** hardware. ARM-based platforms, including **Qualcomm Snapdragon X Elite / X Plus** laptops, are **not supported**. Core components (Steam, NVIDIA akmods, x86_64 third-party RPMs, x86 KVM virtualization, and x86 power governors) will fail or cause system conflicts on ARM64.
+
 ---
 
 ## Features
@@ -22,12 +25,10 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ---
 
-## What's New in v5.6.0
+## What's New in v5.7.0
 
-- **Bit-Perfect Dynamic Audio & Bluetooth HD:** System-wide WirePlumber configuration (`/etc/wireplumber/wireplumber.conf.d/50-bluez.conf`) prioritizing LDAC, AAC, aptX, and SBC-XQ with hardware volume synchronization and stabilized A2DP/HFP roles, paired with system-wide PipeWire dynamic multi-rate clocking (`/etc/pipewire/pipewire.conf.d/99-clock-rates.conf`) supporting 44.1 kHz through 192 kHz without lossy resampling.
-- **Download Security & Supply Chain Hardening:** Enforced `--proto '=https' --tlsv1.2` across remote installer downloads, migrated legacy HTTP SourceForge URLs to secure HTTPS, and replaced unverified `curl | sh` execution for `cliamp` with direct verified binary release downloads via `github_download()`.
-- **GNOME Top Bar Live Clock:** Configured top bar clock to display live seconds and weekday in the `personal` profile.
-- **Personal Profile ONLYOFFICE Integration:** Automatically purges default `libreoffice*` packages and installs native `onlyoffice-desktopeditors` RPM from ONLYOFFICE for seamless 1:1 Microsoft Office compatibility.
+- **Hybrid Graphics Vulkan Optimization:** Automatically deploys `/etc/environment.d/10-vulkan-hybrid.conf` (`VK_LOADER_DRIVERS_SELECT`) on hybrid laptops with AMD/Intel integrated graphics and NVIDIA discrete graphics. This eliminates the 2+ second cold launch stall in GTK4 and Libadwaita applications (Files, Settings, Text Editor) caused by discrete GPU PCIe D3cold power transitions, while fully preserving on-demand discrete GPU offloading for games and compute.
+- **Hardware Architecture Guard:** Documented strict `x86_64` (AMD, Intel, NVIDIA) requirement and added pre-flight architecture validation warning against unsupported ARM64 / Snapdragon platforms.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
@@ -71,6 +72,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 
 ## Requirements
 
+- **Architecture:** `x86_64` (AMD, Intel, NVIDIA). ARM64 / Snapdragon platforms are not supported.
 - **OS:** Fedora 44 Workstation
 - **Desktop:** GNOME
 - **Disk:** At least 20GB free (varies by profile)

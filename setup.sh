@@ -3020,6 +3020,20 @@ main() {
     info "Started at $(date)"
     info "Log file: $LOG_FILE"
 
+    # Architecture verification guard
+    local system_arch
+    system_arch=$(uname -m)
+    if [[ "$system_arch" != "x86_64" ]]; then
+        echo ""
+        warn "Unsupported CPU architecture detected: $system_arch"
+        warn "This script is designed and tested exclusively for x86_64 systems (AMD, Intel, NVIDIA)."
+        warn "ARM64 platforms, including Qualcomm Snapdragon X Elite / X Plus laptops, are not supported."
+        if ! confirm "Continue anyway at your own risk?" "N"; then
+            info "Aborting setup for unsupported architecture ($system_arch)."
+            exit 1
+        fi
+    fi
+
     # Interactive profile selection menu
     select_profile_menu
 
