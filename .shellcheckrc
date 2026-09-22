@@ -1,0 +1,3 @@
+# ShellCheck configuration file
+# SC2329: Allow mock helper functions defined inside test functions
+disable=SC2329

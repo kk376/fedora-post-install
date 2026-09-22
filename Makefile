@@ -11,7 +11,7 @@ test:
 
 lint:
 	@command -v shellcheck >/dev/null 2>&1 || { echo "Error: shellcheck is not installed" >&2; exit 1; }
-	shellcheck setup.sh tests/*.sh
+	shellcheck -e SC2329 setup.sh tests/*.sh
 
 check: lint test
 
