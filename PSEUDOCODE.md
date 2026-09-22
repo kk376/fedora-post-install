@@ -113,7 +113,7 @@ flowchart TD
     SwitchProfile -- workstation --> P_Work["workstation Profile<br/>(11 Steps: Minimal + Power, GNOME & AppIndicator, Productivity Packages, Flatpaks, Drivers)"]
     SwitchProfile -- creator --> P_Creator["creator Profile<br/>(11 Steps: Minimal + Power, GNOME, Creator Packages with OBS/V4L2/GStreamer, Flatpaks, Drivers)"]
     SwitchProfile -- full --> P_Full["full Profile (Default)<br/>(All 17 Steps: Public Superset of Workstation + Dev + Gaming + Creator + COPR)"]
-    SwitchProfile -- personal --> P_Personal["personal Profile<br/>(All 17 Steps: Full Suite + PostgreSQL 18, 50GB ccache, kkfetch, dpkg-dev)"]
+    SwitchProfile -- personal --> P_Personal["personal Profile<br/>(All 17 Steps: Full Suite + automated Fish, Starship, Ghostty, ONLYOFFICE, PG18, dpkg-dev)"]
 
     P_Min --> CoreOnly["Target: Minimalist server, container host, or lean desktop"]
     P_Dev --> DevOnly["Target: Software engineers across systems, web, android, or ai genres"]
@@ -121,7 +121,7 @@ flowchart TD
     P_Work --> WorkOnly["Target: Clean, daily productive desktop without gaming or virtualization overhead"]
     P_Creator --> CreatorOnly["Target: Streamers, video editors, audio engineers, Linux desktop creators"]
     P_Full --> FullOnly["Target: Power users wanting complete public workstation, dev, and gaming suite"]
-    P_Personal --> PersonalOnly["Target: Author's bespoke daily workstation with PostgreSQL 18 & compiler caches"]
+    P_Personal --> PersonalOnly["Target: Author's bespoke daily workstation with automated Fish, Starship, Ghostty, ONLYOFFICE & PostgreSQL 18"]
 ```
 
 ---
@@ -345,30 +345,54 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    StartDev(["Start setup_dev()"]) --> InstallDevTools["Install low-level developer tools:<br/>meson, ninja, automake, gdb, valgrind, strace, git-lfs, python3-devel, openssl-devel"]
-    InstallDevTools --> CheckFullProfile{"Is profile 'full'?"}
+    StartDev(["Start setup_dev()"]) --> SelectGenres["Evaluate dev genres: setup_dev_genres<br/>(systems, web, android, ai)"]
+    SelectGenres --> BuildPkgs["Build dev_pkgs list:<br/>Base: meson, ninja, automake, gdb, valgrind, strace, git-lfs, python3-devel<br/>Systems: gcc, clang, llvm, make, cmake<br/>Web: nodejs, npm<br/>Android: java-latest-openjdk, maven<br/>AI: python3-pip, virtualenv, wheel, ruff<br/>Full/Personal: dpkg-dev, libX11-devel, alsa-lib-devel"]
+    BuildPkgs --> InstallDevPkgs["Execute: dnf install -y --skip-unavailable dev_pkgs"]
     
-    CheckFullProfile -- Yes --> InstallDpkgDev["Install dpkg-dev (Debian packaging)"] --> RustPrompt
-    CheckFullProfile -- No --> RustPrompt
-    
-    RustPrompt{"Install full Rust toolchain (rustup, clippy, rust-analyzer)? [Y/n]"}
+    InstallDevPkgs --> CheckSystemsGenre{"Has 'systems' genre?"}
+    CheckSystemsGenre -- Yes --> RustPrompt{"Install full Rust toolchain (rustup, clippy, rust-analyzer)? [Y/n]"}
     RustPrompt -- Yes --> InstallRust["Install rust, cargo, rustup, clippy, rust-analyzer"] --> CcachePrompt
     RustPrompt -- No --> CcachePrompt
     
-    CcachePrompt{"Install and configure ccache (50GB compressed)? [Y/n]"}
-    CcachePrompt -- Yes --> InstallCcache["Install ccache & configure 50GB limit with compression"] --> EnableCorepack
-    CcachePrompt -- No --> EnableCorepack
-    EnableCorepack --> PythonSymlinks["Create Python symlinks in ~/.local/bin/python"]
-    PythonSymlinks --> GitDefaults["Configure Git global defaults:<br/>core.pager=cat, push.autoSetupRemote=true, pull.rebase=true"]
-    GitDefaults --> InstallPG18["Install PostgreSQL 18 Server from official PGDG repository"]
-    InstallPG18 --> InitPG18{"Is /var/lib/pgsql/18/data initialized?"}
+    CcachePrompt{"Install and configure ccache (50GB compressed)? [Y/n]<br/>(Disclaimer: GCC/Clang object cache)"}
+    CcachePrompt -- Yes --> InstallCcache["Install ccache & configure 50GB limit with compression"] --> CheckAndroidGenre
+    CcachePrompt -- No --> CheckAndroidGenre
+    CheckSystemsGenre -- No --> CheckAndroidGenre
     
+    CheckAndroidGenre{"Has 'android' genre?"}
+    CheckAndroidGenre -- Yes --> AndroidStudioPrompt{"Install Android Studio (via Flathub)? [Y/n]"}
+    AndroidStudioPrompt -- Yes --> InstallAndroidStudio["flatpak install flathub com.google.AndroidStudio"] --> CheckAIGenre
+    AndroidStudioPrompt -- No --> CheckAIGenre
+    CheckAndroidGenre -- No --> CheckAIGenre
+    
+    CheckAIGenre{"Has 'ai' genre?"}
+    CheckAIGenre -- Yes --> CheckNvidiaGPU{"NVIDIA GPU detected via lspci?"}
+    CheckNvidiaGPU -- Yes --> CudaPrompt{"Install NVIDIA CUDA development libraries? [Y/n]"}
+    CudaPrompt -- Yes --> InstallCuda["dnf install xorg-x11-drv-nvidia-cuda-devel"] --> CheckWebGenre
+    CudaPrompt -- No --> CheckWebGenre
+    CheckNvidiaGPU -- No --> CheckWebGenre
+    CheckAIGenre -- No --> CheckWebGenre
+    
+    CheckWebGenre{"Has 'web' genre?"}
+    CheckWebGenre -- Yes --> EnableCorepack["Enable Node.js Corepack (yarn/pnpm)"] --> PythonSymlinks
+    CheckWebGenre -- No --> PythonSymlinks
+    
+    PythonSymlinks["Create Python symlinks in ~/.local/bin/python"] --> GitDefaults
+    GitDefaults["Configure Git global defaults:<br/>core.pager=cat, push.autoSetupRemote=true, pull.rebase=true, diff.colorMoved=zebra"] --> CheckPGProfile{"Profile type for PostgreSQL 18?"}
+    
+    CheckPGProfile -->|"personal"| AutoInstallPG["Set install_pg=true automatically"] --> InstallPG18
+    CheckPGProfile -->|"full"| PGPrompt{"Install PostgreSQL 18 Server & pgAdmin 4? [y/N]"}
+    PGPrompt -- Yes --> InstallPG18
+    PGPrompt -- No --> EndDev(["Mark completed"])
+    CheckPGProfile -->|"dev or other"| EndDev
+    
+    InstallPG18["Install PostgreSQL 18 Server from official PGDG repository"] --> InitPG18{"Is /var/lib/pgsql/18/data initialized?"}
     InitPG18 -- No --> RunInitDB["Run: /usr/pgsql-18/bin/postgresql-18-setup initdb"] --> EnablePGService
     InitPG18 -- Yes --> EnablePGService
     
     EnablePGService["systemctl enable --now postgresql-18<br/>Export PATH in /etc/profile.d/pgsql18.sh"]
     EnablePGService --> InstallPGAdmin["Install pgAdmin 4 Desktop GUI from official repo"]
-    InstallPGAdmin --> EndDev(["Mark completed"])
+    InstallPGAdmin --> EndDev
 ```
 
 ---

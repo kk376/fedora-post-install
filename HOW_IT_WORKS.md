@@ -10,7 +10,7 @@
 
 1. [The "Before & After" Transformation](#1-the-before--after-transformation)
 2. [The 4 Peace-of-Mind Safety Rules](#2-the-4-peace-of-mind-safety-rules)
-3. [Choose Your Vibe: The 6 Profiles](#3-choose-your-vibe-the-6-profiles)
+3. [Choose Your Vibe: The 7 Profiles](#3-choose-your-vibe-the-7-profiles)
 4. [The 17-Step Tour (Plain English Breakdown)](#4-the-17-step-tour-plain-english-breakdown)
 5. [Visual Roadtrip (How the Script Flows)](#5-visual-roadtrip-how-the-script-flows)
 6. [Beginner FAQ & Safety Net](#6-beginner-faq--safety-net)
@@ -78,7 +78,7 @@ The script contains zero reckless deletion commands. Critical kernel drivers, An
 
 ---
 
-## 3. Choose Your Vibe: The 6 Profiles
+## 3. Choose Your Vibe: The 7 Profiles
 
 You don't need a heavy developer workstation if you just want to browse the web and play games. Pick the profile that matches what you do:
 
@@ -87,41 +87,45 @@ You don't need a heavy developer workstation if you just want to browse the web 
                   │    WHICH FEDORA PROFILE IS RIGHT FOR YOU?    │
                   └──────────────────────────────────────────────┘
                                          │
-                 Do you want a full developer & virtualization stack?
-                                ├── YES ──► Are you doing media creation / streaming?
-                                │             ├── YES ──► 🎬 CREATOR PROFILE
-                                │             └── NO  ──► 💻 DEV or 🏢 WORKSTATION
+                 Do you want everything (workstation, dev, gaming, creator)?
+                                ├── YES ──► Want author's personal defaults (ONLYOFFICE, PG18, Ghostty)?
+                                │             ├── YES ──► PERSONAL PROFILE
+                                │             └── NO  ──► FULL PROFILE (Default)
                                 │
-                                └── NO  ──► Do you play games (Steam / Discord / Proton)?
-                                              ├── YES ──► 🎮 GAMING PROFILE
-                                              └── NO  ──► 🪶 MINIMAL PROFILE
+                                └── NO  ──► Do you want a dedicated developer workstation?
+                                              ├── YES ──► DEV PROFILE (Choose dev genres)
+                                              └── NO  ──► Media creator, gamer, or lean desktop?
+                                                            ├── CREATOR (OBS, V4L2, GStreamer)
+                                                            ├── GAMING (Steam, MangoHud, Heroic)
+                                                            ├── WORKSTATION (Productivity, No gaming)
+                                                            └── MINIMAL (Lean daily driver)
 ```
 
-### 🪶 1. `minimal` — The Clean Minimalist (7 steps)
+### 1. `minimal`: The Clean Minimalist (7 steps)
 * **Who it's for:** People who want Fedora to feel snappy, modern, and play videos, without installing heavy packages.
 * **What you get:** DNF download turbo, DNS, modern fonts, Fish/Zsh terminal, Brave browser, multimedia codecs, and GPU drivers.
 
-### 💻 2. `dev` — The Software Engineer (16 steps)
+### 2. `dev`: The Software Engineer (16 steps)
 * **Who it's for:** Software engineers across any discipline (`--dev-type=systems,web,android,ai,all`).
 * **What you get:** Everything in Minimal + Power management, No-Sleep lock, GNOME tools & AppIndicator, domain toolchains based on dev genres (systems, web, android, ai), Code Editor (Zed/Codium/Antigravity/Code), Flatpaks (Android Studio), Docker Engine, and KVM Virtual Machines.
 
-### 🎮 3. `gaming` — The Linux Gamer (11 steps)
+### 3. `gaming`: The Linux Gamer (11 steps)
 * **Who it's for:** Gamers playing on Steam, Discord users, and media lovers.
 * **What you get:** Everything in Minimal + Power tuning, GNOME tools, Steam with H.264 video unlock, MangoHud FPS & temperature overlay (with 32px HUD scaling), GameMode, Vesktop (Discord with screen audio), Heroic Games Launcher (Flathub Flatpak for Epic/GOG with UMU exit lag fix), and Flatpaks.
 
-### 🏢 4. `workstation` — The Daily Productivity Desktop (11 steps)
+### 4. `workstation`: The Daily Productivity Desktop (11 steps)
 * **Who it's for:** Professional desktop users who want a clean, productive machine without gaming overhead, virtualization clutter, or compilers.
 * **What you get:** Everything in Minimal + Power tuning, GNOME tools & AppIndicator, productivity utilities, and Flatpaks (Extension Manager).
 
-### 🎬 5. `creator` — The Streamer & Content Creator (11 steps)
+### 5. `creator`: The Streamer & Content Creator (11 steps)
 * **Who it's for:** People who stream, record YouTube videos, edit podcasts, or design GTK apps.
 * **What you get:** Everything in Workstation + OBS Studio, akmod-v4l2loopback virtual camera, GStreamer media pipeline headers, GTK4/Adwaita design tools, and NVIDIA Broadcast AI audio noise removal.
 
-### 🚀 6. `full` — The Complete Public Powerhouse (17 steps, Default)
+### 6. `full`: The Complete Public Powerhouse (17 steps, Default)
 * **Who it's for:** Users who want the full public superset: workstation + dev + gaming + creator, plus COPR packages (Scrcpy Android mirroring, Yazi file manager).
 
-### 👤 7. `personal` — The Author's Bespoke Workflow (17 steps)
-* **Who it's for:** Dedicated personal profile isolating the author's workflow: Full profile + PostgreSQL 18 server daemon, pgAdmin 4 desktop, 50GB ccache compilation cache, dpkg-dev, X11 dev headers, and kkfetch.
+### 7. `personal`: The Author's Bespoke Workflow (17 steps)
+* **Who it's for:** Dedicated personal profile isolating the author's workflow: Full profile + automated Fish login shell with developer exports, automated Starship cross-shell prompt, automated Ghostty GPU terminal with dev-suite configs, ONLYOFFICE desktop editors (swapped for LibreOffice), automated PostgreSQL 18 server daemon, pgAdmin 4 desktop, dpkg-dev, X11 dev headers, cliamp, ani-cli, and kkfetch.
 
 ---
 
@@ -218,9 +222,13 @@ Here is a simple walkthrough of each room the setup crew visits:
 ### 💻 Step 11: Developer Engine & PostgreSQL 18 (`setup_dev`)
 * **The Problem:** Setting up compilers, Python symlinks, Node corepack (`pnpm`/`yarn`), compiler cache, and database servers manually takes hours of troubleshooting.
 * **The Fix:**
-  - Installs GCC, Clang, Make, CMake, and optional full **Rust toolchain**.
-  - Prompts for **50GB compressed compiler caching (`ccache`)** under the systems dev genre (with technical disclaimer explaining build acceleration for C and C++ projects) so re-compiling object code takes seconds instead of minutes.
-  - Installs official **PostgreSQL 18 Server** from PGDG, initializes the database automatically, enables the service, and installs **pgAdmin 4** Desktop.
+  - Installs low-level developer tools (GCC, Clang, LLVM, Make, CMake, Ninja, Meson, GDB, Valgrind, Bear, Hyperfine).
+  - **Systems Genre:** Prompts for full **Rust toolchain** (rustup, clippy, rust-analyzer) and **ccache** (50GB compressed compiler cache with technical disclaimer).
+  - **Android Genre:** Prompts for **Android Studio** (Flathub Flatpak) with hardware-accelerated emulator support.
+  - **AI Genre:** Hardware-gated check for **NVIDIA CUDA** development libraries (safely skipped with ROCm notice on AMD GPUs).
+  - **Web Genre:** Enables Node.js **Corepack** (`pnpm`/`yarn`).
+  - Configures **Python development symlinks** (`~/.local/bin/python`) and global **Git defaults** (`core.pager=cat`, `push.autoSetupRemote=true`, `pull.rebase=true`).
+  - Installs official **PostgreSQL 18 Server** from PGDG (automated in `personal`, interactive prompt in `full`), initializes the database automatically, enables the service, and installs **pgAdmin 4** Desktop.
 * **Decision:** Say **YES** if you build software or websites.
 
 ---
@@ -228,7 +236,7 @@ Here is a simple walkthrough of each room the setup crew visits:
 ### 📝 Step 12: Code Editor Suite & Polyglot Runner (`setup_editor`)
 * **The Problem:** Installing editors, themes, font settings, and configuring code execution shortcuts is repetitive.
 * **The Fix:** Lets you choose your favorite editor from a clean menu:
-  1. ⚡ **Zed (Recommended):** Blazing-fast GPU-accelerated editor with Catppuccin Mocha theme and a custom `zed-run` engine—press **F5** or **Ctrl+Alt+N** to run Python, Rust, C, C++, Go, JS, or Bash instantly. If you press **Ctrl+C**, it drops you into an interactive shell instead of quitting!
+  1. **Zed (Recommended):** Blazing-fast GPU-accelerated editor with Catppuccin Mocha theme and a custom `zed-run` engine: press **F5** or **Ctrl+Alt+N** to run Python, Rust, C, C++, Go, JS, or Bash instantly. If you press **Ctrl+C**, it drops you into an interactive shell instead of quitting!
   2. 🕊️ **VS Codium:** 100% Free/Libre VS Code without Microsoft telemetry or proprietary branding.
   3. 🚀 **Google Antigravity IDE:** The next-gen agentic developer IDE.
   4. 🔷 **VS Code:** Standard Microsoft VS Code.

@@ -17,7 +17,7 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 - **Hardware-aware**: detects Intel / AMD / NVIDIA GPUs, hybrid Optimus setups, and CPU virtualization support
 - **Secure Boot-aware NVIDIA setup**: builds kernel modules, generates keys, and walks you through MOK enrollment
 - **Idempotent**: state file tracks what's done; you can interrupt and pick up where you left off, or `--force` to re-run
-- **Profile-based**: six profiles so you only install what you actually need
+- **Profile-based**: seven profiles so you only install what you actually need
 - **Dry-run mode**: preview everything without touching the system
 - **Backup and restore**: backs up config files before modifying them
 - **Plain English guide**: see [HOW_IT_WORKS.md](HOW_IT_WORKS.md) for a friendly, creative layman walkthrough and transformation guide
@@ -27,6 +27,10 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ## What's New in v5.8.0
 
+- **Profile-Gated Default Shell Selection:** Interactive login shell menu (Fish [Recommended], ZSH, Bash, Skip) in developer and full profiles, with automated Fish configuration and developer exports for the personal profile.
+- **Interactive Developer Environment Menu:** Interactive menu in developer and full profiles to choose between full developer environment exports and Git aliases vs clean standard aliases.
+- **Profile-Gated Starship Cross-Shell Prompt:** Interactive prompt with technical disclaimer explaining performance and git features in developer and full profiles; automated deployment in the personal profile; completely bypassed in minimal, workstation, gaming, and creator profiles.
+- **Interactive ccache Compiler Cache:** Gated to the systems developer genre across developer, full, and personal profiles with an informative technical disclaimer explaining C and C++ compilation caching benefits.
 - **GPU Terminal Emulator Selector:** Interactive selection in developer and full profiles for modern GPU-accelerated terminal emulators (Ghostty recommended as default, Kitty, or Alacritty) with automated deployment of Tokyo Night configurations synced from `dev-suite`.
 - **Personal Profile Ghostty Automation:** Automated installation of Ghostty via Copr and deployment of author configs and GTK styling from `dev-suite` without interactive prompts.
 - **Heroic Games Launcher Flathub Migration:** Migrated Heroic Games Launcher from DNF RPM to the official Flathub Flatpak (`com.heroicgameslauncher.hgl`) as recommended by upstream maintainers, with automated sandbox configuration and shared Wine prefix initialization.
@@ -54,8 +58,8 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 2. `workstation` (11 steps)
 3. `gaming` (11 steps)
 4. `creator` (11 steps)
-5. `dev` (16 steps — includes prompt for developer genres: systems, web, android, ai, or all)
-6. `full` (17 steps — default)
+5. `dev` (16 steps: includes prompt for developer genres: systems, web, android, ai, or all)
+6. `full` (17 steps: default)
 7. `personal` (17 steps)
 
 ### Profiles
@@ -68,7 +72,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 | `creator`     | 11    | Minimal + power, GNOME tools, creator tools (OBS, akmod-v4l2loopback, GStreamer, NV Broadcast), Flatpaks, GPU drivers (last) |
 | `dev`         | 16    | Minimal + power, no-sleep, GNOME tools, dev genre packages (`--dev-type`), Code Editor, Flatpaks (Android Studio), Docker, KVM/QEMU, GPU drivers (last) |
 | `full`        | 17    | Complete public power-user superset: workstation + dev + gaming + creator, COPR packages                     |
-| `personal`    | 17    | Author's bespoke workflow: Full + ONLYOFFICE (LibreOffice swap), Ghostty with dev-suite configs, PostgreSQL 18, ccache, kkfetch, cliamp, ani-cli |
+| `personal`    | 17    | Author's bespoke workflow: Full + ONLYOFFICE (LibreOffice swap), Ghostty with dev-suite configs, automated Fish & Starship, PostgreSQL 18, dpkg-dev, kkfetch, cliamp, ani-cli |
 
 ---
 
