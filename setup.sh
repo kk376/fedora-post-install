@@ -1361,7 +1361,7 @@ ZSHRC_CLEAN
         if grep -q "FEDORA_POST_INSTALL_MANAGED" "$HOME/.bashrc" 2>/dev/null; then
             sed -i '/# >>> FEDORA_POST_INSTALL_MANAGED >>>/,/# <<< FEDORA_POST_INSTALL_MANAGED <<</d' "$HOME/.bashrc"
         elif grep -q "starship init bash" "$HOME/.bashrc" 2>/dev/null; then
-            sed -i '/# ===== Starship/,/eval "$(starship init bash)"/d' "$HOME/.bashrc" 2>/dev/null || true
+            sed -i '/# ===== Starship/,/starship init bash/d' "$HOME/.bashrc" 2>/dev/null || true
         fi
 
         if $bash_dev; then
