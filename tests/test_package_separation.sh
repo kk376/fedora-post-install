@@ -868,6 +868,38 @@ else
     fail "setup_shell missing expected clean standard aliases"
 fi
 
+# 11.7: Verify setup_shell gates Starship confirmation prompt strictly to dev and full profiles
+if grep -B 5 -A 5 'Starship Cross-Shell Prompt:' "$SETUP_SCRIPT" | grep -q 'PROFILE" == "dev" || "$PROFILE" == "full"'; then
+    pass "setup_shell gates Starship prompt strictly to dev and full profiles"
+else
+    fail "setup_shell does not gate Starship prompt to dev and full profiles"
+fi
+
+# 11.8: Verify dry-run dev profile logs Starship prompt and config deployment
+if echo "$dry_dev_output" | grep -q "Prompt: Install and configure Starship prompt?" && \
+   echo "$dry_dev_output" | grep -q "Deploy Starship prompt configuration to ~/.config/starship.toml"; then
+    pass "Dry-run dev profile prompts for Starship and logs configuration deployment"
+else
+    fail "Dry-run dev profile missing Starship prompt or configuration deployment log"
+fi
+
+# 11.9: Verify dry-run personal profile automatically configures Starship without prompting
+if ! echo "$dry_personal_output" | grep -q "Prompt: Install and configure Starship prompt?" && \
+   echo "$dry_personal_output" | grep -q "Author profile: Automatically installing and configuring Starship" && \
+   echo "$dry_personal_output" | grep -q "Deploy Starship prompt configuration to ~/.config/starship.toml"; then
+    pass "Dry-run personal profile automatically configures Starship without interactive prompts"
+else
+    fail "Dry-run personal profile unexpectedly prompted for Starship or missed automatic deployment"
+fi
+
+# 11.10: Verify dry-run gaming profile bypasses Starship prompt and does NOT deploy starship.toml
+if ! echo "$dry_output" | grep -q "Prompt: Install and configure Starship prompt?" && \
+   ! echo "$dry_output" | grep -q "Deploy Starship prompt configuration to ~/.config/starship.toml"; then
+    pass "Dry-run gaming profile completely bypasses Starship prompt and configuration deployment"
+else
+    fail "Dry-run gaming profile unexpectedly prompted for Starship or deployed starship.toml"
+fi
+
 echo ""
 echo "================================================================"
 echo "SUMMARY: Total Tests: $TOTAL, Passed: $PASSED, Failed: $FAILED"

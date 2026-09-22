@@ -14,6 +14,8 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 - **Clean Standard Aliases for General Profiles**: Deployed clean standard modern aliases (`clear`, `ls`, `cat`, `less`) without developer environment exports across minimal, workstation, gaming, and creator profiles.
 - **GPU Terminal Emulator Selection & Dev-Suite Config Sync**: Added interactive selection in developer and full profiles for modern GPU-accelerated terminal emulators (Ghostty recommended as default, Kitty, or Alacritty) with automated deployment of Tokyo Night configurations directly from the `dev-suite` repository.
 - **Personal Profile Ghostty Automation**: Automated the installation and configuration of Ghostty with author configs and GTK styling from `dev-suite` in the `personal` profile without interactive prompts.
+- **Profile-Gated Starship Cross-Shell Prompt**: Gated Starship prompt installation and deployment to `personal` (default automated setup), `dev` and `full` (interactive prompt with informational benefits disclaimer). Standard profiles (`minimal`, `workstation`, `gaming`, `creator`) bypass Starship entirely to preserve clean minimal shell prompts.
+- **Isolated Shell Init Hooks**: Shell configuration templates (`~/.zshrc`, `~/.bashrc`, `~/.config/fish/config.fish`) now conditionally inject `starship init` evaluation hooks strictly when Starship is selected or enabled for the active profile.
 
 ### Changed
 

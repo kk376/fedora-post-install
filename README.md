@@ -62,7 +62,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 
 | Profile       | Steps | What it installs                                                                                             |
 | ------------- | :---: | ------------------------------------------------------------------------------------------------------------ |
-| `minimal`     | 7     | DNF config, DNS, fonts, shell (Fish/Zsh + Starship), Brave & codecs, GPU drivers (last)                     |
+| `minimal`     | 7     | DNF config, DNS, fonts, shell (Fish/Zsh), Brave & codecs, GPU drivers (last)                     |
 | `workstation` | 11    | Minimal + power, GNOME tools & AppIndicator, productivity packages, Flatpaks (Extension Manager), GPU drivers (last) |
 | `gaming`      | 11    | Minimal + power, GNOME tools, gaming packages (Steam, MangoHud, GameMode, Vesktop, Heroic Games Launcher), Flatpaks, GPU drivers (last) |
 | `creator`     | 11    | Minimal + power, GNOME tools, creator tools (OBS, akmod-v4l2loopback, GStreamer, NV Broadcast), Flatpaks, GPU drivers (last) |
@@ -99,7 +99,7 @@ DNF optimization (parallel downloads, fastest mirror, version pinning), RPM Fusi
 
 ### Shell
 
-Fish (recommended default) and ZSH, Starship prompt, syntax highlighting, autosuggestions, clean modern aliases (clear, ls, cat, less). Developer and full profiles feature interactive login shell selection (Fish, ZSH, Bash) and a dedicated menu for developer environment exports and Git aliases. The personal profile automatically configures Fish as the default shell with all developer exports directly enabled. All other profiles receive clean standard aliases without developer environment exports. Developer and full profiles also include interactive modern GPU terminal selection (Ghostty recommended, Kitty, or Alacritty) with Tokyo Night configuration synced from dev-suite, while the personal profile deploys Ghostty automatically.
+Fish (recommended default) and ZSH, syntax highlighting, autosuggestions, clean modern aliases (clear, ls, cat, less). Developer and full profiles feature interactive login shell selection (Fish, ZSH, Bash), an interactive prompt for Starship cross-shell prompt installation with feature disclaimer, and a dedicated menu for developer environment exports and Git aliases. The personal profile automatically configures Fish as the default shell and deploys Starship with all developer exports directly enabled. All other profiles receive clean standard aliases without Starship or developer environment exports. Developer and full profiles also include interactive modern GPU terminal selection (Ghostty recommended, Kitty, or Alacritty) with Tokyo Night configuration synced from dev-suite, while the personal profile deploys Ghostty automatically.
 
 ### Power
 

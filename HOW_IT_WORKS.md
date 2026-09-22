@@ -99,7 +99,7 @@ You don't need a heavy developer workstation if you just want to browse the web 
 
 ### 🪶 1. `minimal` — The Clean Minimalist (7 steps)
 * **Who it's for:** People who want Fedora to feel snappy, modern, and play videos, without installing heavy packages.
-* **What you get:** DNF download turbo, DNS, modern fonts, Fish/Zsh + Starship terminal, Brave browser, multimedia codecs, and GPU drivers.
+* **What you get:** DNF download turbo, DNS, modern fonts, Fish/Zsh terminal, Brave browser, multimedia codecs, and GPU drivers.
 
 ### 💻 2. `dev` — The Software Engineer (16 steps)
 * **Who it's for:** Software engineers across any discipline (`--dev-type=systems,web,android,ai,all`).
@@ -168,11 +168,12 @@ Here is a simple walkthrough of each room the setup crew visits:
 
 ### 🐚 Step 6: Dream Terminal & Shell (`setup_shell`)
 * **The Problem:** The default terminal is a plain black box with basic text and standard Bash defaults.
-* **The Fix:** Equips your environment with modern shells (Fish and ZSH) powered by the universal **Starship** prompt.
+* **The Fix:** Equips your environment with modern shells (Fish and ZSH) and optional **Starship** cross-shell prompt.
   - Interactive login shell menu (Fish [Recommended], ZSH, Bash, Skip) in `dev` and `full` profiles.
+  - Interactive Starship prompt installation option with feature disclaimer in `dev` and `full` profiles.
   - Interactive developer environment menu (Git aliases, Neovim editor, Cargo/OpenCode PATH) tailored to the chosen shell in `dev` and `full` profiles.
-  - Automated Fish login shell with all developer environment exports directly configured for the `personal` profile.
-  - Clean standard aliases (clear, ls, cat, less) across all shells without developer bloat on standard profiles (`minimal`, `workstation`, `gaming`, `creator`).
+  - Automated Fish login shell and Starship prompt with all developer environment exports directly configured for the `personal` profile.
+  - Clean standard aliases (clear, ls, cat, less) across all shells without Starship or developer bloat on standard profiles (`minimal`, `workstation`, `gaming`, `creator`).
   - Optional modern GPU terminal emulator (Ghostty recommended, Kitty, or Alacritty) with Tokyo Night configuration synced from `dev-suite` (automated for personal profile).
   - Optional KKFetch system info banner created by Kushagra Kumar.
 * **Decision:** Always say **YES**.

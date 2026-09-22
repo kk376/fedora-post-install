@@ -225,17 +225,17 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    StartShell(["Start setup_shell()"]) --> InstallShellPkgs["Install ZSH, Fish, Starship, git, curl, fontconfig"]
+    StartShell(["Start setup_shell()"]) --> InstallShellPkgs["Install ZSH, Fish, git, curl, fontconfig"]
     InstallShellPkgs --> ClonePlugins["Clone ZSH Plugins:<br/>zsh-autosuggestions, zsh-syntax-highlighting"]
-    ClonePlugins --> DeployStarshipToml["Deploy ~/.config/starship.toml"]
-    DeployStarshipToml --> CheckShellProfile{"Profile category?"}
+    ClonePlugins --> CheckShellProfile{"Profile category?"}
     
-    CheckShellProfile -- "personal" --> AutoFishPersonal["Auto-set Fish as default shell via chsh<br/>Directly enable developer environment exports & full aliases"] --> DeployConfigs
-    CheckShellProfile -- "dev or full" --> ShellMenuPrompt["Interactive Default Shell Menu:<br/>1. Fish (Recommended)<br/>2. ZSH<br/>3. Bash<br/>4. Skip (current shell)"]
-    ShellMenuPrompt --> DevEnvPrompt["Interactive Menu:<br/>Developer exports & aliases for chosen shell?<br/>1. Full developer environment<br/>2. Clean standard aliases only"] --> DeployConfigs
-    CheckShellProfile -- "minimal, workstation, gaming, creator" --> StdAliasesOnly["Skip shell menu & dev exports<br/>Prepare clean standard aliases (clear, ls, cat, less)"] --> DeployConfigs
+    CheckShellProfile -->|"personal"| AutoFishPersonal["Auto-set Fish as default shell via chsh<br/>Directly enable developer environment exports & full aliases<br/>Auto-install Starship prompt"] --> DeployConfigs
+    CheckShellProfile -->|"dev or full"| ShellMenuPrompt["Interactive Default Shell Menu:<br/>1. Fish (Recommended)<br/>2. ZSH<br/>3. Bash<br/>4. Skip (current shell)"]
+    ShellMenuPrompt --> DevEnvPrompt["Interactive Menu:<br/>Developer exports & aliases for chosen shell?<br/>1. Full developer environment<br/>2. Clean standard aliases only"]
+    DevEnvPrompt --> StarshipPrompt["Interactive Option:<br/>Install and configure Starship prompt? [Y/n]<br/>(Displays speed, git, and cross-shell benefits)"] --> DeployConfigs
+    CheckShellProfile -->|"minimal, workstation, gaming, creator"| StdAliasesOnly["Skip shell menu, dev exports & Starship<br/>Prepare clean standard aliases (clear, ls, cat, less)"] --> DeployConfigs
 
-    DeployConfigs["Deploy ~/.zshrc, ~/.bashrc, and ~/.config/fish/config.fish<br/>according to profile and selection"] --> CheckTermProfile{"Is dev, full, or personal profile?"}
+    DeployConfigs["Deploy ~/.zshrc, ~/.bashrc, and ~/.config/fish/config.fish<br/>Deploy ~/.config/starship.toml if Starship enabled"] --> CheckTermProfile{"Is dev, full, or personal profile?"}
 
     CheckTermProfile -- No --> KKFetchPrompt
     CheckTermProfile -- Yes --> CheckPersonalProfile{"Is personal profile?"}

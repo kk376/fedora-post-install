@@ -909,26 +909,11 @@ setup_terminal() {
 # ZSH + Starship
 # ==============================================================================
 setup_shell() {
-    log "Installing ZSH, Fish & Starship..."
+    log "Installing shell packages (ZSH, Fish)..."
     run_sudo dnf install -y --skip-unavailable zsh fish curl git fontconfig
 
-    if ! command -v starship &>/dev/null && ! $DRY_RUN; then
-        if ! run_sudo dnf install -y --skip-unavailable starship 2>/dev/null; then
-            log "Installing Starship via official installer..."
-            local starship_installer
-            starship_installer=$(mktemp /tmp/starship-install-XXXXXX.sh)
-            if curl --proto '=https' --tlsv1.2 -fsSL https://starship.rs/install.sh -o "$starship_installer"; then
-                sh "$starship_installer" -y >/dev/null 2>&1 || true
-                rm -f "$starship_installer"
-            else
-                warn "Failed to download Starship installer"
-                rm -f "$starship_installer"
-            fi
-        fi
-    fi
-
     if ! $DRY_RUN; then
-        mkdir -p "$HOME/.zsh/plugins" "$HOME/.config"
+        mkdir -p "$HOME/.zsh/plugins"
 
         if [[ ! -d "$HOME/.zsh/plugins/zsh-autosuggestions" ]]; then
             run git clone --depth=1 --branch v0.7.1 https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/plugins/zsh-autosuggestions" 2>/dev/null || true
@@ -936,9 +921,203 @@ setup_shell() {
         if [[ ! -d "$HOME/.zsh/plugins/zsh-syntax-highlighting" ]]; then
             run git clone --depth=1 --branch 0.8.0 https://github.com/zsh-users/zsh-syntax-highlighting "$HOME/.zsh/plugins/zsh-syntax-highlighting" 2>/dev/null || true
         fi
+    fi
 
-        backup_file "$HOME/.config/starship.toml"
-        cat > "$HOME/.config/starship.toml" <<'STARSHIP_CONFIG'
+    # Shell selection and developer environment configuration
+    local selected_shell="skip"
+    local selected_shell_name=""
+    local enable_dev_shell=false
+
+    if [[ "$PROFILE" == "personal" ]]; then
+        info "Author profile: Automatically setting Fish as default shell with developer environment..."
+        selected_shell="fish"
+        selected_shell_name="Fish"
+        enable_dev_shell=true
+        if ! $DRY_RUN; then
+            if command -v fish &>/dev/null; then
+                local fish_bin
+                fish_bin=$(command -v fish)
+                grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
+                run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || true
+                success "Default shell set to Fish"
+            fi
+        else
+            dry "Set default login shell to Fish for personal profile"
+        fi
+    elif [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]; then
+        echo ""
+        info "Default Interactive Shell:"
+        info "  1) Fish (Recommended for built-in autosuggestions & syntax highlighting)"
+        info "  2) ZSH (with autosuggestions & syntax highlighting)"
+        info "  3) Bash"
+        info "  4) Skip / Keep current shell (${SHELL:-/bin/bash})"
+
+        local shell_choice=""
+        if $DRY_RUN; then
+            shell_choice="1"
+            dry "Prompt user for default shell selection: [1] Fish (Recommended), [2] ZSH, [3] Bash, [4] Skip (default: 1)"
+        else
+            read -r -p "Enter choice [1-4] (default: 1): " shell_choice
+            shell_choice="${shell_choice:-1}"
+        fi
+
+        case "$shell_choice" in
+            1)
+                selected_shell="fish"
+                selected_shell_name="Fish"
+                if ! $DRY_RUN; then
+                    if command -v fish &>/dev/null; then
+                        local fish_bin
+                        fish_bin=$(command -v fish)
+                        grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
+                        run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || true
+                        success "Default shell set to Fish"
+                    fi
+                else
+                    dry "Set default login shell to Fish via chsh"
+                fi
+                ;;
+            2)
+                selected_shell="zsh"
+                selected_shell_name="ZSH"
+                if ! $DRY_RUN; then
+                    if command -v zsh &>/dev/null; then
+                        local zsh_bin
+                        zsh_bin=$(command -v zsh)
+                        grep -qxF "$zsh_bin" /etc/shells || echo "$zsh_bin" | run_sudo tee -a /etc/shells >/dev/null
+                        run_sudo chsh -s "$zsh_bin" "${USER:-$(id -un)}" 2>/dev/null || true
+                        success "Default shell set to ZSH"
+                    fi
+                else
+                    dry "Set default login shell to ZSH via chsh"
+                fi
+                ;;
+            3)
+                selected_shell="bash"
+                selected_shell_name="Bash"
+                if ! $DRY_RUN; then
+                    run_sudo chsh -s /bin/bash "${USER:-$(id -un)}" 2>/dev/null || true
+                    success "Default shell set to Bash"
+                else
+                    dry "Set default login shell to Bash via chsh"
+                fi
+                ;;
+            *)
+                selected_shell="skip"
+                local current_sh
+                current_sh=$(basename "${SHELL:-/bin/bash}")
+                selected_shell_name="current shell ($current_sh)"
+                info "Keeping current default shell ($current_sh)"
+                ;;
+        esac
+
+        # Developer-specific environment exports and aliases menu
+        echo ""
+        info "Developer Environment & Aliases Configuration for $selected_shell_name:"
+        info "  1) Developer environment exports & full aliases (Neovim, Git shortcuts, toolchains, pager overrides) [Recommended]"
+        info "  2) Clean standard aliases only (clear, ls, cat, less without dev exports)"
+
+        local dev_env_choice=""
+        if $DRY_RUN; then
+            dev_env_choice="1"
+            dry "Prompt for developer environment & aliases configuration for $selected_shell_name: [1] Full developer environment, [2] Clean standard aliases only (default: 1)"
+        else
+            read -r -p "Enter choice [1-2] (default: 1): " dev_env_choice
+            dev_env_choice="${dev_env_choice:-1}"
+        fi
+
+        case "$dev_env_choice" in
+            1|y|Y|[Yy][Ee][Ss])
+                enable_dev_shell=true
+                info "Enabling developer environment exports and aliases for $selected_shell_name"
+                ;;
+            *)
+                enable_dev_shell=false
+                info "Configuring clean standard aliases only for $selected_shell_name"
+                ;;
+        esac
+    else
+        # Minimal, Workstation, Gaming, Creator profiles
+        selected_shell="skip"
+        enable_dev_shell=false
+    fi
+
+    # Determine per-shell developer environment flags
+    local fish_dev=false
+    local zsh_dev=false
+    local bash_dev=false
+
+    if [[ "$PROFILE" == "personal" ]]; then
+        fish_dev=true
+        zsh_dev=true
+        bash_dev=true
+    elif $enable_dev_shell; then
+        case "$selected_shell" in
+            fish)
+                fish_dev=true
+                ;;
+            zsh)
+                zsh_dev=true
+                ;;
+            bash)
+                bash_dev=true
+                ;;
+            skip)
+                local cur_sh
+                cur_sh=$(basename "${SHELL:-/bin/bash}")
+                case "$cur_sh" in
+                    fish) fish_dev=true ;;
+                    zsh)  zsh_dev=true ;;
+                    *)    bash_dev=true ;;
+                esac
+                ;;
+        esac
+    fi
+
+    # Starship cross-shell prompt configuration
+    local install_starship=false
+
+    if [[ "$PROFILE" == "personal" ]]; then
+        info "Author profile: Automatically installing and configuring Starship cross-shell prompt..."
+        install_starship=true
+    elif [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]; then
+        echo ""
+        info "Starship Cross-Shell Prompt:"
+        info "  * Fast: Written in Rust, asynchronous architecture eliminates perceptible prompt lag."
+        info "  * Context-aware: Shows Git branch, staging status, language runtimes (Rust, Python, Node, Go, C), and container context."
+        info "  * Cross-shell: Provides an identical Tokyo Night prompt layout and vi-mode indicator across Fish, ZSH, and Bash."
+        if confirm "Install and configure Starship prompt?" "Y"; then
+            install_starship=true
+            info "Enabling Starship prompt configuration"
+        else
+            install_starship=false
+            info "Skipping Starship prompt installation"
+        fi
+    else
+        install_starship=false
+    fi
+
+    # Install Starship binary and deploy configuration if enabled
+    if $install_starship; then
+        if ! command -v starship &>/dev/null && ! $DRY_RUN; then
+            if ! run_sudo dnf install -y --skip-unavailable starship 2>/dev/null; then
+                log "Installing Starship via official installer..."
+                local starship_installer
+                starship_installer=$(mktemp /tmp/starship-install-XXXXXX.sh)
+                if curl --proto '=https' --tlsv1.2 -fsSL https://starship.rs/install.sh -o "$starship_installer"; then
+                    sh "$starship_installer" -y >/dev/null 2>&1 || true
+                    rm -f "$starship_installer"
+                else
+                    warn "Failed to download Starship installer"
+                    rm -f "$starship_installer"
+                fi
+            fi
+        fi
+
+        if ! $DRY_RUN; then
+            mkdir -p "$HOME/.config"
+            backup_file "$HOME/.config/starship.toml"
+            cat > "$HOME/.config/starship.toml" <<'STARSHIP_CONFIG'
 "$schema" = 'https://starship.rs/config-schema.json'
 
 format = """
@@ -1070,160 +1249,10 @@ vimcmd_replace_one_symbol = "[❮](bold purple)"
 vimcmd_replace_symbol = "[❮](bold purple)"
 vimcmd_visual_symbol = "[❮](bold yellow)"
 STARSHIP_CONFIG
-        success "Starship prompt configuration deployed (~/.config/starship.toml)"
-    else
-        dry "Deploy Starship prompt configuration to ~/.config/starship.toml"
-    fi
-
-    # Shell selection and developer environment configuration
-    local selected_shell="skip"
-    local selected_shell_name=""
-    local enable_dev_shell=false
-
-    if [[ "$PROFILE" == "personal" ]]; then
-        info "Author profile: Automatically setting Fish as default shell with developer environment..."
-        selected_shell="fish"
-        selected_shell_name="Fish"
-        enable_dev_shell=true
-        if ! $DRY_RUN; then
-            if command -v fish &>/dev/null; then
-                local fish_bin
-                fish_bin=$(command -v fish)
-                grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
-                run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || true
-                success "Default shell set to Fish"
-            fi
+            success "Starship prompt configuration deployed (~/.config/starship.toml)"
         else
-            dry "Set default login shell to Fish for personal profile"
+            dry "Deploy Starship prompt configuration to ~/.config/starship.toml"
         fi
-    elif [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]; then
-        echo ""
-        info "Default Interactive Shell:"
-        info "  1) Fish (Recommended for built-in autosuggestions & syntax highlighting)"
-        info "  2) ZSH (with Starship & autosuggestions plugin)"
-        info "  3) Bash"
-        info "  4) Skip / Keep current shell (${SHELL:-/bin/bash})"
-
-        local shell_choice=""
-        if $DRY_RUN; then
-            shell_choice="1"
-            dry "Prompt user for default shell selection: [1] Fish (Recommended), [2] ZSH, [3] Bash, [4] Skip (default: 1)"
-        else
-            read -r -p "Enter choice [1-4] (default: 1): " shell_choice
-            shell_choice="${shell_choice:-1}"
-        fi
-
-        case "$shell_choice" in
-            1)
-                selected_shell="fish"
-                selected_shell_name="Fish"
-                if ! $DRY_RUN; then
-                    if command -v fish &>/dev/null; then
-                        local fish_bin
-                        fish_bin=$(command -v fish)
-                        grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
-                        run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || true
-                        success "Default shell set to Fish"
-                    fi
-                else
-                    dry "Set default login shell to Fish via chsh"
-                fi
-                ;;
-            2)
-                selected_shell="zsh"
-                selected_shell_name="ZSH"
-                if ! $DRY_RUN; then
-                    if command -v zsh &>/dev/null; then
-                        local zsh_bin
-                        zsh_bin=$(command -v zsh)
-                        grep -qxF "$zsh_bin" /etc/shells || echo "$zsh_bin" | run_sudo tee -a /etc/shells >/dev/null
-                        run_sudo chsh -s "$zsh_bin" "${USER:-$(id -un)}" 2>/dev/null || true
-                        success "Default shell set to ZSH"
-                    fi
-                else
-                    dry "Set default login shell to ZSH via chsh"
-                fi
-                ;;
-            3)
-                selected_shell="bash"
-                selected_shell_name="Bash"
-                if ! $DRY_RUN; then
-                    run_sudo chsh -s /bin/bash "${USER:-$(id -un)}" 2>/dev/null || true
-                    success "Default shell set to Bash"
-                else
-                    dry "Set default login shell to Bash via chsh"
-                fi
-                ;;
-            *)
-                selected_shell="skip"
-                local current_sh
-                current_sh=$(basename "${SHELL:-/bin/bash}")
-                selected_shell_name="current shell ($current_sh)"
-                info "Keeping current default shell ($current_sh)"
-                ;;
-        esac
-
-        # Developer-specific environment exports and aliases menu
-        echo ""
-        info "Developer Environment & Aliases Configuration for $selected_shell_name:"
-        info "  1) Developer environment exports & full aliases (Neovim, Git shortcuts, toolchains, pager overrides) [Recommended]"
-        info "  2) Clean standard aliases only (clear, ls, cat, less without dev exports)"
-
-        local dev_env_choice=""
-        if $DRY_RUN; then
-            dev_env_choice="1"
-            dry "Prompt for developer environment & aliases configuration for $selected_shell_name: [1] Full developer environment, [2] Clean standard aliases only (default: 1)"
-        else
-            read -r -p "Enter choice [1-2] (default: 1): " dev_env_choice
-            dev_env_choice="${dev_env_choice:-1}"
-        fi
-
-        case "$dev_env_choice" in
-            1|y|Y|[Yy][Ee][Ss])
-                enable_dev_shell=true
-                info "Enabling developer environment exports and aliases for $selected_shell_name"
-                ;;
-            *)
-                enable_dev_shell=false
-                info "Configuring clean standard aliases only for $selected_shell_name"
-                ;;
-        esac
-    else
-        # Minimal, Workstation, Gaming, Creator profiles
-        selected_shell="skip"
-        enable_dev_shell=false
-    fi
-
-    # Determine per-shell developer environment flags
-    local fish_dev=false
-    local zsh_dev=false
-    local bash_dev=false
-
-    if [[ "$PROFILE" == "personal" ]]; then
-        fish_dev=true
-        zsh_dev=true
-        bash_dev=true
-    elif $enable_dev_shell; then
-        case "$selected_shell" in
-            fish)
-                fish_dev=true
-                ;;
-            zsh)
-                zsh_dev=true
-                ;;
-            bash)
-                bash_dev=true
-                ;;
-            skip)
-                local cur_sh
-                cur_sh=$(basename "${SHELL:-/bin/bash}")
-                case "$cur_sh" in
-                    fish) fish_dev=true ;;
-                    zsh)  zsh_dev=true ;;
-                    *)    bash_dev=true ;;
-                esac
-                ;;
-        esac
     fi
 
     # Configure ZSH (~/.zshrc)
@@ -1305,11 +1334,7 @@ export SUDO_PROMPT="[sudo] 🔒 password for %u: "
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-# ===== Starship (ALWAYS LAST) =====
-eval "$(starship init zsh)"
 ZSHRC_DEV
-            success "Developer ZSH configuration deployed (~/.zshrc)"
         else
             log "Configuring standard .zshrc with clean aliases..."
             cat > "$HOME/.zshrc" <<'ZSHRC_CLEAN'
@@ -1341,10 +1366,20 @@ alias clear='printf "\033[2J\033[3J\033[H"'
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
 alias less='bat --paging=always --pager="less -R"'
+ZSHRC_CLEAN
+        fi
+
+        if $install_starship; then
+            cat >> "$HOME/.zshrc" <<'ZSHRC_STARSHIP'
 
 # ===== Starship (ALWAYS LAST) =====
 eval "$(starship init zsh)"
-ZSHRC_CLEAN
+ZSHRC_STARSHIP
+        fi
+
+        if $zsh_dev; then
+            success "Developer ZSH configuration deployed (~/.zshrc)"
+        else
             success "Clean standard ZSH configuration deployed (~/.zshrc)"
         fi
     else
@@ -1369,7 +1404,7 @@ ZSHRC_CLEAN
             cat >> "$HOME/.bashrc" <<'BASHRC_DEV'
 
 # >>> FEDORA_POST_INSTALL_MANAGED >>>
-# ===== Starship, Aliases & Developer Environment =====
+# ===== Developer Environment & Aliases =====
 export EDITOR=nvim
 export VISUAL=nvim
 export PAGER=cat
@@ -1417,25 +1452,33 @@ alias gundo='git reset --soft HEAD~1'
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-# ===== Starship (ALWAYS LAST) =====
-eval "$(starship init bash)"
-# <<< FEDORA_POST_INSTALL_MANAGED <<<
 BASHRC_DEV
-            success "Developer Bash configuration deployed (~/.bashrc)"
         else
             log "Configuring standard .bashrc with clean aliases..."
             cat >> "$HOME/.bashrc" <<'BASHRC_CLEAN'
 
 # >>> FEDORA_POST_INSTALL_MANAGED >>>
-# ===== Starship & Clean Aliases =====
+# ===== Clean Aliases =====
 alias clear='printf "\033[2J\033[3J\033[H"'
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
 alias less='bat --paging=always --pager="less -R"'
-eval "$(starship init bash)"
-# <<< FEDORA_POST_INSTALL_MANAGED <<<
 BASHRC_CLEAN
+        fi
+
+        if $install_starship; then
+            cat >> "$HOME/.bashrc" <<'BASHRC_STARSHIP'
+
+# ===== Starship (ALWAYS LAST) =====
+eval "$(starship init bash)"
+BASHRC_STARSHIP
+        fi
+
+        echo "# <<< FEDORA_POST_INSTALL_MANAGED <<<" >> "$HOME/.bashrc"
+
+        if $bash_dev; then
+            success "Developer Bash configuration deployed (~/.bashrc)"
+        else
             success "Clean standard Bash configuration deployed (~/.bashrc)"
         fi
     else
@@ -1511,13 +1554,7 @@ alias gundo 'git reset --soft HEAD~1'
 if type -q fzf
     fzf --fish | source
 end
-
-# ===== Starship Prompt (ALWAYS LAST) =====
-if type -q starship
-    starship init fish | source
-end
 FISH_DEV
-            success "Developer Fish configuration deployed (~/.config/fish/config.fish)"
         else
             log "Configuring standard config.fish with clean aliases..."
             cat > "$HOME/.config/fish/config.fish" <<'FISH_CLEAN'
@@ -1532,12 +1569,22 @@ alias clear 'printf "\033[2J\033[3J\033[H"'
 alias ls 'eza --group-directories-first --classify --icons --git'
 alias cat 'bat --paging=never --style=plain'
 alias less 'bat --paging=always --pager="less -R"'
+FISH_CLEAN
+        fi
+
+        if $install_starship; then
+            cat >> "$HOME/.config/fish/config.fish" <<'FISH_STARSHIP'
 
 # ===== Starship Prompt (ALWAYS LAST) =====
 if type -q starship
     starship init fish | source
 end
-FISH_CLEAN
+FISH_STARSHIP
+        fi
+
+        if $fish_dev; then
+            success "Developer Fish configuration deployed (~/.config/fish/config.fish)"
+        else
             success "Clean standard Fish configuration deployed (~/.config/fish/config.fish)"
         fi
     else
