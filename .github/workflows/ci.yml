@@ -56,4 +56,4 @@ jobs:
         run: make test
 
       - name: Validate dry run
-        run: bash setup.sh --dry-run --profile minimal --non-interactive
+        run: bash setup.sh --dry-run --profile minimal
