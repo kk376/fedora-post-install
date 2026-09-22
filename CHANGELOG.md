@@ -16,11 +16,13 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 - **Personal Profile Ghostty Automation**: Automated the installation and configuration of Ghostty with author configs and GTK styling from `dev-suite` in the `personal` profile without interactive prompts.
 - **Profile-Gated Starship Cross-Shell Prompt**: Gated Starship prompt installation and deployment to `personal` (default automated setup), `dev` and `full` (interactive prompt with informational benefits disclaimer). Standard profiles (`minimal`, `workstation`, `gaming`, `creator`) bypass Starship entirely to preserve clean minimal shell prompts.
 - **Isolated Shell Init Hooks**: Shell configuration templates (`~/.zshrc`, `~/.bashrc`, `~/.config/fish/config.fish`) now conditionally inject `starship init` evaluation hooks strictly when Starship is selected or enabled for the active profile.
+- **Interactive ccache Compiler Cache with Technical Disclaimer**: Gated `ccache` installation and 50GB compressed cache configuration to the `systems` developer genre across `dev`, `full`, and `personal` profiles. Introduced an interactive prompt accompanied by a comprehensive technical disclaimer detailing what `ccache` does (caching compiled C and C++ object code for GCC and Clang), why it is beneficial (reducing rebuild times from minutes to seconds on branch switches and incremental builds), and who needs it (recommended for Linux kernel, QEMU, native extensions, or C and C++ source builds; unnecessary for web, Python, or Go development).
 
 ### Changed
 
 - **Heroic Games Launcher Flathub Migration**: Swapped Heroic Games Launcher from DNF RPM to the official Flathub Flatpak (`com.heroicgameslauncher.hgl`) as recommended by the upstream development team. Deployed optimized settings (`disableUMU: true`, `showMangohud: true`, NVIDIA Prime offload, and shared Wine prefix tree) directly to `~/.var/app/com.heroicgameslauncher.hgl/config/heroic/config.json`.
 - **Decoupled Terminal Prompt**: Removed Kitty terminal emulator prompt from unconditional profile execution, keeping stock Ptyxis for minimal, workstation, gaming, and creator profiles.
+- **Decoupled ccache from Power**: Relocated `ccache` from power management to developer tools under the systems genre, removing phantom unprompted configuration runs on systems where `ccache` was not installed.
 
 ## [v5.7.0] - 2026-09-21
 

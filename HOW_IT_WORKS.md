@@ -219,7 +219,7 @@ Here is a simple walkthrough of each room the setup crew visits:
 * **The Problem:** Setting up compilers, Python symlinks, Node corepack (`pnpm`/`yarn`), compiler cache, and database servers manually takes hours of troubleshooting.
 * **The Fix:**
   - Installs GCC, Clang, Make, CMake, and optional full **Rust toolchain**.
-  - Configures **50GB compressed compiler caching (`ccache`)** so re-compiling C/C++/Rust code takes seconds instead of minutes.
+  - Prompts for **50GB compressed compiler caching (`ccache`)** under the systems dev genre (with technical disclaimer explaining build acceleration for C and C++ projects) so re-compiling object code takes seconds instead of minutes.
   - Installs official **PostgreSQL 18 Server** from PGDG, initializes the database automatically, enables the service, and installs **pgAdmin 4** Desktop.
 * **Decision:** Say **YES** if you build software or websites.
 

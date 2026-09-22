@@ -103,7 +103,7 @@ Fish (recommended default) and ZSH, syntax highlighting, autosuggestions, clean 
 
 ### Power
 
-TLP (optional, warns about GNOME power profiles conflict), ccache (50GB compressed), tuned virtual-host profile for KVM.
+TLP (optional, warns about GNOME power profiles conflict), tuned virtual-host profile for KVM.
 
 ### Multimedia & Browsers
 
@@ -115,7 +115,7 @@ Intel media driver, AMD freeworld VA/VDPAU, NVIDIA proprietary (akmods, Secure B
 
 ### Dev Tools
 
-GCC, Clang, LLVM, Java, Node.js, Python, Ruff linter/formatter, PostgreSQL 18, Docker + Docker Compose, Corepack, Code Editor selection (Zed, VS Codium, Antigravity IDE, or VS Code), Rust (optional), Git LFS & git-filter-repo, Android tools, debuggers, build systems.
+GCC, Clang, LLVM, ccache (interactive disclaimer prompt for 50GB compressed cache in systems genre), Java, Node.js, Python, Ruff linter/formatter, PostgreSQL 18, Docker + Docker Compose, Corepack, Code Editor selection (Zed, VS Codium, Antigravity IDE, or VS Code), Rust (optional), Git LFS & git-filter-repo, Android tools, debuggers, build systems.
 
 ### Gaming
 

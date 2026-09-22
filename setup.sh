@@ -2555,10 +2555,31 @@ setup_dev() {
 
     run_sudo dnf install -y --skip-unavailable "${dev_pkgs[@]}"
 
-    # Systems Genre: Rust Toolchain
+    # Systems Genre: Rust Toolchain & ccache Compiler Cache
     if has_dev_genre "systems"; then
         if confirm "Install full Rust toolchain (rustup, clippy, rust-analyzer)?" "Y"; then
             run_sudo dnf install -y rust cargo rustup rustfmt clippy rust-analyzer 2>/dev/null || true
+        fi
+
+        echo ""
+        info "ccache (Fast C/C++ Compiler Cache):"
+        info "  * What it does: Caches compiled C and C++ object code in ~/.ccache for GCC and Clang."
+        info "  * Why it is good: Rebuilding code after git branch switches or incremental edits takes seconds instead of minutes."
+        info "  * Do you need it: Recommended if you build Linux kernels, QEMU, native extensions, or C/C++ projects from source. Not needed for web, Python, or Go developers."
+        if confirm "Install and configure ccache (50GB compressed cache limit)?" "Y"; then
+            log "Installing ccache..."
+            run_sudo dnf install -y --skip-unavailable ccache
+            if ! $DRY_RUN; then
+                ccache --set-config=max_size=50G 2>/dev/null || true
+                ccache --set-config=compression=true 2>/dev/null || true
+                mkdir -p "$HOME/.ccache"
+                echo "cache_dir = $HOME/.ccache" > "$HOME/.ccache/ccache.conf"
+                success "ccache installed and configured (50GB limit, compressed)"
+            else
+                dry "Configure ccache: 50GB max size, compression enabled"
+            fi
+        else
+            info "Skipping ccache installation"
         fi
     fi
 
@@ -2591,19 +2612,6 @@ setup_dev() {
             else
                 info "Non-NVIDIA system detected: Skipping CUDA installation safely."
             fi
-        fi
-    fi
-
-    # ccache compiler cache configuration
-    if [[ "$PROFILE" == "personal" ]] || { command -v ccache &>/dev/null || $DRY_RUN; }; then
-        if ! $DRY_RUN; then
-            ccache --set-config=max_size=50G 2>/dev/null || true
-            ccache --set-config=compression=true 2>/dev/null || true
-            mkdir -p "$HOME/.ccache"
-            echo "cache_dir = $HOME/.ccache" > "$HOME/.ccache/ccache.conf"
-            success "ccache configured (50GB limit, compressed)"
-        else
-            dry "Configure ccache: 50GB max size, compression enabled"
         fi
     fi
 

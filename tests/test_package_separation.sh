@@ -900,6 +900,44 @@ else
     fail "Dry-run gaming profile unexpectedly prompted for Starship or deployed starship.toml"
 fi
 
+# ==============================================================================
+# Suite 12: ccache Compiler Cache Configuration & Genre Gating
+# ==============================================================================
+echo ""
+echo -e "${BLUE}--- Suite 12: ccache Compiler Cache Configuration & Genre Gating ---${NC}"
+
+# 12.1: Verify setup_dev gates ccache prompt on has_dev_genre "systems"
+if grep -B 10 -A 10 'ccache (Fast C/C++ Compiler Cache):' "$SETUP_SCRIPT" | grep -q 'has_dev_genre "systems"'; then
+    pass "setup_dev gates ccache prompt strictly on systems dev genre"
+else
+    fail "setup_dev does not gate ccache prompt on systems dev genre"
+fi
+
+# 12.2: Verify dry-run dev profile (all genres) prompts for ccache and installs/configures it
+if echo "$dry_dev_output" | grep -q "Prompt: Install and configure ccache" && \
+   echo "$dry_dev_output" | grep -q "sudo dnf install -y --skip-unavailable ccache" && \
+   echo "$dry_dev_output" | grep -q "Configure ccache: 50GB max size, compression enabled"; then
+    pass "Dry-run dev profile prompts for ccache and logs installation & configuration"
+else
+    fail "Dry-run dev profile missing ccache prompt or configuration logs"
+fi
+
+# 12.3: Verify dry-run personal profile prompts for ccache
+if echo "$dry_personal_output" | grep -q "Prompt: Install and configure ccache" && \
+   echo "$dry_personal_output" | grep -q "sudo dnf install -y --skip-unavailable ccache"; then
+    pass "Dry-run personal profile prompts for ccache as part of systems dev genre"
+else
+    fail "Dry-run personal profile missing ccache prompt"
+fi
+
+# 12.4: Verify dry-run gaming profile does not prompt for or configure ccache
+if ! echo "$dry_output" | grep -q "Prompt: Install and configure ccache" && \
+   ! echo "$dry_output" | grep -q "Configure ccache:"; then
+    pass "Dry-run gaming profile completely bypasses ccache"
+else
+    fail "Dry-run gaming profile unexpectedly prompted for or configured ccache"
+fi
+
 echo ""
 echo "================================================================"
 echo "SUMMARY: Total Tests: $TOTAL, Passed: $PASSED, Failed: $FAILED"

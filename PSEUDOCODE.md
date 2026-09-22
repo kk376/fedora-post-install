@@ -352,11 +352,12 @@ flowchart TD
     CheckFullProfile -- No --> RustPrompt
     
     RustPrompt{"Install full Rust toolchain (rustup, clippy, rust-analyzer)? [Y/n]"}
-    RustPrompt -- Yes --> InstallRust["Install rust, cargo, rustup, clippy, rust-analyzer"] --> ConfigCcache
-    RustPrompt -- No --> ConfigCcache
+    RustPrompt -- Yes --> InstallRust["Install rust, cargo, rustup, clippy, rust-analyzer"] --> CcachePrompt
+    RustPrompt -- No --> CcachePrompt
     
-    ConfigCcache["Configure ccache:<br/>Max size: 50GB, compression: true, cache_dir: ~/.ccache"]
-    ConfigCcache --> EnableCorepack["Enable Node.js Corepack (yarn/pnpm)"]
+    CcachePrompt{"Install and configure ccache (50GB compressed)? [Y/n]"}
+    CcachePrompt -- Yes --> InstallCcache["Install ccache & configure 50GB limit with compression"] --> EnableCorepack
+    CcachePrompt -- No --> EnableCorepack
     EnableCorepack --> PythonSymlinks["Create Python symlinks in ~/.local/bin/python"]
     PythonSymlinks --> GitDefaults["Configure Git global defaults:<br/>core.pager=cat, push.autoSetupRemote=true, pull.rebase=true"]
     GitDefaults --> InstallPG18["Install PostgreSQL 18 Server from official PGDG repository"]
