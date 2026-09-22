@@ -25,10 +25,11 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ---
 
-## What's New in v5.7.0
+## What's New in v5.8.0
 
-- **Hybrid Graphics Vulkan Optimization:** Automatically deploys `/etc/environment.d/10-vulkan-hybrid.conf` (`VK_LOADER_DRIVERS_SELECT`) on hybrid laptops with AMD/Intel integrated graphics and NVIDIA discrete graphics. This eliminates the 2+ second cold launch stall in GTK4 and Libadwaita applications (Files, Settings, Text Editor) caused by discrete GPU PCIe D3cold power transitions, while fully preserving on-demand discrete GPU offloading for games and compute.
-- **Hardware Architecture Guard:** Documented strict `x86_64` (AMD, Intel, NVIDIA) requirement and added pre-flight architecture validation warning against unsupported ARM64 / Snapdragon platforms.
+- **GPU Terminal Emulator Selector:** Interactive selection in developer and full profiles for modern GPU-accelerated terminal emulators (Ghostty recommended as default, Kitty, or Alacritty) with automated deployment of Tokyo Night configurations synced from `dev-suite`.
+- **Personal Profile Ghostty Automation:** Automated installation of Ghostty via Copr and deployment of author configs and GTK styling from `dev-suite` without interactive prompts.
+- **Stock Terminal Preservation:** Decoupled Kitty terminal emulator from unconditional setup, ensuring minimal, workstation, gaming, and creator profiles retain stock Fedora Ptyxis cleanly.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
