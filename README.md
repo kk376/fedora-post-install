@@ -29,6 +29,7 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 - **GPU Terminal Emulator Selector:** Interactive selection in developer and full profiles for modern GPU-accelerated terminal emulators (Ghostty recommended as default, Kitty, or Alacritty) with automated deployment of Tokyo Night configurations synced from `dev-suite`.
 - **Personal Profile Ghostty Automation:** Automated installation of Ghostty via Copr and deployment of author configs and GTK styling from `dev-suite` without interactive prompts.
+- **Heroic Games Launcher Flathub Migration:** Migrated Heroic Games Launcher from DNF RPM to the official Flathub Flatpak (`com.heroicgameslauncher.hgl`) as recommended by upstream maintainers, with automated sandbox configuration and shared Wine prefix initialization.
 - **Stock Terminal Preservation:** Decoupled Kitty terminal emulator from unconditional setup, ensuring minimal, workstation, gaming, and creator profiles retain stock Fedora Ptyxis cleanly.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
@@ -118,7 +119,7 @@ GCC, Clang, LLVM, Java, Node.js, Python, Ruff linter/formatter, PostgreSQL 18, D
 
 ### Gaming
 
-Steam (with H.264 unlock), MangoHud (auto-configured with 32px HUD scaling, alpha transparency, and rounded corners), Vesktop, and Heroic Games Launcher (native RPM from GitHub Releases for Epic/GOG/sideloaded games, pre-configured with `disableUMU` to eliminate container exit lag, shared wine prefixes, and NVIDIA Prime offload). Included on `gaming`, `full`, and `personal` profiles.
+Steam (with H.264 unlock), MangoHud (auto-configured with 32px HUD scaling, alpha transparency, and rounded corners), Vesktop, and Heroic Games Launcher (official Flathub Flatpak for Epic/GOG/sideloaded games, pre-configured with `disableUMU` to eliminate container exit lag, shared wine prefixes, and NVIDIA Prime offload). Included on `gaming`, `full`, and `personal` profiles.
 
 ### Virtualization
 

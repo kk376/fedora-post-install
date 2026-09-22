@@ -107,7 +107,7 @@ You don't need a heavy developer workstation if you just want to browse the web 
 
 ### 🎮 3. `gaming` — The Linux Gamer (11 steps)
 * **Who it's for:** Gamers playing on Steam, Discord users, and media lovers.
-* **What you get:** Everything in Minimal + Power tuning, GNOME tools, Steam with H.264 video unlock, MangoHud FPS & temperature overlay (with 32px HUD scaling), GameMode, Vesktop (Discord with screen audio), Heroic Games Launcher (native RPM for Epic/GOG with UMU exit lag fix), and Flatpaks.
+* **What you get:** Everything in Minimal + Power tuning, GNOME tools, Steam with H.264 video unlock, MangoHud FPS & temperature overlay (with 32px HUD scaling), GameMode, Vesktop (Discord with screen audio), Heroic Games Launcher (Flathub Flatpak for Epic/GOG with UMU exit lag fix), and Flatpaks.
 
 ### 🏢 4. `workstation` — The Daily Productivity Desktop (11 steps)
 * **Who it's for:** Professional desktop users who want a clean, productive machine without gaming overhead, virtualization clutter, or compilers.
@@ -208,7 +208,7 @@ Here is a simple walkthrough of each room the setup crew visits:
 
 ### 🧰 Step 10: Essential Toolbox & Gaming (`setup_packages`)
 * **The Problem:** Missing day-to-day tools like Fastfetch, Timeshift (system restore), VLC, Neovim, ADB/Fastboot, or Steam gaming optimizations.
-* **The Fix:** Installs a comprehensive toolset, unlocks Steam's hardware H.264 video decoder, creates a gaming FPS HUD overlay (**MangoHud** with scaled metrics), and offers **Heroic Games Launcher** (native RPM with pre-configured UMU fix and Wine prefixes), **Vesktop** (Discord with working Wayland screen audio), and **Stirling-PDF** (offline PDF Swiss Army knife).
+* **The Fix:** Installs a comprehensive toolset, unlocks Steam's hardware H.264 video decoder, creates a gaming FPS HUD overlay (**MangoHud** with scaled metrics), and offers **Heroic Games Launcher** (Flathub Flatpak with pre-configured UMU fix and Wine prefixes), **Vesktop** (Discord with working Wayland screen audio), and **Stirling-PDF** (offline PDF Swiss Army knife).
 * **Decision:** Always say **YES**.
 
 ---

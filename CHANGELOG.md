@@ -13,6 +13,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ### Changed
 
+- **Heroic Games Launcher Flathub Migration**: Swapped Heroic Games Launcher from DNF RPM to the official Flathub Flatpak (`com.heroicgameslauncher.hgl`) as recommended by the upstream development team. Deployed optimized settings (`disableUMU: true`, `showMangohud: true`, NVIDIA Prime offload, and shared Wine prefix tree) directly to `~/.var/app/com.heroicgameslauncher.hgl/config/heroic/config.json`.
 - **Decoupled Terminal Prompt**: Removed Kitty terminal emulator prompt from unconditional profile execution, keeping stock Ptyxis for minimal, workstation, gaming, and creator profiles.
 
 ## [v5.7.0] - 2026-09-21

@@ -553,6 +553,8 @@ show_versions() {
             echo "  ✅ $pkg: $(rpm -q --queryformat '%{VERSION}' "$pkg" 2>/dev/null)"
         elif command -v "$pkg" &>/dev/null; then
             echo "  ✅ $pkg: $("$pkg" --version 2>/dev/null | head -1 || echo "installed")"
+        elif [[ "$pkg" == "heroic" ]] && flatpak list 2>/dev/null | grep -q "com.heroicgameslauncher.hgl"; then
+            echo "  ✅ $pkg: flatpak"
         else
             echo "  ❌ $pkg: not installed"
         fi
@@ -1971,43 +1973,46 @@ EOF
         # Heroic Games Launcher (Epic, GOG & Sideloaded Games)
         echo ""
         info "Heroic Games Launcher (Epic, GOG & Amazon Games):"
-        info "  • Native launcher with Proton/Wine compatibility, MangoHud integration, and offline library support."
+        info "  • Recommended Flatpak installation with Proton/Wine compatibility, MangoHud integration, and offline library support."
         info "  • Recommendation: Install if you play games from Epic Games, GOG, or sideloaded PC games. Otherwise skip."
-        if confirm "Install Heroic Games Launcher?" "Y"; then
+        if confirm "Install Heroic Games Launcher via Flatpak (Flathub)?" "Y"; then
             if ! $DRY_RUN; then
-                if ! command -v heroic &>/dev/null && ! rpm -q heroic &>/dev/null; then
-                    local heroic_rpm="/tmp/heroic.rpm"
-                    local heroic_arch
-                    heroic_arch=$(uname -m)
-                    local heroic_fallback="https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases/download/v2.22.1/Heroic-2.22.1-linux-${heroic_arch}.rpm"
-                    log "Downloading Heroic Games Launcher RPM..."
-                    if github_download "Heroic-Games-Launcher/HeroicGamesLauncher" "Heroic-.*-linux-${heroic_arch}\.rpm" "$heroic_rpm" "$heroic_fallback"; then
-                        if run_sudo dnf install -y "$heroic_rpm" 2>/dev/null; then
-                            success "Heroic Games Launcher installed"
-                        else
-                            warn "Heroic Games Launcher RPM install failed"
-                        fi
-                        run rm -f "$heroic_rpm"
-                    else
-                        warn "Could not download Heroic Games Launcher RPM"
-                        info "Manual install: https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/releases"
-                    fi
+                # Remove legacy RPM package if previously installed to prevent dual-installation conflicts
+                if rpm -q heroic &>/dev/null; then
+                    info "Removing legacy Heroic RPM package..."
+                    run_sudo dnf remove -y heroic 2>/dev/null || true
+                fi
+
+                if flatpak list 2>/dev/null | grep -q "com.heroicgameslauncher.hgl"; then
+                    info "Heroic Games Launcher Flatpak is already installed"
                 else
-                    info "Heroic Games Launcher is already installed"
+                    log "Installing Heroic Games Launcher from Flathub..."
+                    if run flatpak install -y flathub com.heroicgameslauncher.hgl 2>/dev/null; then
+                        success "Heroic Games Launcher Flatpak installed"
+                    else
+                        warn "Failed to install Heroic Games Launcher Flatpak"
+                    fi
                 fi
 
                 # Pre-create standard game prefix directory tree to prevent file picker errors on initial 'Add Game'
                 mkdir -p "$HOME/Games/Heroic/Prefixes/shared"
 
                 # Pre-seed or update optimized Heroic configuration (disable UMU container exit delay, enable MangoHud)
-                mkdir -p "$HOME/.config/heroic"
-                local heroic_config="$HOME/.config/heroic/config.json"
-                if [[ ! -f "$heroic_config" ]]; then
-                    local prime_val="false"
-                    if lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' | grep -qi nvidia; then
-                        prime_val="true"
-                    fi
-                    cat > "$heroic_config" <<HEROIC_EOF
+                local prime_val="false"
+                if lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' | grep -qi nvidia; then
+                    prime_val="true"
+                fi
+
+                local heroic_config_dirs=(
+                    "$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic"
+                    "$HOME/.config/heroic"
+                )
+
+                for h_dir in "${heroic_config_dirs[@]}"; do
+                    mkdir -p "$h_dir"
+                    local h_cfg="$h_dir/config.json"
+                    if [[ ! -f "$h_cfg" ]]; then
+                        cat > "$h_cfg" <<HEROIC_EOF
   {
     "defaultSettings": {
       "autoInstallDxvk": true,
@@ -2028,31 +2033,28 @@ EOF
     "version": "v0"
   }
 HEROIC_EOF
-                    success "Optimized Heroic config initialized (disableUMU=true, MangoHud=true, Prefixes pre-created)"
-                else
-                    if command -v jq &>/dev/null; then
-                        local updated_cfg
-                        updated_cfg=$(jq '.defaultSettings.disableUMU = true | .defaultSettings.showMangohud = true' "$heroic_config" 2>/dev/null || true)
-                        if [[ -n "$updated_cfg" ]]; then
-                            echo "$updated_cfg" > "$heroic_config"
-                            success "Updated Heroic config (disableUMU=true, MangoHud=true)"
+                    else
+                        if command -v jq &>/dev/null; then
+                            local updated_cfg
+                            updated_cfg=$(jq '.defaultSettings.disableUMU = true | .defaultSettings.showMangohud = true' "$h_cfg" 2>/dev/null || true)
+                            if [[ -n "$updated_cfg" ]]; then
+                                echo "$updated_cfg" > "$h_cfg"
+                            fi
                         fi
                     fi
+                done
+
+                # Ensure MangoHud configuration is deployed to Flatpak sandbox
+                if [[ -f "$HOME/.config/MangoHud/MangoHud.conf" ]]; then
+                    mkdir -p "$HOME/.var/app/com.heroicgameslauncher.hgl/config/MangoHud"
+                    cp -p "$HOME/.config/MangoHud/MangoHud.conf" "$HOME/.var/app/com.heroicgameslauncher.hgl/config/MangoHud/MangoHud.conf" 2>/dev/null || true
                 fi
 
-                # If Flatpak Heroic config exists, sync disableUMU and MangoHud
-                local flatpak_heroic_config="$HOME/.var/app/com.heroicgameslauncher.hgl/config/heroic/config.json"
-                if [[ -f "$flatpak_heroic_config" ]] && command -v jq &>/dev/null; then
-                    local updated_fp_cfg
-                    updated_fp_cfg=$(jq '.defaultSettings.disableUMU = true | .defaultSettings.showMangohud = true' "$flatpak_heroic_config" 2>/dev/null || true)
-                    if [[ -n "$updated_fp_cfg" ]]; then
-                        echo "$updated_fp_cfg" > "$flatpak_heroic_config"
-                    fi
-                fi
+                success "Optimized Heroic config initialized (disableUMU=true, MangoHud=true, Prefixes pre-created)"
             else
-                dry "Download and install Heroic Games Launcher RPM from GitHub Releases"
+                dry "Install Heroic Games Launcher Flatpak (com.heroicgameslauncher.hgl) from Flathub"
                 dry "Create directory $HOME/Games/Heroic/Prefixes/shared"
-                dry "Configure ~/.config/heroic/config.json with disableUMU=true and MangoHud=true"
+                dry "Configure ~/.var/app/com.heroicgameslauncher.hgl/config/heroic/config.json with disableUMU=true and MangoHud=true"
             fi
         else
             info "Skipping Heroic Games Launcher installation"

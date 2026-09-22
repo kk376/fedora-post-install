@@ -190,7 +190,6 @@ run_mock_setup_packages() {
                     case "$1" in
                         -y|--skip-unavailable) shift ;;
                         /tmp/vesktop.rpm) touch "$sandbox/.vesktop_installed"; shift ;;
-                        /tmp/heroic.rpm) touch "$sandbox/.heroic_installed"; shift ;;
                         *) echo -n "$1 " >> "$sandbox/.dnf_pkgs"; shift ;;
                     esac
                 done
@@ -206,7 +205,13 @@ run_mock_setup_packages() {
         }
 
         # Mock flatpak & steam & xdg-open & sleep
-        flatpak() { return 1; }
+        flatpak() {
+            if [[ "$1" == "install" && "$*" == *"com.heroicgameslauncher.hgl"* ]]; then
+                touch "$sandbox/.heroic_installed"
+                return 0
+            fi
+            return 1
+        }
         steam() {
             if [[ "$*" == *"steam://unlockh264/"* ]]; then
                 touch "$sandbox/.steam_unlocked"
@@ -320,7 +325,7 @@ for prof in "gaming" "full" "personal"; do
     heroic_inst=$(echo "$output" | grep "^HEROIC_INSTALLED:" | cut -d: -f2)
     heroic_prefix=$(echo "$output" | grep "^HEROIC_PREFIX_CREATED:" | cut -d: -f2)
     if [[ "$heroic_inst" == "true" ]]; then
-        pass "Profile '$prof': Heroic Games Launcher RPM download & install executed"
+        pass "Profile '$prof': Heroic Games Launcher Flatpak install executed"
     else
         fail "Profile '$prof': Heroic Games Launcher was NOT installed"
     fi
@@ -623,10 +628,10 @@ else
     fail "Dry-run gaming profile missing Vesktop download log"
 fi
 
-if echo "$dry_output" | grep -q "Download and install Heroic Games Launcher RPM"; then
-    pass "Dry-run gaming profile logs Heroic Games Launcher download action"
+if echo "$dry_output" | grep -q "Install Heroic Games Launcher Flatpak"; then
+    pass "Dry-run gaming profile logs Heroic Games Launcher Flatpak action"
 else
-    fail "Dry-run gaming profile missing Heroic download log"
+    fail "Dry-run gaming profile missing Heroic Flatpak log"
 fi
 
 dry_dev_output=$(bash "$SETUP_SCRIPT" --dry-run -f --profile=dev 2>&1)

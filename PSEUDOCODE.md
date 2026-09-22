@@ -321,7 +321,7 @@ flowchart TD
     
     UnlockSteamH264 -- Yes --> UnlockH264["Execute Steam H.264 codec unlock (steam://unlockh264/)"]
     UnlockH264 --> DeployMangoHudConf["Deploy ~/.config/MangoHud/MangoHud.conf<br/>(32px scaled HUD, GPU/CPU temps, FPS, frame timing, 3-col table)"] --> PromptHeroic{"Heroic Games Launcher (Epic, GOG, Sideloaded):<br/>Install? [Y/n]"}
-    PromptHeroic -- Yes --> InstallHeroic["Download Heroic RPM from GitHub Releases, install via DNF,<br/>pre-create Prefixes, pre-seed config with disableUMU=true"] --> PromptVesktop
+    PromptHeroic -- Yes --> InstallHeroic["Install Heroic Flatpak from Flathub (com.heroicgameslauncher.hgl),<br/>pre-create Prefixes, pre-seed config with disableUMU=true"] --> PromptVesktop
     PromptHeroic -- No --> PromptVesktop
     UnlockSteamH264 -- No --> PromptVesktop
     
