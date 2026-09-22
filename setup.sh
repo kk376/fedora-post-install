@@ -530,7 +530,7 @@ check_disk_space() {
 
     if [[ -z "$available_gb" ]]; then
         warn "Could not determine free disk space for $target_dir - skipping check"
-        return 0
+        return 1
     fi
 
     if (( available_gb < required_gb )); then
@@ -1105,7 +1105,7 @@ setup_shell() {
                 local starship_installer
                 starship_installer=$(mktemp /tmp/starship-install-XXXXXX.sh)
                 if curl --proto '=https' --tlsv1.2 -fsSL https://starship.rs/install.sh -o "$starship_installer"; then
-                    sh "$starship_installer" -y >/dev/null 2>&1 || true
+                    sh "$starship_installer" -y >/dev/null 2>&1 || warn "Starship installer script failed, starship may not be available"
                     rm -f "$starship_installer"
                 else
                     warn "Failed to download Starship installer"
@@ -1642,8 +1642,8 @@ setup_browser_multimedia() {
         gstreamer1-vaapi \
         mesa-va-drivers-freeworld \
         --allowerasing 2>/dev/null || true
-    run_sudo dnf group upgrade -y multimedia --setopt=install_weak_deps=False --exclude=PackageKit-gstreamer-plugin 2>/dev/null || true
-    run_sudo dnf group upgrade -y sound-and-video 2>/dev/null || true
+    run_sudo dnf group upgrade -y multimedia --setopt=install_weak_deps=False --exclude=PackageKit-gstreamer-plugin 2>/dev/null || warn "Multimedia codec group upgrade had partial failures (non-critical)"
+    run_sudo dnf group upgrade -y sound-and-video 2>/dev/null || warn "Sound and video group upgrade had partial failures (non-critical)"
 
     # System-wide WirePlumber Bluetooth High-Definition Audio (prioritize LDAC, AAC, aptX, SBC-XQ across all user profiles)
     log "Configuring system-wide WirePlumber Bluetooth audio optimization..."

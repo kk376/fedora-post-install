@@ -38,3 +38,22 @@ jobs:
       - name: Run test suite
         run: make test
 
+  fedora-validate:
+    name: Fedora Container Validation
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install test dependencies
+        run: dnf install -y ShellCheck make bash
+
+      - name: Run ShellCheck
+        run: make lint
+
+      - name: Run test suite
+        run: make test
+
+      - name: Validate dry run
+        run: bash setup.sh --dry-run --profile minimal --non-interactive

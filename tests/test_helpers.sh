@@ -281,7 +281,7 @@ exit 1
 EOC
 chmod +x "$MOCK_BIN/df"
 out=$(check_disk_space 20 /nonexistent 2>&1)
-if [[ $? -eq 0 ]] && [[ "$out" == *"Could not determine free disk space"* ]]; then
+if [[ $? -eq 1 ]] && [[ "$out" == *"Could not determine free disk space"* ]]; then
     pass "df execution failure gracefully skipped with warning"
 else
     fail "df execution failure handling failed: $out"
