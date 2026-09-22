@@ -63,7 +63,7 @@ Run this step? (Y/n):
 If you don't want something, press `N` and it skips ahead cleanly.
 
 ### 💾 Rule 2: The Automatic Time Machine (Backups)
-Before the script touches *any* configuration file on your computer (`.zshrc`, `.bashrc`, `dnf.conf`, `kitty.conf`), it saves a timestamped copy into:
+Before the script touches *any* configuration file on your computer (`.zshrc`, `.bashrc`, `dnf.conf`, `config.ghostty`, `kitty.conf`, `alacritty.toml`), it saves a timestamped copy into:
 ```
 ~/.config/fedora-setup-backups/
 ```
@@ -172,7 +172,7 @@ Here is a simple walkthrough of each room the setup crew visits:
   - 🔮 Ghost suggestions (press Right Arrow to auto-complete commands).
   - 🎨 Syntax highlighting (green for valid commands, red for typos).
   - 🌿 Git branch badges and execution timer ("took 1.2s").
-  - 🐱 Optional **Kitty Terminal** with Tokyo Night dark theme and blurred transparency.
+  - Optional modern GPU terminal emulator (Ghostty recommended, Kitty, or Alacritty) with Tokyo Night configuration synced from `dev-suite` (automated for personal profile).
   - ⚡ Optional **KKFetch** (ultra-fast Rust system info banner created by Kushagra Kumar).
 * **Decision:** Always say **YES**.
 

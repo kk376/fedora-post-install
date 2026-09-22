@@ -645,30 +645,58 @@ else
 fi
 
 # ==============================================================================
-# Suite 8: Kitty Terminal Emulator Option
+# Suite 8: GPU Terminal Emulator Selection & Configuration
 # ==============================================================================
 echo ""
-echo -e "${BLUE}--- Suite 8: Kitty Terminal Emulator Option ---${NC}"
+echo -e "${BLUE}--- Suite 8: GPU Terminal Emulator Selection & Configuration ---${NC}"
 
-# 8.1: Test setup_packages does NOT unconditionally include kitty in DNF packages
-if grep -A 10 "setup_packages()" "$SETUP_SCRIPT" | grep -w "pkgs_to_install" | grep -q "kitty"; then
-    fail "kitty found in setup_packages() (should be optional in setup_shell)"
+# 8.1: Test setup_packages does NOT unconditionally include kitty, ghostty, or alacritty
+if grep -A 10 "setup_packages()" "$SETUP_SCRIPT" | grep -w "pkgs_to_install" | grep -qE "kitty|ghostty|alacritty"; then
+    fail "Terminal emulator found in unconditional setup_packages() list"
 else
-    pass "kitty is NOT unconditionally included in setup_packages() DNF list"
+    pass "Terminal emulators are NOT unconditionally included in setup_packages() DNF list"
 fi
 
-# 8.2: Test setup_shell prompt logic for Kitty
-if grep -q 'confirm "Install and configure Kitty terminal emulator?"' "$SETUP_SCRIPT"; then
-    pass "setup_shell prompts user for Kitty terminal installation"
+# 8.2: Test setup_shell gates setup_terminal strictly on is_dev_profile
+if grep -A 3 "Terminal emulator configuration" "$SETUP_SCRIPT" | grep -q "is_dev_profile"; then
+    pass "setup_shell gates setup_terminal strictly on is_dev_profile"
 else
-    fail "setup_shell missing Kitty confirmation prompt"
+    fail "setup_shell does not gate setup_terminal on is_dev_profile"
 fi
 
-# 8.3: Test dry-run logs Kitty confirmation prompt
-if echo "$dry_dev_output" | grep -q "Prompt: Install and configure Kitty terminal emulator?"; then
-    pass "Dry-run dev profile logs Kitty confirmation prompt"
+# 8.3: Test setup_terminal prompts user for modern terminal emulator with Ghostty recommended
+if grep -q 'Prompt user for Terminal Emulator selection: \[1\] Ghostty (Recommended), \[2\] Kitty, \[3\] Alacritty' "$SETUP_SCRIPT"; then
+    pass "setup_terminal prompts user with Ghostty (Recommended), Kitty, and Alacritty options"
 else
-    fail "Dry-run dev profile missing Kitty confirmation prompt log"
+    fail "setup_terminal missing expected multi-choice terminal prompt"
+fi
+
+# 8.4: Test dry-run dev profile logs terminal emulator selection and Ghostty Copr enable
+if echo "$dry_dev_output" | grep -q "Prompt user for Terminal Emulator selection: \[1\] Ghostty (Recommended)"; then
+    pass "Dry-run dev profile logs terminal emulator selection"
+else
+    fail "Dry-run dev profile missing terminal emulator selection log"
+fi
+
+if echo "$dry_dev_output" | grep -q "Enable Copr repo scottames/ghostty and install ghostty via dnf"; then
+    pass "Dry-run dev profile logs Ghostty Copr installation (default choice)"
+else
+    fail "Dry-run dev profile missing Ghostty Copr installation log"
+fi
+
+# 8.5: Test dry-run gaming profile does NOT prompt for terminal emulator
+if ! echo "$dry_output" | grep -q "Configuring Terminal Emulator"; then
+    pass "Dry-run gaming profile does NOT prompt for terminal emulator (preserves stock Ptyxis)"
+else
+    fail "Dry-run gaming profile unexpectedly prompted for terminal emulator"
+fi
+
+# 8.6: Test dry-run personal profile automatically installs Ghostty without prompt
+dry_personal_output=$(bash "$SETUP_SCRIPT" --dry-run -f --profile=personal 2>&1)
+if echo "$dry_personal_output" | grep -q "Author profile: Installing Ghostty (author's favorite) with dev-suite configuration"; then
+    pass "Dry-run personal profile automatically installs Ghostty with dev-suite configuration"
+else
+    fail "Dry-run personal profile missing Ghostty automatic setup log"
 fi
 
 # ==============================================================================

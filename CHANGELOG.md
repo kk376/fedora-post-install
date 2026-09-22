@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v5.8.0] - 2026-09-22
+
+### Added
+
+- **GPU Terminal Emulator Selection & Dev-Suite Config Sync**: Added interactive selection in developer and full profiles for modern GPU-accelerated terminal emulators (Ghostty recommended as default, Kitty, or Alacritty) with automated deployment of Tokyo Night configurations directly from the `dev-suite` repository.
+- **Personal Profile Ghostty Automation**: Automated the installation and configuration of Ghostty with author configs and GTK styling from `dev-suite` in the `personal` profile without interactive prompts.
+
+### Changed
+
+- **Decoupled Terminal Prompt**: Removed Kitty terminal emulator prompt from unconditional profile execution, keeping stock Ptyxis for minimal, workstation, gaming, and creator profiles.
+
 ## [v5.7.0] - 2026-09-21
 
 ### Added

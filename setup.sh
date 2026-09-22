@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fedora 44 Post-Install Setup Script
 # Author: Kushagra Kumar
-# Version: 5.7.0
+# Version: 5.8.0
 
 # ==============================================================================
 # Configuration & Flags
@@ -9,7 +9,7 @@
 : "${DRY_RUN:=false}"
 : "${BACKUP_DIR:=$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)}"
 : "${LOG_FILE:=/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log}"
-: "${SCRIPT_VERSION:=5.7.0}"
+: "${SCRIPT_VERSION:=5.8.0}"
 : "${PROFILE:=full}"
 : "${DEV_TYPE:=all}"
 PROFILE_SPECIFIED=false
@@ -347,6 +347,9 @@ restore_backups() {
             "$HOME/.config/MangoHud/MangoHud.conf"
             "$HOME/.config/starship.toml"
             "$HOME/.config/kitty/kitty.conf"
+            "$HOME/.config/ghostty/config.ghostty"
+            "$HOME/.config/ghostty/gtk.css"
+            "$HOME/.config/alacritty/alacritty.toml"
         )
 
         for orig in "${originals[@]}"; do
@@ -751,6 +754,153 @@ EOF
     done
 
     step_complete "No-sleep configured"
+}
+
+# ==============================================================================
+# Terminal Emulator Selection & Configuration (dev-suite integration)
+# ==============================================================================
+deploy_terminal_config() {
+    local target="$1"
+    local dev_suite_local="$HOME/code/dev-suite"
+    local dev_suite_raw="https://raw.githubusercontent.com/kk376/dev-suite/main"
+
+    case "$target" in
+        ghostty)
+            log "Deploying Ghostty configuration from dev-suite..."
+            if ! $DRY_RUN; then
+                mkdir -p "$HOME/.config/ghostty"
+                backup_file "$HOME/.config/ghostty/config.ghostty"
+                backup_file "$HOME/.config/ghostty/gtk.css"
+
+                if [[ -d "$dev_suite_local/ghostty" ]]; then
+                    cp -f "$dev_suite_local/ghostty/config.ghostty" "$HOME/.config/ghostty/config.ghostty"
+                    [[ -f "$dev_suite_local/ghostty/gtk.css" ]] && cp -f "$dev_suite_local/ghostty/gtk.css" "$HOME/.config/ghostty/gtk.css"
+                else
+                    curl -fsSL "$dev_suite_raw/ghostty/config.ghostty" -o "$HOME/.config/ghostty/config.ghostty" 2>/dev/null || warn "Failed to download config.ghostty from dev-suite"
+                    curl -fsSL "$dev_suite_raw/ghostty/gtk.css" -o "$HOME/.config/ghostty/gtk.css" 2>/dev/null || true
+                fi
+                ln -sf "$HOME/.config/ghostty/config.ghostty" "$HOME/.config/ghostty/config"
+                success "Ghostty configuration deployed to ~/.config/ghostty/"
+            else
+                dry "Deploy Ghostty configuration from dev-suite to ~/.config/ghostty/"
+            fi
+            ;;
+        kitty)
+            log "Deploying Kitty configuration from dev-suite..."
+            if ! $DRY_RUN; then
+                mkdir -p "$HOME/.config/kitty"
+                backup_file "$HOME/.config/kitty/kitty.conf"
+
+                if [[ -d "$dev_suite_local/kitty" ]]; then
+                    cp -f "$dev_suite_local/kitty/kitty.conf" "$HOME/.config/kitty/kitty.conf"
+                else
+                    curl -fsSL "$dev_suite_raw/kitty/kitty.conf" -o "$HOME/.config/kitty/kitty.conf" 2>/dev/null || warn "Failed to download kitty.conf from dev-suite"
+                fi
+                success "Kitty configuration deployed to ~/.config/kitty/kitty.conf"
+            else
+                dry "Deploy Kitty configuration from dev-suite to ~/.config/kitty/kitty.conf"
+            fi
+            ;;
+        alacritty)
+            log "Deploying Alacritty configuration from dev-suite..."
+            if ! $DRY_RUN; then
+                mkdir -p "$HOME/.config/alacritty"
+                backup_file "$HOME/.config/alacritty/alacritty.toml"
+
+                if [[ -d "$dev_suite_local/alacritty" ]]; then
+                    cp -f "$dev_suite_local/alacritty/alacritty.toml" "$HOME/.config/alacritty/alacritty.toml"
+                else
+                    curl -fsSL "$dev_suite_raw/alacritty/alacritty.toml" -o "$HOME/.config/alacritty/alacritty.toml" 2>/dev/null || warn "Failed to download alacritty.toml from dev-suite"
+                fi
+                success "Alacritty configuration deployed to ~/.config/alacritty/alacritty.toml"
+            else
+                dry "Deploy Alacritty configuration from dev-suite to ~/.config/alacritty/alacritty.toml"
+            fi
+            ;;
+    esac
+}
+
+setup_terminal() {
+    log "Configuring Terminal Emulator..."
+
+    if [[ "$PROFILE" == "personal" ]]; then
+        info "Author profile: Installing Ghostty (author's favorite) with dev-suite configuration..."
+        log "Enabling Copr repo scottames/ghostty and installing ghostty..."
+        if ! $DRY_RUN; then
+            local repo="scottames/ghostty"
+            if run_sudo dnf copr enable -y "$repo"; then
+                run_sudo dnf install -y --skip-unavailable ghostty || warn "Ghostty package installation failed"
+                success "Ghostty installed successfully"
+            else
+                warn "Failed to enable Copr repository $repo"
+            fi
+        else
+            dry "Enable Copr repo scottames/ghostty and install ghostty via dnf"
+        fi
+        deploy_terminal_config "ghostty"
+        return 0
+    fi
+
+    # Dev and Full profiles: interactive choice
+    if confirm "Install a modern GPU-accelerated terminal emulator instead of stock Ptyxis?" "Y"; then
+        echo ""
+        echo -e "${BLUE}Choose your terminal emulator:${NC}"
+        echo -e "  ${GREEN}1) Ghostty (Recommended: Fast GPU rendering, native GTK4/Wayland, font ligatures)${NC}"
+        echo -e "  2) Kitty (Power-user scripting, Kitty graphics protocol standard)"
+        echo -e "  3) Alacritty (Minimalist Rust OpenGL terminal)"
+        echo ""
+
+        local term_choice=""
+        if $DRY_RUN; then
+            term_choice="1"
+            dry "Prompt user for Terminal Emulator selection: [1] Ghostty (Recommended), [2] Kitty, [3] Alacritty"
+        else
+            read -r -p "Enter choice [1-3] (default: 1): " term_choice
+            term_choice="${term_choice:-1}"
+        fi
+
+        case "$term_choice" in
+            1)
+                log "Installing Ghostty via Copr (scottames/ghostty)..."
+                if ! $DRY_RUN; then
+                    local repo="scottames/ghostty"
+                    if run_sudo dnf copr enable -y "$repo"; then
+                        run_sudo dnf install -y --skip-unavailable ghostty || warn "Ghostty package installation failed"
+                        success "Ghostty installed successfully"
+                    else
+                        warn "Failed to enable Copr repository $repo"
+                    fi
+                else
+                    dry "Enable Copr repo scottames/ghostty and install ghostty via dnf"
+                fi
+
+                if confirm "Apply optimized Tokyo Night configuration from dev-suite for Ghostty?" "Y"; then
+                    deploy_terminal_config "ghostty"
+                fi
+                ;;
+            2)
+                log "Installing Kitty terminal..."
+                run_sudo dnf install -y --skip-unavailable kitty
+
+                if confirm "Apply optimized Tokyo Night configuration from dev-suite for Kitty?" "Y"; then
+                    deploy_terminal_config "kitty"
+                fi
+                ;;
+            3)
+                log "Installing Alacritty terminal..."
+                run_sudo dnf install -y --skip-unavailable alacritty
+
+                if confirm "Apply optimized Tokyo Night configuration from dev-suite for Alacritty?" "Y"; then
+                    deploy_terminal_config "alacritty"
+                fi
+                ;;
+            *)
+                warn "Unrecognized selection '$term_choice'; keeping stock terminal"
+                ;;
+        esac
+    else
+        info "Keeping stock Fedora terminal (Ptyxis)"
+    fi
 }
 
 # ==============================================================================
@@ -1200,117 +1350,9 @@ FISH_CONF
         dry "Install Starship, clone plugins, deploy starship.toml, .zshrc, config.fish, and .bashrc"
     fi
 
-    # Configure Kitty terminal emulator (interactive option)
-    if confirm "Install and configure Kitty terminal emulator?" "Y"; then
-        log "Installing Kitty terminal..."
-        run_sudo dnf install -y --skip-unavailable kitty
-
-        if ! $DRY_RUN; then
-            log "Deploying Kitty terminal configuration..."
-            mkdir -p "$HOME/.config/kitty"
-            backup_file "$HOME/.config/kitty/kitty.conf"
-            cat > "$HOME/.config/kitty/kitty.conf" <<'KITTY_CONF'
-# --- Typography & Font Ligatures ---
-font_family      Fira Code
-bold_font        auto
-italic_font      auto
-bold_italic_font auto
-font_size        12
-disable_ligatures never
-
-# --- Nerd Fonts Symbols (Ghostty-equivalent universal glyphs) ---
-symbol_map U+E5FA-U+E6B7,U+E700-U+E8EF,U+ED00-U+EFCE,U+F000-U+F2FF,U+F300-U+F381,U+F400-U+F533,U+EA60-U+EC1E,U+E000-U+E00A,U+E0A0-U+E0A2,U+E0B0-U+E0B3,U+E0A3,U+E0B4-U+E0C8,U+E0CA,U+E0CC-U+E0D7,U+E200-U+E2A9,U+E300-U+E3E3,U+F0001-U+F1AF0,U+23FB-U+23FE,U+2B58,U+2665,U+26A1 Symbols Nerd Font Mono
-
-# --- Translucency & Styling ---
-background_opacity         0.97
-background_blur            97
-dynamic_background_opacity yes
-window_padding_width       14 16
-hide_window_decorations    no
-wayland_titlebar_color     background
-linux_display_server       wayland
-confirm_os_window_close    0
-
-# --- Cursor Customization ---
-cursor_shape          beam
-cursor_beam_thickness 1.8
-cursor_blink_interval 0.5
-
-# Right-click pastes from clipboard
-mouse_map right press ungrabbed paste_from_clipboard
-
-# --- Tab Bar (Hidden on single tab, seamless dark integration when 2+ tabs) ---
-tab_bar_edge        bottom
-tab_bar_style       powerline
-tab_powerline_style slanted
-tab_bar_min_tabs    2
-tab_bar_background  #1a1b26
-tab_title_template  " {index}: {title} "
-
-active_tab_font_style   bold
-inactive_tab_font_style normal
-
-# --- Tab & Window Keybindings ---
-map ctrl+shift+t new_tab
-map ctrl+t new_tab
-map ctrl+shift+w close_tab
-map ctrl+w close_tab
-map ctrl+tab next_tab
-map ctrl+shift+tab previous_tab
-map ctrl+shift+right next_tab
-map ctrl+shift+left previous_tab
-map alt+1 goto_tab 1
-map alt+2 goto_tab 2
-map alt+3 goto_tab 3
-map alt+4 goto_tab 4
-map alt+5 goto_tab 5
-map ctrl+shift+enter new_window
-map ctrl+shift+[ previous_window
-map ctrl+shift+] next_window
-map ctrl+shift+k combine : clear_terminal scrollback active : send_text normal,application \x0c
-map ctrl+l combine : clear_terminal scroll active : send_text normal,application \x0c
-
-# --- Audio & Shell ---
-enable_audio_bell no
-shell fish
-
-# --- Tokyo Night Color Scheme ---
-background #1a1b26
-foreground #c0caf5
-selection_background #33467c
-selection_foreground #c0caf5
-url_color #73daca
-cursor #c0caf5
-cursor_text_color #1a1b26
-
-active_tab_background #7aa2f7
-active_tab_foreground #16161e
-inactive_tab_background #24283b
-inactive_tab_foreground #787c99
-
-color0 #15161e
-color1 #f7768e
-color2 #9ece6a
-color3 #e0af68
-color4 #7aa2f7
-color5 #bb9af7
-color6 #7dcfff
-color7 #a9b1d6
-color8 #414868
-color9 #f7768e
-color10 #9ece6a
-color11 #e0af68
-color12 #7aa2f7
-color13 #bb9af7
-color14 #7dcfff
-color15 #c0caf5
-KITTY_CONF
-            success "Kitty terminal installed and configured"
-        else
-            dry "Deploy Kitty terminal configuration to ~/.config/kitty/kitty.conf"
-        fi
-    else
-        info "Skipping Kitty terminal installation and configuration"
+    # Terminal emulator configuration (dev, full, and personal profiles only)
+    if is_dev_profile; then
+        setup_terminal
     fi
 
     # Option: KKFetch System Information CLI (Created by Kushagra Kumar)

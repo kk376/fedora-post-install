@@ -66,7 +66,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 | `creator`     | 11    | Minimal + power, GNOME tools, creator tools (OBS, akmod-v4l2loopback, GStreamer, NV Broadcast), Flatpaks, GPU drivers (last) |
 | `dev`         | 16    | Minimal + power, no-sleep, GNOME tools, dev genre packages (`--dev-type`), Code Editor, Flatpaks (Android Studio), Docker, KVM/QEMU, GPU drivers (last) |
 | `full`        | 17    | Complete public power-user superset: workstation + dev + gaming + creator, COPR packages                     |
-| `personal`    | 17    | Author's bespoke workflow: Full + ONLYOFFICE (LibreOffice swap), PostgreSQL 18, ccache, kkfetch, cliamp, ani-cli |
+| `personal`    | 17    | Author's bespoke workflow: Full + ONLYOFFICE (LibreOffice swap), Ghostty with dev-suite configs, PostgreSQL 18, ccache, kkfetch, cliamp, ani-cli |
 
 ---
 
@@ -97,7 +97,7 @@ DNF optimization (parallel downloads, fastest mirror, version pinning), RPM Fusi
 
 ### Shell
 
-ZSH, Starship prompt, zsh-autosuggestions, zsh-syntax-highlighting, eza/bat aliases.
+ZSH, Starship prompt, zsh-autosuggestions, zsh-syntax-highlighting, eza/bat aliases. Developer and full profiles include interactive modern GPU terminal selection (Ghostty recommended, Kitty, or Alacritty) with Tokyo Night configuration synced from dev-suite, while the personal profile deploys Ghostty automatically.
 
 ### Power
 

@@ -233,11 +233,16 @@ flowchart TD
     CheckDevProfile -- Yes --> DeployDevZshrc["Deploy Developer ~/.zshrc<br/>(NVM, EDITOR=nvim, PAGER=cat, dev aliases)"] --> DeployBashrc
     CheckDevProfile -- No --> DeployStdZshrc["Deploy Standard ~/.zshrc<br/>(PAGER=cat, eza/bat aliases, Starship init)"] --> DeployBashrc
     
-    DeployBashrc["Sync ~/.bashrc with Starship & pager suppression"] --> KittyPrompt{"Install and configure Kitty terminal emulator? [Y/n]"}
+    DeployBashrc["Sync ~/.bashrc with Starship & pager suppression"] --> CheckTermProfile{"Is dev, full, or personal profile?"}
+    CheckTermProfile -- No --> KKFetchPrompt
+    CheckTermProfile -- Yes --> CheckPersonalProfile{"Is personal profile?"}
     
-    KittyPrompt -- Yes --> InstallKitty["Install 'kitty' via DNF"]
-    InstallKitty --> DeployKittyConf["Deploy ~/.config/kitty/kitty.conf<br/>(Tokyo Night palette, Fira Code ligatures, Wayland blur, keybindings)"] --> KKFetchPrompt
-    KittyPrompt -- No --> KKFetchPrompt
+    CheckPersonalProfile -- Yes --> InstallGhosttyAuto["Auto-install Ghostty via Copr<br/>Deploy dev-suite configs (config.ghostty, gtk.css)"] --> KKFetchPrompt
+    CheckPersonalProfile -- No --> TerminalPrompt{"Install modern GPU terminal instead of stock Ptyxis? [Y/n]"}
+    
+    TerminalPrompt -- No --> KKFetchPrompt
+    TerminalPrompt -- Yes --> ChooseTerminal["Choose Terminal Emulator:<br/>1. Ghostty (Recommended)<br/>2. Kitty<br/>3. Alacritty"]
+    ChooseTerminal --> InstallAndDeployTerm["Install package via DNF / Copr<br/>Optional prompt: Sync dev-suite Tokyo Night config"] --> KKFetchPrompt
     
     KKFetchPrompt{"Install KKFetch system info CLI (by Kushagra Kumar)? [Y/n]"}
     KKFetchPrompt -- Yes --> EnableKKFetchCopr["Enable Copr repo 'kk376/kkfetch' & install kkfetch"] --> ChshPrompt
@@ -545,7 +550,7 @@ flowchart TD
         FoundBackups -->|"No"| LogNoBackup["Log 'No backups found' -> Exit 1"]
         FoundBackups -->|"Yes"| ConfirmRestore{"Restore all files from this timestamp? [y/N]"}
         
-        ConfirmRestore -->|"Yes"| RestoreFiles["Restore original files:<br/>- ~/.zshrc<br/>- ~/.bashrc<br/>- /etc/dnf/dnf.conf<br/>- ~/.config/MangoHud/MangoHud.conf<br/>- ~/.config/starship.toml<br/>- ~/.config/kitty/kitty.conf"]
+        ConfirmRestore -->|"Yes"| RestoreFiles["Restore original files:<br/>- ~/.zshrc<br/>- ~/.bashrc<br/>- /etc/dnf/dnf.conf<br/>- ~/.config/MangoHud/MangoHud.conf<br/>- ~/.config/starship.toml<br/>- ~/.config/ghostty/config.ghostty<br/>- ~/.config/ghostty/gtk.css<br/>- ~/.config/kitty/kitty.conf<br/>- ~/.config/alacritty/alacritty.toml"]
         RestoreFiles --> WipeState["Delete ~/.config/fedora-setup/state.txt<br/>(Resets state so future runs re-evaluate cleanly)"]
         WipeState --> ExitRestore(["Exit 0 (System restored to original clean state)"])
         ConfirmRestore -->|"No"| CancelRestore(["Cancel restore"])
