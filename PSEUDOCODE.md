@@ -225,15 +225,18 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    StartShell(["Start setup_shell()"]) --> InstallZSH["Install ZSH, Starship, git, curl, fontconfig"]
-    InstallZSH --> ClonePlugins["Clone ZSH Plugins (depth 1):<br/>- zsh-autosuggestions -> ~/.zsh/plugins/<br/>- zsh-syntax-highlighting -> ~/.zsh/plugins/"]
-    ClonePlugins --> DeployStarshipToml["Deploy ~/.config/starship.toml<br/>(Tokyo Night prompt, git status symbols, language versions)"]
-    DeployStarshipToml --> CheckDevProfile{"Is dev or full profile?"}
+    StartShell(["Start setup_shell()"]) --> InstallShellPkgs["Install ZSH, Fish, Starship, git, curl, fontconfig"]
+    InstallShellPkgs --> ClonePlugins["Clone ZSH Plugins:<br/>zsh-autosuggestions, zsh-syntax-highlighting"]
+    ClonePlugins --> DeployStarshipToml["Deploy ~/.config/starship.toml"]
+    DeployStarshipToml --> CheckShellProfile{"Profile category?"}
     
-    CheckDevProfile -- Yes --> DeployDevZshrc["Deploy Developer ~/.zshrc<br/>(NVM, EDITOR=nvim, PAGER=cat, dev aliases)"] --> DeployBashrc
-    CheckDevProfile -- No --> DeployStdZshrc["Deploy Standard ~/.zshrc<br/>(PAGER=cat, eza/bat aliases, Starship init)"] --> DeployBashrc
-    
-    DeployBashrc["Sync ~/.bashrc with Starship & pager suppression"] --> CheckTermProfile{"Is dev, full, or personal profile?"}
+    CheckShellProfile -- "personal" --> AutoFishPersonal["Auto-set Fish as default shell via chsh<br/>Directly enable developer environment exports & full aliases"] --> DeployConfigs
+    CheckShellProfile -- "dev or full" --> ShellMenuPrompt["Interactive Default Shell Menu:<br/>1. Fish (Recommended)<br/>2. ZSH<br/>3. Bash<br/>4. Skip (current shell)"]
+    ShellMenuPrompt --> DevEnvPrompt["Interactive Menu:<br/>Developer exports & aliases for chosen shell?<br/>1. Full developer environment<br/>2. Clean standard aliases only"] --> DeployConfigs
+    CheckShellProfile -- "minimal, workstation, gaming, creator" --> StdAliasesOnly["Skip shell menu & dev exports<br/>Prepare clean standard aliases (clear, ls, cat, less)"] --> DeployConfigs
+
+    DeployConfigs["Deploy ~/.zshrc, ~/.bashrc, and ~/.config/fish/config.fish<br/>according to profile and selection"] --> CheckTermProfile{"Is dev, full, or personal profile?"}
+
     CheckTermProfile -- No --> KKFetchPrompt
     CheckTermProfile -- Yes --> CheckPersonalProfile{"Is personal profile?"}
     
@@ -245,12 +248,8 @@ flowchart TD
     ChooseTerminal --> InstallAndDeployTerm["Install package via DNF / Copr<br/>Optional prompt: Sync dev-suite Tokyo Night config"] --> KKFetchPrompt
     
     KKFetchPrompt{"Install KKFetch system info CLI (by Kushagra Kumar)? [Y/n]"}
-    KKFetchPrompt -- Yes --> EnableKKFetchCopr["Enable Copr repo 'kk376/kkfetch' & install kkfetch"] --> ChshPrompt
-    KKFetchPrompt -- No --> ChshPrompt
-    
-    ChshPrompt{"Set ZSH as default shell? [Y/n]"}
-    ChshPrompt -- Yes --> RunChsh["Execute: chsh -s $(which zsh)"] --> EndShell(["Mark completed"])
-    ChshPrompt -- No --> EndShell
+    KKFetchPrompt -- Yes --> EnableKKFetchCopr["Enable Copr repo 'kk376/kkfetch' & install kkfetch"] --> EndShell(["Mark completed"])
+    KKFetchPrompt -- No --> EndShell
 ```
 
 ---

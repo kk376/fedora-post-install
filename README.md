@@ -86,7 +86,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 
 - Some steps require a reboot (GPU drivers, Docker group, Secure Boot, KVM)
 - NVIDIA users: read the Secure Boot prompts carefully; follow the MOK enrollment steps when prompted and complete key enrollment on reboot
-- Default shell change (Fish is recommended default, or ZSH) requires a logout/login
+- Default shell change (interactive choice for Fish, ZSH, or Bash in Dev and Full profiles; automatically Fish in Personal profile) requires a logout/login
 - The VSCodium repository is imported with official GPG key verification (`https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg`).
 
 ---
@@ -99,7 +99,7 @@ DNF optimization (parallel downloads, fastest mirror, version pinning), RPM Fusi
 
 ### Shell
 
-Fish (recommended default) and ZSH, Starship prompt, syntax highlighting, autosuggestions, eza/bat aliases. Developer and full profiles include interactive modern GPU terminal selection (Ghostty recommended, Kitty, or Alacritty) with Tokyo Night configuration synced from dev-suite, while the personal profile deploys Ghostty automatically.
+Fish (recommended default) and ZSH, Starship prompt, syntax highlighting, autosuggestions, clean modern aliases (clear, ls, cat, less). Developer and full profiles feature interactive login shell selection (Fish, ZSH, Bash) and a dedicated menu for developer environment exports and Git aliases. The personal profile automatically configures Fish as the default shell with all developer exports directly enabled. All other profiles receive clean standard aliases without developer environment exports. Developer and full profiles also include interactive modern GPU terminal selection (Ghostty recommended, Kitty, or Alacritty) with Tokyo Night configuration synced from dev-suite, while the personal profile deploys Ghostty automatically.
 
 ### Power
 

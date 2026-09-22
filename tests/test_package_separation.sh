@@ -809,6 +809,65 @@ else
     fail "Dry-run personal profile missing ONLYOFFICE swap log"
 fi
 
+# ==============================================================================
+# Suite 11: Shell Selection & Environment Isolation
+# ==============================================================================
+echo ""
+echo -e "${BLUE}--- Suite 11: Shell Selection & Environment Isolation ---${NC}"
+
+# 11.1: Verify setup_shell gates interactive shell selection to dev and full profiles
+if grep -B 5 -A 5 'Default Interactive Shell:' "$SETUP_SCRIPT" | grep -q 'PROFILE" == "dev" || "$PROFILE" == "full"'; then
+    pass "setup_shell gates interactive shell menu strictly to dev and full profiles"
+else
+    fail "setup_shell does not gate interactive shell menu to dev and full profiles"
+fi
+
+# 11.2: Verify setup_shell gates dev exports/aliases menu to dev and full profiles
+if grep -A 5 'Developer Environment & Aliases Configuration' "$SETUP_SCRIPT" | grep -q 'dev_env_choice'; then
+    pass "setup_shell presents developer environment and aliases configuration menu"
+else
+    fail "setup_shell missing developer environment menu"
+fi
+
+# 11.3: Verify dry-run dev profile logs default shell selection and dev aliases prompt
+if echo "$dry_dev_output" | grep -q "Prompt user for default shell selection: \[1\] Fish (Recommended)" && \
+   echo "$dry_dev_output" | grep -q "Prompt for developer environment & aliases configuration for Fish"; then
+    pass "Dry-run dev profile logs shell selection and dev environment prompts"
+else
+    fail "Dry-run dev profile missing shell selection or dev environment prompt logs"
+fi
+
+# 11.4: Verify dry-run personal profile automatically sets Fish without interactive prompts
+if echo "$dry_personal_output" | grep -q "Author profile: Automatically setting Fish as default shell with developer environment" && \
+   echo "$dry_personal_output" | grep -q "Set default login shell to Fish for personal profile" && \
+   ! echo "$dry_personal_output" | grep -q "Prompt user for default shell selection" && \
+   ! echo "$dry_personal_output" | grep -q "Prompt for developer environment & aliases configuration"; then
+    pass "Dry-run personal profile automatically configures Fish and bypasses shell menus"
+else
+    fail "Dry-run personal profile unexpectedly showed shell selection menu or missed automatic Fish"
+fi
+
+# 11.5: Verify dry-run gaming profile bypasses shell prompts and deploys clean standard aliases
+if ! echo "$dry_output" | grep -q "Prompt user for default shell selection" && \
+   ! echo "$dry_output" | grep -q "Prompt for developer environment & aliases configuration" && \
+   echo "$dry_output" | grep -q "Deploy Fish clean standard aliases" && \
+   echo "$dry_output" | grep -q "Deploy ZSH clean standard aliases" && \
+   echo "$dry_output" | grep -q "Deploy Bash clean standard aliases"; then
+    pass "Dry-run gaming profile deploys clean standard aliases without shell prompts"
+else
+    fail "Dry-run gaming profile unexpectedly prompted for shell selection or missed clean standard aliases"
+fi
+
+# 11.6: Verify setup_shell contains the 4 exact clean standard aliases
+if grep -q "alias clear 'printf \"\\\033\[2J\\\033\[3J\\\033\[H\"'" "$SETUP_SCRIPT" && \
+   grep -q "alias ls 'eza --group-directories-first --classify --icons --git'" "$SETUP_SCRIPT" && \
+   grep -q "alias cat 'bat --paging=never --style=plain'" "$SETUP_SCRIPT" && \
+   grep -q "alias less 'bat --paging=always --pager=\"less -R\"'" "$SETUP_SCRIPT"; then
+    pass "setup_shell defines exact clean standard aliases (clear, ls, cat, less)"
+else
+    fail "setup_shell missing expected clean standard aliases"
+fi
+
 echo ""
 echo "================================================================"
 echo "SUMMARY: Total Tests: $TOTAL, Passed: $PASSED, Failed: $FAILED"

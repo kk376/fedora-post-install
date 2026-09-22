@@ -1070,10 +1070,166 @@ vimcmd_replace_one_symbol = "[❮](bold purple)"
 vimcmd_replace_symbol = "[❮](bold purple)"
 vimcmd_visual_symbol = "[❮](bold yellow)"
 STARSHIP_CONFIG
+        success "Starship prompt configuration deployed (~/.config/starship.toml)"
+    else
+        dry "Deploy Starship prompt configuration to ~/.config/starship.toml"
+    fi
 
+    # Shell selection and developer environment configuration
+    local selected_shell="skip"
+    local selected_shell_name=""
+    local enable_dev_shell=false
+
+    if [[ "$PROFILE" == "personal" ]]; then
+        info "Author profile: Automatically setting Fish as default shell with developer environment..."
+        selected_shell="fish"
+        selected_shell_name="Fish"
+        enable_dev_shell=true
+        if ! $DRY_RUN; then
+            if command -v fish &>/dev/null; then
+                local fish_bin
+                fish_bin=$(command -v fish)
+                grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
+                run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || true
+                success "Default shell set to Fish"
+            fi
+        else
+            dry "Set default login shell to Fish for personal profile"
+        fi
+    elif [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]; then
+        echo ""
+        info "Default Interactive Shell:"
+        info "  1) Fish (Recommended for built-in autosuggestions & syntax highlighting)"
+        info "  2) ZSH (with Starship & autosuggestions plugin)"
+        info "  3) Bash"
+        info "  4) Skip / Keep current shell (${SHELL:-/bin/bash})"
+
+        local shell_choice=""
+        if $DRY_RUN; then
+            shell_choice="1"
+            dry "Prompt user for default shell selection: [1] Fish (Recommended), [2] ZSH, [3] Bash, [4] Skip (default: 1)"
+        else
+            read -r -p "Enter choice [1-4] (default: 1): " shell_choice
+            shell_choice="${shell_choice:-1}"
+        fi
+
+        case "$shell_choice" in
+            1)
+                selected_shell="fish"
+                selected_shell_name="Fish"
+                if ! $DRY_RUN; then
+                    if command -v fish &>/dev/null; then
+                        local fish_bin
+                        fish_bin=$(command -v fish)
+                        grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
+                        run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || true
+                        success "Default shell set to Fish"
+                    fi
+                else
+                    dry "Set default login shell to Fish via chsh"
+                fi
+                ;;
+            2)
+                selected_shell="zsh"
+                selected_shell_name="ZSH"
+                if ! $DRY_RUN; then
+                    if command -v zsh &>/dev/null; then
+                        local zsh_bin
+                        zsh_bin=$(command -v zsh)
+                        grep -qxF "$zsh_bin" /etc/shells || echo "$zsh_bin" | run_sudo tee -a /etc/shells >/dev/null
+                        run_sudo chsh -s "$zsh_bin" "${USER:-$(id -un)}" 2>/dev/null || true
+                        success "Default shell set to ZSH"
+                    fi
+                else
+                    dry "Set default login shell to ZSH via chsh"
+                fi
+                ;;
+            3)
+                selected_shell="bash"
+                selected_shell_name="Bash"
+                if ! $DRY_RUN; then
+                    run_sudo chsh -s /bin/bash "${USER:-$(id -un)}" 2>/dev/null || true
+                    success "Default shell set to Bash"
+                else
+                    dry "Set default login shell to Bash via chsh"
+                fi
+                ;;
+            *)
+                selected_shell="skip"
+                local current_sh
+                current_sh=$(basename "${SHELL:-/bin/bash}")
+                selected_shell_name="current shell ($current_sh)"
+                info "Keeping current default shell ($current_sh)"
+                ;;
+        esac
+
+        # Developer-specific environment exports and aliases menu
+        echo ""
+        info "Developer Environment & Aliases Configuration for $selected_shell_name:"
+        info "  1) Developer environment exports & full aliases (Neovim, Git shortcuts, toolchains, pager overrides) [Recommended]"
+        info "  2) Clean standard aliases only (clear, ls, cat, less without dev exports)"
+
+        local dev_env_choice=""
+        if $DRY_RUN; then
+            dev_env_choice="1"
+            dry "Prompt for developer environment & aliases configuration for $selected_shell_name: [1] Full developer environment, [2] Clean standard aliases only (default: 1)"
+        else
+            read -r -p "Enter choice [1-2] (default: 1): " dev_env_choice
+            dev_env_choice="${dev_env_choice:-1}"
+        fi
+
+        case "$dev_env_choice" in
+            1|y|Y|[Yy][Ee][Ss])
+                enable_dev_shell=true
+                info "Enabling developer environment exports and aliases for $selected_shell_name"
+                ;;
+            *)
+                enable_dev_shell=false
+                info "Configuring clean standard aliases only for $selected_shell_name"
+                ;;
+        esac
+    else
+        # Minimal, Workstation, Gaming, Creator profiles
+        selected_shell="skip"
+        enable_dev_shell=false
+    fi
+
+    # Determine per-shell developer environment flags
+    local fish_dev=false
+    local zsh_dev=false
+    local bash_dev=false
+
+    if [[ "$PROFILE" == "personal" ]]; then
+        fish_dev=true
+        zsh_dev=true
+        bash_dev=true
+    elif $enable_dev_shell; then
+        case "$selected_shell" in
+            fish)
+                fish_dev=true
+                ;;
+            zsh)
+                zsh_dev=true
+                ;;
+            bash)
+                bash_dev=true
+                ;;
+            skip)
+                local cur_sh
+                cur_sh=$(basename "${SHELL:-/bin/bash}")
+                case "$cur_sh" in
+                    fish) fish_dev=true ;;
+                    zsh)  zsh_dev=true ;;
+                    *)    bash_dev=true ;;
+                esac
+                ;;
+        esac
+    fi
+
+    # Configure ZSH (~/.zshrc)
+    if ! $DRY_RUN; then
         backup_file "$HOME/.zshrc"
-
-        if is_dev_profile; then
+        if $zsh_dev; then
             log "Configuring developer .zshrc..."
             cat > "$HOME/.zshrc" <<'ZSHRC_DEV'
 # ===== Zsh History =====
@@ -1134,6 +1290,7 @@ alias gundo='git reset --soft HEAD~1'
 
 # ===== Environment & PATH =====
 export EDITOR=nvim
+export VISUAL=nvim
 export PAGER=cat
 export SYSTEMD_PAGER=cat
 export MANPAGER=cat
@@ -1152,9 +1309,10 @@ export NVM_DIR="$HOME/.nvm"
 # ===== Starship (ALWAYS LAST) =====
 eval "$(starship init zsh)"
 ZSHRC_DEV
+            success "Developer ZSH configuration deployed (~/.zshrc)"
         else
-            log "Configuring standard .zshrc..."
-            cat > "$HOME/.zshrc" <<'ZSHRC_NORMAL'
+            log "Configuring standard .zshrc with clean aliases..."
+            cat > "$HOME/.zshrc" <<'ZSHRC_CLEAN'
 # ===== Zsh History =====
 HISTFILE=~/.zsh_history
 HISTSIZE=10000
@@ -1179,8 +1337,57 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#8a8a8a"
 [[ -f ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 
 # ===== Aliases =====
+alias clear='printf "\033[2J\033[3J\033[H"'
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
+alias less='bat --paging=always --pager="less -R"'
+
+# ===== Starship (ALWAYS LAST) =====
+eval "$(starship init zsh)"
+ZSHRC_CLEAN
+            success "Clean standard ZSH configuration deployed (~/.zshrc)"
+        fi
+    else
+        if $zsh_dev; then
+            dry "Deploy ZSH developer configuration (~/.zshrc)"
+        else
+            dry "Deploy ZSH clean standard aliases (~/.zshrc)"
+        fi
+    fi
+
+    # Configure Bash (~/.bashrc)
+    if ! $DRY_RUN; then
+        backup_file "$HOME/.bashrc"
+        if grep -q "FEDORA_POST_INSTALL_MANAGED" "$HOME/.bashrc" 2>/dev/null; then
+            sed -i '/# >>> FEDORA_POST_INSTALL_MANAGED >>>/,/# <<< FEDORA_POST_INSTALL_MANAGED <<</d' "$HOME/.bashrc"
+        elif grep -q "starship init bash" "$HOME/.bashrc" 2>/dev/null; then
+            sed -i '/# ===== Starship/,/eval "$(starship init bash)"/d' "$HOME/.bashrc" 2>/dev/null || true
+        fi
+
+        if $bash_dev; then
+            log "Configuring developer .bashrc..."
+            cat >> "$HOME/.bashrc" <<'BASHRC_DEV'
+
+# >>> FEDORA_POST_INSTALL_MANAGED >>>
+# ===== Starship, Aliases & Developer Environment =====
+export EDITOR=nvim
+export VISUAL=nvim
+export PAGER=cat
+export SYSTEMD_PAGER=cat
+export MANPAGER=cat
+export BAT_PAGER=""
+export DELTA_PAGER=cat
+export LESS="-F -X -R"
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.opencode/bin:$PATH"
+export LIBVIRT_DEFAULT_URI="qemu:///system"
+export SUDO_PROMPT="[sudo] 🔒 password for %u: "
+
+# ===== Aliases =====
+alias clear='printf "\033[2J\033[3J\033[H"'
+alias ls='eza --group-directories-first --classify --icons --git'
+alias cat='bat --paging=never --style=plain'
+alias less='bat --paging=always --pager="less -R"'
+alias la='ls -la'
 
 # --- Git Shortcuts ---
 alias gs='git status -sb'
@@ -1206,43 +1413,47 @@ alias gst='git stash'
 alias gstp='git stash pop'
 alias gundo='git reset --soft HEAD~1'
 
-# ===== Environment & PATH =====
-export PAGER=cat
-export SYSTEMD_PAGER=cat
-export MANPAGER=cat
-export BAT_PAGER=""
-export DELTA_PAGER=cat
-export LESS="-F -X -R"
-export PATH="$HOME/.local/bin:$PATH"
-export SUDO_PROMPT="[sudo] 🔒 password for %u: "
+# ===== NVM =====
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
 # ===== Starship (ALWAYS LAST) =====
-eval "$(starship init zsh)"
-ZSHRC_NORMAL
-        fi
+eval "$(starship init bash)"
+# <<< FEDORA_POST_INSTALL_MANAGED <<<
+BASHRC_DEV
+            success "Developer Bash configuration deployed (~/.bashrc)"
+        else
+            log "Configuring standard .bashrc with clean aliases..."
+            cat >> "$HOME/.bashrc" <<'BASHRC_CLEAN'
 
-        # Also ensure ~/.bashrc has Starship and aliases for non-Zsh sessions
-        if ! grep -q "starship init bash" "$HOME/.bashrc" 2>/dev/null; then
-            cat >> "$HOME/.bashrc" << 'BASHRC_STARSHIP'
-
-# ===== Starship, Aliases & Pager Suppression =====
-export PAGER=cat
-export SYSTEMD_PAGER=cat
-export MANPAGER=cat
-export BAT_PAGER=""
-export DELTA_PAGER=cat
-export LESS="-F -X -R"
-export SUDO_PROMPT="[sudo] 🔒 password for %u: "
+# >>> FEDORA_POST_INSTALL_MANAGED >>>
+# ===== Starship & Clean Aliases =====
+alias clear='printf "\033[2J\033[3J\033[H"'
 alias ls='eza --group-directories-first --classify --icons --git'
 alias cat='bat --paging=never --style=plain'
+alias less='bat --paging=always --pager="less -R"'
 eval "$(starship init bash)"
-BASHRC_STARSHIP
+# <<< FEDORA_POST_INSTALL_MANAGED <<<
+BASHRC_CLEAN
+            success "Clean standard Bash configuration deployed (~/.bashrc)"
         fi
+    else
+        if $bash_dev; then
+            dry "Deploy Bash developer configuration (~/.bashrc)"
+        else
+            dry "Deploy Bash clean standard aliases (~/.bashrc)"
+        fi
+    fi
 
-        # Configure Fish shell environment and Starship prompt
+    # Configure Fish (~/.config/fish/config.fish)
+    if ! $DRY_RUN; then
         mkdir -p "$HOME/.config/fish"
         backup_file "$HOME/.config/fish/config.fish"
-        cat > "$HOME/.config/fish/config.fish" <<'FISH_CONF'
+
+        if $fish_dev; then
+            log "Configuring developer config.fish..."
+            cat > "$HOME/.config/fish/config.fish" <<'FISH_DEV'
 # Disable default welcome greeting
 set -g fish_greeting ""
 
@@ -1252,6 +1463,7 @@ set -g fish_color_autosuggestion 828bb8
 
 # ===== Environment & PATH =====
 set -gx EDITOR nvim
+set -gx VISUAL nvim
 set -gx PAGER cat
 set -gx SYSTEMD_PAGER cat
 set -gx MANPAGER cat
@@ -1304,52 +1516,36 @@ end
 if type -q starship
     starship init fish | source
 end
-FISH_CONF
-        success "Fish configuration deployed (~/.config/fish/config.fish)"
-
-        # Interactive selection for default user login shell
-        echo ""
-        info "Default Interactive Shell:"
-        info "  1) Fish (Recommended for built-in autosuggestions & syntax highlighting)"
-        info "  2) ZSH (with Starship & autosuggestions plugin)"
-        info "  3) Bash"
-        info "  4) Skip / Keep current shell (${SHELL:-/bin/bash})"
-        local shell_choice=""
-        if $DRY_RUN; then
-            dry "Prompt for default shell selection [1-4]"
+FISH_DEV
+            success "Developer Fish configuration deployed (~/.config/fish/config.fish)"
         else
-            read -r -p "Enter choice [1-4] (default: 1): " shell_choice
-            shell_choice="${shell_choice:-1}"
-            case "$shell_choice" in
-                1)
-                    if command -v fish &>/dev/null; then
-                        local fish_bin
-                        fish_bin=$(command -v fish)
-                        grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
-                        run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || true
-                        success "Default shell set to Fish"
-                    fi
-                    ;;
-                2)
-                    if command -v zsh &>/dev/null; then
-                        local zsh_bin
-                        zsh_bin=$(command -v zsh)
-                        grep -qxF "$zsh_bin" /etc/shells || echo "$zsh_bin" | run_sudo tee -a /etc/shells >/dev/null
-                        run_sudo chsh -s "$zsh_bin" "${USER:-$(id -un)}" 2>/dev/null || true
-                        success "Default shell set to ZSH"
-                    fi
-                    ;;
-                3)
-                    run_sudo chsh -s /bin/bash "${USER:-$(id -un)}" 2>/dev/null || true
-                    success "Default shell set to Bash"
-                    ;;
-                *)
-                    info "Keeping current default shell"
-                    ;;
-            esac
+            log "Configuring standard config.fish with clean aliases..."
+            cat > "$HOME/.config/fish/config.fish" <<'FISH_CLEAN'
+# Disable default welcome greeting
+set -g fish_greeting ""
+
+# ===== Colors & Styling =====
+set -g fish_color_autosuggestion 828bb8
+
+# ===== Aliases =====
+alias clear 'printf "\033[2J\033[3J\033[H"'
+alias ls 'eza --group-directories-first --classify --icons --git'
+alias cat 'bat --paging=never --style=plain'
+alias less 'bat --paging=always --pager="less -R"'
+
+# ===== Starship Prompt (ALWAYS LAST) =====
+if type -q starship
+    starship init fish | source
+end
+FISH_CLEAN
+            success "Clean standard Fish configuration deployed (~/.config/fish/config.fish)"
         fi
     else
-        dry "Install Starship, clone plugins, deploy starship.toml, .zshrc, config.fish, and .bashrc"
+        if $fish_dev; then
+            dry "Deploy Fish developer configuration (~/.config/fish/config.fish)"
+        else
+            dry "Deploy Fish clean standard aliases (~/.config/fish/config.fish)"
+        fi
     fi
 
     # Terminal emulator configuration (dev, full, and personal profiles only)

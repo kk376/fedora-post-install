@@ -8,6 +8,10 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ### Added
 
+- **Profile-Gated Default Shell Selection**: Gated the interactive default login shell menu (Fish [Recommended], ZSH, Bash, Skip) strictly to `dev` and `full` profiles.
+- **Interactive Developer Environment Menu**: Added an interactive confirmation menu in `dev` and `full` profiles to choose between full developer environment exports and Git shortcuts vs clean standard aliases for the selected shell.
+- **Personal Profile Fish Shell Automation**: Automated default login shell configuration to Fish with developer exports and Git aliases directly enabled without interactive prompts for the `personal` profile.
+- **Clean Standard Aliases for General Profiles**: Deployed clean standard modern aliases (`clear`, `ls`, `cat`, `less`) without developer environment exports across minimal, workstation, gaming, and creator profiles.
 - **GPU Terminal Emulator Selection & Dev-Suite Config Sync**: Added interactive selection in developer and full profiles for modern GPU-accelerated terminal emulators (Ghostty recommended as default, Kitty, or Alacritty) with automated deployment of Tokyo Night configurations directly from the `dev-suite` repository.
 - **Personal Profile Ghostty Automation**: Automated the installation and configuration of Ghostty with author configs and GTK styling from `dev-suite` in the `personal` profile without interactive prompts.
 

@@ -167,13 +167,14 @@ Here is a simple walkthrough of each room the setup crew visits:
 ---
 
 ### 🐚 Step 6: Dream Terminal & Shell (`setup_shell`)
-* **The Problem:** The default terminal is a plain black box with basic text.
-* **The Fix:** Upgrades your terminal to **ZSH** with the **Starship** prompt. You get:
-  - 🔮 Ghost suggestions (press Right Arrow to auto-complete commands).
-  - 🎨 Syntax highlighting (green for valid commands, red for typos).
-  - 🌿 Git branch badges and execution timer ("took 1.2s").
+* **The Problem:** The default terminal is a plain black box with basic text and standard Bash defaults.
+* **The Fix:** Equips your environment with modern shells (Fish and ZSH) powered by the universal **Starship** prompt.
+  - Interactive login shell menu (Fish [Recommended], ZSH, Bash, Skip) in `dev` and `full` profiles.
+  - Interactive developer environment menu (Git aliases, Neovim editor, Cargo/OpenCode PATH) tailored to the chosen shell in `dev` and `full` profiles.
+  - Automated Fish login shell with all developer environment exports directly configured for the `personal` profile.
+  - Clean standard aliases (clear, ls, cat, less) across all shells without developer bloat on standard profiles (`minimal`, `workstation`, `gaming`, `creator`).
   - Optional modern GPU terminal emulator (Ghostty recommended, Kitty, or Alacritty) with Tokyo Night configuration synced from `dev-suite` (automated for personal profile).
-  - ⚡ Optional **KKFetch** (ultra-fast Rust system info banner created by Kushagra Kumar).
+  - Optional KKFetch system info banner created by Kushagra Kumar.
 * **Decision:** Always say **YES**.
 
 ---
