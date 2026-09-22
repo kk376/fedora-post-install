@@ -3021,8 +3021,13 @@ show_summary() {
     echo "Service Status:"
     systemctl is-active --quiet tlp && echo "  ✅ TLP" || echo "  ❌ TLP"
     systemctl is-active --quiet docker && echo "  ✅ Docker" || echo "  ❌ Docker"
-    command -v nvidia-smi &>/dev/null && echo "  ✅ NVIDIA drivers"
-    [[ "${SHELL:-}" == "$(command -v zsh 2>/dev/null)" ]] && echo "  ✅ ZSH default" || echo "  ⚠️  ZSH: not default shell"
+    local default_sh
+    default_sh=$(basename "${SHELL:-/bin/bash}")
+    if [[ "$default_sh" == "fish" || "$default_sh" == "zsh" ]]; then
+        echo "  ✅ Default shell: $default_sh"
+    else
+        echo "  ℹ️  Default shell: $default_sh"
+    fi
 
     if confirm "Verify hardware video acceleration?" "N"; then
         log "Checking hardware acceleration..."
@@ -3037,7 +3042,7 @@ show_summary() {
 
     echo "Next Steps:"
     echo "1. Reboot your system if you haven't already (Docker group, libvirt group, kernel modules)"
-    echo "2. Open a new terminal to start using ZSH + Starship"
+    echo "2. Open a new terminal to start using Fish/ZSH + Starship"
     echo "3. Review the log file: $LOG_FILE"
     echo -e "${GREEN}System ready! 🚀${NC}"
 }
