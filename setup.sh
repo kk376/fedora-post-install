@@ -1657,10 +1657,29 @@ monitor.bluez.properties = {
   bluez5.enable-msbc = true
   bluez5.enable-hw-volume = true
 }
+
+wireplumber.settings = {
+  bluetooth.autoswitch-to-headset-profile = false
+}
 BLUEZ_CONF
         success "WirePlumber Bluetooth HD audio configured system-wide"
+
+        # Prevent GDM login screen from capturing Bluetooth audio transport and causing stale fd on login
+        if id gdm &>/dev/null; then
+            run_sudo mkdir -p /var/lib/gdm/.config/wireplumber/wireplumber.conf.d
+            run_sudo tee /var/lib/gdm/.config/wireplumber/wireplumber.conf.d/disable-bluetooth.conf > /dev/null <<'GDM_BT_CONF'
+wireplumber.profiles = {
+  main = {
+    hardware.bluetooth = disabled
+  }
+}
+GDM_BT_CONF
+            run_sudo chown -R gdm:gdm /var/lib/gdm/.config/wireplumber 2>/dev/null || true
+            success "GDM login screen Bluetooth audio capture disabled"
+        fi
     else
-        dry "Deploy /etc/wireplumber/wireplumber.conf.d/50-bluez.conf"
+        dry "Deploy /etc/wireplumber/wireplumber.conf.d/50-bluez.conf (with headset autoswitch disabled)"
+        dry "Deploy /var/lib/gdm/.config/wireplumber/wireplumber.conf.d/disable-bluetooth.conf"
     fi
 
     # System-wide PipeWire Dynamic Multi-Rate Bit-Perfect Audio (44.1k to 192k across all user profiles)
