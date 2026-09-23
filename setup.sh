@@ -1664,6 +1664,12 @@ wireplumber.settings = {
 BLUEZ_CONF
         success "WirePlumber Bluetooth HD audio configured system-wide"
 
+        # Harden user WirePlumber profile to ensure immediate user-level override
+        mkdir -p "$HOME/.config/wireplumber/wireplumber.conf.d"
+        cp -f /etc/wireplumber/wireplumber.conf.d/50-bluez.conf "$HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf" 2>/dev/null || true
+        chmod 644 "$HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf" 2>/dev/null || true
+        success "User WirePlumber Bluetooth profile hardened at $HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf"
+
         # Prevent GDM login screen from capturing Bluetooth audio transport and causing stale fd on login
         if id gdm &>/dev/null; then
             run_sudo mkdir -p /var/lib/gdm/.config/wireplumber/wireplumber.conf.d
@@ -1679,6 +1685,7 @@ GDM_BT_CONF
         fi
     else
         dry "Deploy /etc/wireplumber/wireplumber.conf.d/50-bluez.conf (with headset autoswitch disabled)"
+        dry "Deploy $HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf"
         dry "Deploy /var/lib/gdm/.config/wireplumber/wireplumber.conf.d/disable-bluetooth.conf"
     fi
 
