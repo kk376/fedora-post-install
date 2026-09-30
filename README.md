@@ -25,16 +25,11 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ---
 
-## What's New in v5.8.0
+## What's New in v5.9.0
 
-- **Profile-Gated Default Shell Selection:** Interactive login shell menu (Fish [Recommended], ZSH, Bash, Skip) in developer and full profiles, with automated Fish configuration and developer exports for the personal profile.
-- **Interactive Developer Environment Menu:** Interactive menu in developer and full profiles to choose between full developer environment exports and Git aliases vs clean standard aliases.
-- **Profile-Gated Starship Cross-Shell Prompt:** Interactive prompt with technical disclaimer explaining performance and git features in developer and full profiles; automated deployment in the personal profile; completely bypassed in minimal, workstation, gaming, and creator profiles.
-- **Interactive ccache Compiler Cache:** Gated to the systems developer genre across developer, full, and personal profiles with an informative technical disclaimer explaining C and C++ compilation caching benefits.
-- **GPU Terminal Emulator Selector:** Interactive selection in developer and full profiles for modern GPU-accelerated terminal emulators (Ghostty recommended as default, Kitty, or Alacritty) with automated deployment of Tokyo Night configurations synced from `dev-suite`.
-- **Personal Profile Ghostty Automation:** Automated installation of Ghostty via Copr and deployment of author configs and GTK styling from `dev-suite` without interactive prompts.
-- **Heroic Games Launcher Flathub Migration:** Migrated Heroic Games Launcher from DNF RPM to the official Flathub Flatpak (`com.heroicgameslauncher.hgl`) as recommended by upstream maintainers, with automated sandbox configuration and shared Wine prefix initialization.
-- **Stock Terminal Preservation:** Decoupled Kitty terminal emulator from unconditional setup, ensuring minimal, workstation, gaming, and creator profiles retain stock Fedora Ptyxis cleanly.
+- **Explicit Diagnostic Error Handling:** Replaced deceptive silent failure suppressions (`|| true`) across systemd services (Docker, Containerd, NetworkManager, Firewalld, Libvirtd, PostgreSQL 18), font cache builders, flatpak operations, and repository key imports with clear diagnostic warnings.
+- **Development Package Deduplication:** Consolidated identical full and personal profile development dependencies in `setup_dev()`, streamlining package matrix maintenance.
+- **Emoji & Punctuation Hygiene:** Purged unicode emoji icons across system verification, driver guidance, virtualization warnings, and summary reporting. Normalized punctuation to clean technical standards.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 

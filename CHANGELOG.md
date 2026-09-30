@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v5.9.0] - 2026-10-01
+
+### Changed
+
+- **Explicit Diagnostic Error Handling**: Replaced deceptive silent failure suppressions (`|| true`) with diagnostic warnings across systemd units (`containerd.service`, `docker.service`, `NetworkManager`, `firewalld`, `postgresql-18`, `libvirtd.service`), font cache regenerations (`fc-cache`), package removals (`heroic`, `libreoffice*`), GPG key imports (VSCodium, Microsoft VS Code), and Flatpak installations.
+- **Development Dependency Deduplication**: Consolidated identical package arrays for `full` and `personal` profiles in `setup_dev()`, eliminating duplicate code while maintaining strict profile isolation and test matrix requirements.
+- **Anti-Slop & Zero-Emoji Standardization**: Replaced unicode emojis across system verification, driver instructions, virtualization prompts, and summary outputs with structured status tags. Normalized punctuation to eliminate em dashes across code and documentation.
+
 ## [v5.8.0] - 2026-09-22
 
 ### Added
