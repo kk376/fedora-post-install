@@ -550,13 +550,13 @@ show_versions() {
     local packages=("zsh" "brave-browser" "vesktop" "heroic" "zed" "codium" "agy" "code" "docker" "tlp" "steam" "ffmpeg")
     for pkg in "${packages[@]}"; do
         if rpm -q "$pkg" &>/dev/null; then
-            echo "  ✅ $pkg: $(rpm -q --queryformat '%{VERSION}' "$pkg" 2>/dev/null)"
+            echo "  [OK] $pkg: $(rpm -q --queryformat '%{VERSION}' "$pkg" 2>/dev/null)"
         elif command -v "$pkg" &>/dev/null; then
-            echo "  ✅ $pkg: $("$pkg" --version 2>/dev/null | head -1 || echo "installed")"
+            echo "  [OK] $pkg: $("$pkg" --version 2>/dev/null | head -1 || echo "installed")"
         elif [[ "$pkg" == "heroic" ]] && flatpak list 2>/dev/null | grep -q "com.heroicgameslauncher.hgl"; then
-            echo "  ✅ $pkg: flatpak"
+            echo "  [OK] $pkg: flatpak"
         else
-            echo "  ❌ $pkg: not installed"
+            echo "  [MISSING] $pkg: not installed"
         fi
     done
 }
@@ -678,7 +678,7 @@ setup_dns() {
 # Power Management (TLP)
 # ==============================================================================
 setup_power() {
-    warn "⚠️  TLP vs GNOME Power Profiles"
+    warn "TLP vs GNOME Power Profiles"
     echo "TLP provides fine-grained power control but:"
     echo "  • Disables GNOME's built-in power profiles UI"
     echo "  • Some AMD laptops work better with power-profiles-daemon"
@@ -738,7 +738,7 @@ sleep-inactive-ac-type='nothing'
 sleep-inactive-battery-timeout=0
 sleep-inactive-battery-type='nothing'
 EOF
-        run_sudo dconf update 2>/dev/null || true
+        run_sudo dconf update 2>/dev/null || warn "Failed to update dconf"
     else
         dry "Create /etc/dconf/db/gdm.d/01-power and run dconf update"
     fi
@@ -752,7 +752,7 @@ EOF
     )
     for entry in "${keys[@]}"; do
         local key=${entry%% *} val=${entry#* }
-        run gsettings set org.gnome.settings-daemon.plugins.power "$key" "$val" 2>/dev/null || true
+        run gsettings set org.gnome.settings-daemon.plugins.power "$key" "$val" 2>/dev/null || warn "Failed to set $key in gsettings"
     done
 
     step_complete "No-sleep configured"
@@ -779,7 +779,7 @@ deploy_terminal_config() {
                     [[ -f "$dev_suite_local/ghostty/gtk.css" ]] && cp -f "$dev_suite_local/ghostty/gtk.css" "$HOME/.config/ghostty/gtk.css"
                 else
                     curl -fsSL "$dev_suite_raw/ghostty/config.ghostty" -o "$HOME/.config/ghostty/config.ghostty" 2>/dev/null || warn "Failed to download config.ghostty from dev-suite"
-                    curl -fsSL "$dev_suite_raw/ghostty/gtk.css" -o "$HOME/.config/ghostty/gtk.css" 2>/dev/null || true
+                    curl -fsSL "$dev_suite_raw/ghostty/gtk.css" -o "$HOME/.config/ghostty/gtk.css" 2>/dev/null || warn "Failed to download gtk.css from dev-suite"
                 fi
                 ln -sf "$HOME/.config/ghostty/config.ghostty" "$HOME/.config/ghostty/config"
                 success "Ghostty configuration deployed to ~/.config/ghostty/"
@@ -916,10 +916,10 @@ setup_shell() {
         mkdir -p "$HOME/.zsh/plugins"
 
         if [[ ! -d "$HOME/.zsh/plugins/zsh-autosuggestions" ]]; then
-            run git clone --depth=1 --branch v0.7.1 https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/plugins/zsh-autosuggestions" 2>/dev/null || true
+            run git clone --depth=1 --branch v0.7.1 https://github.com/zsh-users/zsh-autosuggestions "$HOME/.zsh/plugins/zsh-autosuggestions" 2>/dev/null || warn "Failed to clone zsh-autosuggestions"
         fi
         if [[ ! -d "$HOME/.zsh/plugins/zsh-syntax-highlighting" ]]; then
-            run git clone --depth=1 --branch 0.8.0 https://github.com/zsh-users/zsh-syntax-highlighting "$HOME/.zsh/plugins/zsh-syntax-highlighting" 2>/dev/null || true
+            run git clone --depth=1 --branch 0.8.0 https://github.com/zsh-users/zsh-syntax-highlighting "$HOME/.zsh/plugins/zsh-syntax-highlighting" 2>/dev/null || warn "Failed to clone zsh-syntax-highlighting"
         fi
     fi
 
@@ -938,7 +938,7 @@ setup_shell() {
                 local fish_bin
                 fish_bin=$(command -v fish)
                 grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
-                run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || true
+                run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || warn "Failed to set default shell to Fish via chsh"
                 success "Default shell set to Fish"
             fi
         else
@@ -970,7 +970,7 @@ setup_shell() {
                         local fish_bin
                         fish_bin=$(command -v fish)
                         grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
-                        run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || true
+                        run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || warn "Failed to set default shell to Fish via chsh"
                         success "Default shell set to Fish"
                     fi
                 else
@@ -985,7 +985,7 @@ setup_shell() {
                         local zsh_bin
                         zsh_bin=$(command -v zsh)
                         grep -qxF "$zsh_bin" /etc/shells || echo "$zsh_bin" | run_sudo tee -a /etc/shells >/dev/null
-                        run_sudo chsh -s "$zsh_bin" "${USER:-$(id -un)}" 2>/dev/null || true
+                        run_sudo chsh -s "$zsh_bin" "${USER:-$(id -un)}" 2>/dev/null || warn "Failed to set default shell to ZSH via chsh"
                         success "Default shell set to ZSH"
                     fi
                 else
@@ -996,7 +996,7 @@ setup_shell() {
                 selected_shell="bash"
                 selected_shell_name="Bash"
                 if ! $DRY_RUN; then
-                    run_sudo chsh -s /bin/bash "${USER:-$(id -un)}" 2>/dev/null || true
+                    run_sudo chsh -s /bin/bash "${USER:-$(id -un)}" 2>/dev/null || warn "Failed to set default shell to Bash via chsh"
                     success "Default shell set to Bash"
                 else
                     dry "Set default login shell to Bash via chsh"
@@ -1328,7 +1328,7 @@ export DELTA_PAGER=cat
 export LESS="-F -X -R"
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.opencode/bin:$PATH"
 export LIBVIRT_DEFAULT_URI="qemu:///system"
-export SUDO_PROMPT="[sudo] 🔒 password for %u: "
+export SUDO_PROMPT="[sudo] password for %u: "
 
 # ===== NVM =====
 export NVM_DIR="$HOME/.nvm"
@@ -1415,7 +1415,7 @@ export DELTA_PAGER=cat
 export LESS="-F -X -R"
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/.opencode/bin:$PATH"
 export LIBVIRT_DEFAULT_URI="qemu:///system"
-export SUDO_PROMPT="[sudo] 🔒 password for %u: "
+export SUDO_PROMPT="[sudo] password for %u: "
 
 # ===== Aliases =====
 alias clear='printf "\033[2J\033[3J\033[H"'
@@ -1514,7 +1514,7 @@ set -gx BAT_PAGER ""
 set -gx DELTA_PAGER cat
 set -gx LESS "-F -X -R"
 set -gx LIBVIRT_DEFAULT_URI "qemu:///system"
-set -gx SUDO_PROMPT "[sudo] 🔒 password for %u: "
+set -gx SUDO_PROMPT "[sudo] password for %u: "
 
 # Add personal bin paths
 fish_add_path -m $HOME/.local/bin $HOME/.cargo/bin $HOME/.opencode/bin
@@ -1683,7 +1683,7 @@ setup_browser_multimedia() {
     fi
 
     run_sudo dnf install -y dnf-plugins-core
-    run_sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo --overwrite 2>/dev/null || true
+    run_sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo --overwrite 2>/dev/null || warn "Failed to add Brave Browser repository"
     run_sudo dnf install -y brave-browser mozilla-openh264
 
     run_sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
@@ -1692,7 +1692,7 @@ setup_browser_multimedia() {
         gstreamer1-plugins-ugly \
         gstreamer1-vaapi \
         mesa-va-drivers-freeworld \
-        --allowerasing 2>/dev/null || true
+        --allowerasing 2>/dev/null || warn "Some multimedia packages failed to install"
     run_sudo dnf group upgrade -y multimedia --setopt=install_weak_deps=False --exclude=PackageKit-gstreamer-plugin 2>/dev/null || warn "Multimedia codec group upgrade had partial failures (non-critical)"
     run_sudo dnf group upgrade -y sound-and-video 2>/dev/null || warn "Sound and video group upgrade had partial failures (non-critical)"
 
@@ -1717,8 +1717,8 @@ BLUEZ_CONF
 
         # Harden user WirePlumber profile to ensure immediate user-level override
         mkdir -p "$HOME/.config/wireplumber/wireplumber.conf.d"
-        cp -f /etc/wireplumber/wireplumber.conf.d/50-bluez.conf "$HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf" 2>/dev/null || true
-        chmod 644 "$HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf" 2>/dev/null || true
+        cp -f /etc/wireplumber/wireplumber.conf.d/50-bluez.conf "$HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf" 2>/dev/null || warn "Failed to copy user wireplumber config"
+        chmod 644 "$HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf" 2>/dev/null || warn "Failed to set wireplumber config permissions"
         success "User WirePlumber Bluetooth profile hardened at $HOME/.config/wireplumber/wireplumber.conf.d/50-bluez.conf"
 
         # Prevent GDM login screen from capturing Bluetooth audio transport and causing stale fd on login
@@ -1731,7 +1731,7 @@ wireplumber.profiles = {
   }
 }
 GDM_BT_CONF
-            run_sudo chown -R gdm:gdm /var/lib/gdm/.config/wireplumber 2>/dev/null || true
+            run_sudo chown -R gdm:gdm /var/lib/gdm/.config/wireplumber 2>/dev/null || warn "Failed to set gdm ownership on wireplumber config directory"
             success "GDM login screen Bluetooth audio capture disabled"
         fi
     else
@@ -1751,7 +1751,7 @@ context.properties = {
 }
 CLOCK_CONF
         if systemctl --user is-active wireplumber &>/dev/null; then
-            systemctl --user restart pipewire wireplumber 2>/dev/null || true
+            systemctl --user restart pipewire wireplumber 2>/dev/null || warn "Failed to restart PipeWire/WirePlumber user services"
         fi
         success "PipeWire dynamic clock rates configured system-wide"
     else
@@ -1802,7 +1802,7 @@ setup_pre_driver_reboot() {
             echo "If you run into driver issues after this, reboot and re-run the script."
         fi
     else
-        info "Running kernel matches installed kernel — no reboot needed"
+        info "Running kernel matches installed kernel: no reboot needed"
     fi
 
     step_complete "Reboot checkpoint"
@@ -1841,7 +1841,7 @@ setup_drivers() {
     if [[ -n "$GPU_AMD" ]]; then
         log "AMD GPU Detected: Ensuring freeworld hardware VA-API drivers..."
         run_sudo dnf install -y mesa-va-drivers-freeworld --allowerasing 2>/dev/null || \
-            run_sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld --allowerasing 2>/dev/null || true
+            run_sudo dnf swap -y mesa-va-drivers mesa-va-drivers-freeworld --allowerasing 2>/dev/null || warn "Failed to install mesa-va-drivers-freeworld"
     fi
 
     if [[ -n "$GPU_NVIDIA" ]]; then
@@ -1886,7 +1886,7 @@ setup_drivers() {
 VK_LOADER_DRIVERS_SELECT=$SELECTED_DRIVER
 EOF
                         if systemctl --user is-system-running &>/dev/null; then
-                            systemctl --user set-environment VK_LOADER_DRIVERS_SELECT="$SELECTED_DRIVER" 2>/dev/null || true
+                            systemctl --user set-environment VK_LOADER_DRIVERS_SELECT="$SELECTED_DRIVER" 2>/dev/null || warn "Failed to set VK_LOADER_DRIVERS_SELECT environment variable"
                         fi
                         success "Vulkan driver priority set to $SELECTED_DRIVER in $VULKAN_CONF"
                     else
@@ -1938,7 +1938,7 @@ EOF
         echo "e) On the blue 'MOK Management' screen after reboot:"
         echo "   - Select 'Enroll MOK'"
         echo "   - Select 'Continue' -> 'Yes'"
-        echo "   - Enter the password you set above (⚠️ WARNING: Keyboard is mapped to QWERTY!)"
+        echo "   - Enter the password you set above (WARNING: Keyboard is mapped to QWERTY!)"
         echo "   - Select 'Reboot'"
         echo ""
         echo "--------------------------------------------------------------------------------"
@@ -2012,7 +2012,7 @@ setup_fonts() {
             dry "verify_checksum $msttcore_rpm $msttcore_hash && sudo rpm -ivh $msttcore_rpm"
         else
             if verify_checksum "$msttcore_rpm" "$msttcore_hash"; then
-                run_sudo rpm -ivh "$msttcore_rpm" 2>/dev/null || true
+                run_sudo rpm -ivh "$msttcore_rpm" 2>/dev/null || warn "Failed to install msttcore-fonts RPM"
             else
                 warn "Failed to verify checksum for $msttcore_rpm, skipping RPM installation"
             fi
@@ -2098,9 +2098,9 @@ setup_fonts() {
 
         if command -v gsettings &>/dev/null; then
             log "Configuring FiraCode Nerd Font as default monospace & terminal font..."
-            run gsettings set org.gnome.desktop.interface monospace-font-name 'FiraCode Nerd Font 11' 2>/dev/null || true
-            run gsettings set org.gnome.Ptyxis font-name 'FiraCode Nerd Font 12' 2>/dev/null || true
-            run gsettings set org.gnome.Ptyxis use-system-font false 2>/dev/null || true
+            run gsettings set org.gnome.desktop.interface monospace-font-name 'FiraCode Nerd Font 11' 2>/dev/null || warn "Failed to set monospace font"
+            run gsettings set org.gnome.Ptyxis font-name 'FiraCode Nerd Font 12' 2>/dev/null || warn "Failed to set Ptyxis font name"
+            run gsettings set org.gnome.Ptyxis use-system-font false 2>/dev/null || warn "Failed to set Ptyxis use-system-font"
         fi
     else
         dry "Download and install FiraCode Nerd Font"
@@ -2122,7 +2122,7 @@ setup_fonts() {
             warn "Failed to download Symbols Nerd Font"
             info "Manual download: https://github.com/ryanoasis/nerd-fonts/releases"
         fi
-        fc-cache -fv 2>/dev/null || true
+        fc-cache -fv 2>/dev/null || warn "Failed to update font cache"
     else
         dry "Download and install Symbols Nerd Font and 10-nerd-font-symbols.conf fontconfig"
     fi
@@ -2141,8 +2141,8 @@ setup_gnome() {
     if command -v firewall-cmd &>/dev/null; then
         if ! $DRY_RUN; then
             if systemctl is-active --quiet firewalld 2>/dev/null; then
-                run_sudo firewall-cmd --permanent --add-service=kdeconnect 2>/dev/null || true
-                run_sudo firewall-cmd --reload 2>/dev/null || true
+                run_sudo firewall-cmd --permanent --add-service=kdeconnect 2>/dev/null || warn "Failed to add kdeconnect service to firewall"
+                run_sudo firewall-cmd --reload 2>/dev/null || warn "Failed to reload firewall"
                 success "Firewall service enabled for GSConnect / KDE Connect"
             fi
         else
@@ -2185,7 +2185,7 @@ GTK_CSS
     # Silence the "Window is not responding" freeze dialog during Wine/Proton shader compilation
     if command -v gsettings &>/dev/null; then
         if ! $DRY_RUN; then
-            gsettings set org.gnome.mutter check-alive-timeout 0 2>/dev/null || true
+            gsettings set org.gnome.mutter check-alive-timeout 0 2>/dev/null || warn "Failed to set mutter check-alive-timeout"
             success "GNOME Mutter check-alive-timeout set to 0 (silences Proton shader compilation freeze dialogs)"
         else
             dry "gsettings set org.gnome.mutter check-alive-timeout 0"
@@ -2195,8 +2195,8 @@ GTK_CSS
         if [[ "$PROFILE" == "personal" ]]; then
             log "Configuring personal top bar clock display (seconds & weekday)..."
             if ! $DRY_RUN; then
-                gsettings set org.gnome.desktop.interface clock-show-seconds true 2>/dev/null || true
-                gsettings set org.gnome.desktop.interface clock-show-weekday true 2>/dev/null || true
+                gsettings set org.gnome.desktop.interface clock-show-seconds true 2>/dev/null || warn "Failed to set clock-show-seconds"
+                gsettings set org.gnome.desktop.interface clock-show-weekday true 2>/dev/null || warn "Failed to set clock-show-weekday"
                 success "Top bar clock configured (seconds and weekday enabled)"
             else
                 dry "gsettings set org.gnome.desktop.interface clock-show-seconds true"
@@ -2283,7 +2283,7 @@ EOF
                 success "MangoHud config created"
                 if [[ -d "$HOME/.var/app/com.heroicgameslauncher.hgl" ]]; then
                     mkdir -p "$HOME/.var/app/com.heroicgameslauncher.hgl/config/MangoHud"
-                    cp -p "$HOME/.config/MangoHud/MangoHud.conf" "$HOME/.var/app/com.heroicgameslauncher.hgl/config/MangoHud/MangoHud.conf" 2>/dev/null || true
+                    cp -p "$HOME/.config/MangoHud/MangoHud.conf" "$HOME/.var/app/com.heroicgameslauncher.hgl/config/MangoHud/MangoHud.conf" 2>/dev/null || warn "Failed to copy MangoHud config to Heroic flatpak"
                 fi
             else
                 dry "Create ~/.config/MangoHud/MangoHud.conf"
@@ -2300,7 +2300,7 @@ EOF
                 # Remove legacy RPM package if previously installed to prevent dual-installation conflicts
                 if rpm -q heroic &>/dev/null; then
                     info "Removing legacy Heroic RPM package..."
-                    run_sudo dnf remove -y heroic 2>/dev/null || true
+                    run_sudo dnf remove -y heroic 2>/dev/null || warn "Failed to remove legacy Heroic RPM"
                 fi
 
                 if flatpak list 2>/dev/null | grep -q "com.heroicgameslauncher.hgl"; then
@@ -2367,7 +2367,7 @@ HEROIC_EOF
                 # Ensure MangoHud configuration is deployed to Flatpak sandbox
                 if [[ -f "$HOME/.config/MangoHud/MangoHud.conf" ]]; then
                     mkdir -p "$HOME/.var/app/com.heroicgameslauncher.hgl/config/MangoHud"
-                    cp -p "$HOME/.config/MangoHud/MangoHud.conf" "$HOME/.var/app/com.heroicgameslauncher.hgl/config/MangoHud/MangoHud.conf" 2>/dev/null || true
+                    cp -p "$HOME/.config/MangoHud/MangoHud.conf" "$HOME/.var/app/com.heroicgameslauncher.hgl/config/MangoHud/MangoHud.conf" 2>/dev/null || warn "Failed to copy MangoHud config to Heroic flatpak"
                 fi
 
                 success "Optimized Heroic config initialized (disableUMU=true, MangoHud=true, Prefixes pre-created)"
@@ -2451,7 +2451,7 @@ HEROIC_EOF
                 if ! $DRY_RUN; then
                     log "Installing NVIDIA Broadcast for Linux..."
                     if [[ ! -d "$HOME/nvidia-broadcast-linux" ]]; then
-                        git clone --depth 1 --branch v1.5.2 https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$HOME/nvidia-broadcast-linux" || true
+                        git clone --depth 1 --branch v1.5.2 https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$HOME/nvidia-broadcast-linux" || warn "Failed to clone nvidia-broadcast-linux"
                     fi
                     if [[ -f "$HOME/nvidia-broadcast-linux/install.sh" ]]; then
                         (cd "$HOME/nvidia-broadcast-linux" && ./install.sh --runtime cuda) || warn "NVIDIA Broadcast install finished with warnings"
@@ -2473,7 +2473,7 @@ HEROIC_EOF
             log "Configuring personal office suite (ONLYOFFICE Desktop Editors)..."
             if rpm -qa "libreoffice*" 2>/dev/null | grep -q libreoffice || command -v libreoffice &>/dev/null; then
                 log "Removing LibreOffice in favor of ONLYOFFICE..."
-                run_sudo dnf remove -y "libreoffice*" 2>/dev/null || true
+                run_sudo dnf remove -y "libreoffice*" 2>/dev/null || warn "Failed to remove LibreOffice packages"
                 success "LibreOffice removed"
             fi
 
@@ -2489,7 +2489,7 @@ HEROIC_EOF
             fi
 
             mkdir -p "$HOME/.local/bin" "$HOME/.config/cliamp" "$HOME/.config/yt-dlp"
-            run_sudo dnf install -y --skip-unavailable mpv 2>/dev/null || true
+            run_sudo dnf install -y --skip-unavailable mpv 2>/dev/null || warn "Failed to install mpv"
 
             # 1. yt-dlp & python dependencies for cliamp
             if ! command -v yt-dlp &>/dev/null; then
@@ -2504,7 +2504,7 @@ YTDLP_CONF
 
             # Python SecretStorage for GNOME Keyring cookie decryption
             if command -v python3 &>/dev/null; then
-                python3 -m pip install --user secretstorage cryptography jeepney 2>/dev/null || true
+                python3 -m pip install --user secretstorage cryptography jeepney 2>/dev/null || warn "Failed to install Python keyring packages for cliamp"
             fi
 
             # 2. cliamp
@@ -2610,16 +2610,7 @@ setup_dev() {
         dev_pkgs+=(java-latest-openjdk java-latest-openjdk-devel maven)
     fi
 
-    if [[ "$PROFILE" == "full" ]]; then
-        dev_pkgs+=(
-            dpkg-dev
-            libX11-devel
-            libxkbcommon-x11-devel
-            libxcb-devel
-            fontconfig-devel
-            alsa-lib-devel
-        )
-    elif [[ "$PROFILE" == "personal" ]]; then
+    if [[ "$PROFILE" == "full" ]] || [[ "$PROFILE" == "personal" ]]; then
         dev_pkgs+=(
             dpkg-dev
             libX11-devel
@@ -2635,7 +2626,7 @@ setup_dev() {
     # Systems Genre: Rust Toolchain & ccache Compiler Cache
     if has_dev_genre "systems"; then
         if confirm "Install full Rust toolchain (rustup, clippy, rust-analyzer)?" "Y"; then
-            run_sudo dnf install -y rust cargo rustup rustfmt clippy rust-analyzer 2>/dev/null || true
+            run_sudo dnf install -y rust cargo rustup rustfmt clippy rust-analyzer 2>/dev/null || warn "Failed to install Rust toolchain"
         fi
 
         echo ""
@@ -2647,8 +2638,8 @@ setup_dev() {
             log "Installing ccache..."
             run_sudo dnf install -y --skip-unavailable ccache
             if ! $DRY_RUN; then
-                ccache --set-config=max_size=50G 2>/dev/null || true
-                ccache --set-config=compression=true 2>/dev/null || true
+                ccache --set-config=max_size=50G 2>/dev/null || warn "Failed to set ccache max_size"
+                ccache --set-config=compression=true 2>/dev/null || warn "Failed to set ccache compression"
                 mkdir -p "$HOME/.ccache"
                 echo "cache_dir = $HOME/.ccache" > "$HOME/.ccache/ccache.conf"
                 success "ccache installed and configured (50GB limit, compressed)"
@@ -2681,7 +2672,7 @@ setup_dev() {
             info "  • CUDA development packages provide headers & libraries for native PyTorch/TensorRT acceleration."
             info "  • Recommendation: Install if you compile custom CUDA kernels or native ML extensions."
             if confirm "Install NVIDIA CUDA development libraries?" "Y"; then
-                run_sudo dnf install -y --skip-unavailable xorg-x11-drv-nvidia-cuda-devel 2>/dev/null || true
+                run_sudo dnf install -y --skip-unavailable xorg-x11-drv-nvidia-cuda-devel 2>/dev/null || warn "Failed to install CUDA development packages"
             fi
         else
             if lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' | grep -qi amd; then
@@ -2695,15 +2686,15 @@ setup_dev() {
     # Web Genre: Corepack for yarn/pnpm
     if has_dev_genre "web" && command -v npm &>/dev/null; then
         log "Enabling corepack (yarn/pnpm)..."
-        run_sudo npm install -g corepack 2>/dev/null || true
-        run_sudo corepack enable 2>/dev/null || true
+        run_sudo npm install -g corepack 2>/dev/null || warn "Failed to install corepack via npm"
+        run_sudo corepack enable 2>/dev/null || warn "Failed to enable corepack"
     fi
 
     log "Configuring Python development symlinks..."
     if ! $DRY_RUN; then
         mkdir -p "$HOME/.local/bin"
-        ln -sf "$(command -v python3 || echo /usr/bin/python3)" "$HOME/.local/bin/python" 2>/dev/null || true
-        ln -sf "$(command -v python3 || echo /usr/bin/python3)" "$HOME/.local/bin/python3" 2>/dev/null || true
+        ln -sf "$(command -v python3 || echo /usr/bin/python3)" "$HOME/.local/bin/python" 2>/dev/null || warn "Failed to create python symlink"
+        ln -sf "$(command -v python3 || echo /usr/bin/python3)" "$HOME/.local/bin/python3" 2>/dev/null || warn "Failed to create python3 symlink"
         success "Python symlinks configured in ~/.local/bin"
     else
         dry "Create python symlinks in ~/.local/bin"
@@ -2712,10 +2703,10 @@ setup_dev() {
     # Git global defaults (suppress pagers, auto-setup remote, pull rebase)
     if command -v git &>/dev/null || $DRY_RUN; then
         if ! $DRY_RUN; then
-            git config --global core.pager cat 2>/dev/null || true
-            git config --global push.autoSetupRemote true 2>/dev/null || true
-            git config --global pull.rebase true 2>/dev/null || true
-            git config --global diff.colorMoved zebra 2>/dev/null || true
+            git config --global core.pager cat 2>/dev/null || warn "Failed to configure git core.pager"
+            git config --global push.autoSetupRemote true 2>/dev/null || warn "Failed to configure git push.autoSetupRemote"
+            git config --global pull.rebase true 2>/dev/null || warn "Failed to configure git pull.rebase"
+            git config --global diff.colorMoved zebra 2>/dev/null || warn "Failed to configure git diff.colorMoved"
             success "Git global defaults configured (pager suppressed, auto remote tracking)"
         else
             dry "Configure git global defaults (core.pager cat, autoSetupRemote true, pull.rebase true)"
@@ -2741,14 +2732,14 @@ setup_dev() {
             arch=$(uname -m)
             local pgdg_rpm="https://download.postgresql.org/pub/repos/yum/reporpms/F-${fedora_ver}-${arch}/pgdg-fedora-repo-latest.noarch.rpm"
             if ! rpm -q pgdg-fedora-repo &>/dev/null; then
-                run_sudo dnf install -y --skip-unavailable "$pgdg_rpm" 2>/dev/null || true
+                run_sudo dnf install -y --skip-unavailable "$pgdg_rpm" 2>/dev/null || warn "Failed to install PostgreSQL repository RPM"
             fi
             if run_sudo dnf install -y postgresql18-server postgresql18 postgresql18-libs; then
                 if [[ ! -f "/var/lib/pgsql/18/data/PG_VERSION" ]]; then
                     log "Initializing PostgreSQL 18 database cluster..."
-                    run_sudo /usr/pgsql-18/bin/postgresql-18-setup initdb 2>/dev/null || true
+                    run_sudo /usr/pgsql-18/bin/postgresql-18-setup initdb 2>/dev/null || warn "Failed to initialize PostgreSQL 18 cluster"
                 fi
-                run_sudo systemctl enable --now postgresql-18 2>/dev/null || true
+                run_sudo systemctl enable --now postgresql-18 2>/dev/null || warn "Failed to enable and start postgresql-18"
                 if [[ -d "/usr/pgsql-18/bin" ]]; then
                     run_sudo tee /etc/profile.d/pgsql18.sh > /dev/null <<'PG_PROFILE'
 export PATH="/usr/pgsql-18/bin:$PATH"
@@ -2767,7 +2758,7 @@ PG_PROFILE
         if ! $DRY_RUN; then
             local pgadmin_repo_rpm="https://ftp.postgresql.org/pub/pgadmin/pgadmin4/yum/pgadmin4-fedora-repo-2-1.noarch.rpm"
             if ! rpm -q pgadmin4-fedora-repo &>/dev/null; then
-                run_sudo dnf install -y --skip-unavailable "$pgadmin_repo_rpm" 2>/dev/null || true
+                run_sudo dnf install -y --skip-unavailable "$pgadmin_repo_rpm" 2>/dev/null || warn "Failed to install pgAdmin repository RPM"
             fi
             if run_sudo dnf install -y pgadmin4-desktop; then
                 success "pgAdmin 4 Desktop installed"
@@ -2991,7 +2982,7 @@ ZED_RUN
         2)
             log "Installing and configuring VS Codium (FLOSS)..."
             if ! $DRY_RUN; then
-                run_sudo rpm --import https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg 2>/dev/null || true
+                run_sudo rpm --import https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg 2>/dev/null || warn "Failed to import VSCodium repo key"
                 run_sudo tee /etc/yum.repos.d/vscodium.repo > /dev/null <<'EOL'
 [gitlab.com_paulcarroty_vscodium_repo]
 name=gitlab.com_paulcarroty_vscodium_repo
@@ -3074,7 +3065,7 @@ ANTI_SETTINGS
         4)
             log "Installing and configuring VS Code (Not recommended)..."
             if ! $DRY_RUN; then
-                run_sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || true
+                run_sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc 2>/dev/null || warn "Failed to import Microsoft repo key"
                 run_sudo tee /etc/yum.repos.d/vscode.repo > /dev/null <<'EOL'
 [code]
 name=Visual Studio Code
@@ -3128,7 +3119,7 @@ setup_flatpaks() {
     log "Installing Flatpaks..."
     local flatpaks=(org.localsend.localsend_app com.mattjakeman.ExtensionManager)
 
-    run flatpak install -y flathub "${flatpaks[@]}" 2>/dev/null || true
+    run flatpak install -y flathub "${flatpaks[@]}" 2>/dev/null || warn "Failed to install flatpaks"
 
     step_complete "Flatpaks installed"
 }
@@ -3156,7 +3147,7 @@ setup_docker() {
 [keyfile]
 unmanaged-devices=interface-name:docker0
 EOF
-        run_sudo systemctl restart NetworkManager 2>/dev/null || true
+        run_sudo systemctl restart NetworkManager 2>/dev/null || warn "Failed to restart NetworkManager"
         info "NetworkManager configured to ignore docker0"
     else
         info "NetworkManager already configured for Docker"
@@ -3171,7 +3162,7 @@ EOF
             else
                 echo "IgnoreInterfaces=docker0" | run_sudo tee -a /etc/firewalld/firewalld.conf >/dev/null
             fi
-            run_sudo systemctl restart firewalld 2>/dev/null || true
+            run_sudo systemctl restart firewalld 2>/dev/null || warn "Failed to restart firewalld"
             info "Firewall configured to ignore docker0 interface"
         else
             info "Firewall already configured for Docker"
@@ -3180,12 +3171,12 @@ EOF
 
     run_sudo usermod -aG docker "${USER:-$(id -un)}"
 
-    run_sudo systemctl enable containerd.service 2>/dev/null || true
+    run_sudo systemctl enable containerd.service 2>/dev/null || warn "Failed to enable containerd.service"
     # Clear systemd failure rate limit counter before enabling service
     if sudo systemctl is-failed docker &>/dev/null; then
         run_sudo systemctl reset-failed docker 2>/dev/null || true
     fi
-    run_sudo systemctl enable --now docker 2>/dev/null || true
+    run_sudo systemctl enable --now docker 2>/dev/null || warn "Failed to enable and start docker service"
 
     if sudo systemctl is-active --quiet docker; then
         success "Docker running"
@@ -3243,7 +3234,7 @@ setup_kvm() {
     # Switch from legacy monolithic libvirtd daemon to on-demand modular socket activation (virtqemud.socket)
     if confirm "Configure virtualization services (modern socket activation)?" "Y"; then
         log "Configuring virtualization services..."
-        run_sudo systemctl disable --now libvirtd.service 2>/dev/null || true
+        run_sudo systemctl disable --now libvirtd.service 2>/dev/null || warn "Failed to disable legacy libvirtd.service"
         run_sudo systemctl enable --now virtqemud.socket
         success "Virtualization services configured"
     fi
@@ -3295,7 +3286,7 @@ setup_kvm() {
         success "User added to libvirt group"
     fi
 
-    warn "⚠️  REBOOT REQUIRED for group membership changes"
+    warn "REBOOT REQUIRED for group membership changes"
     info "After reboot, run the following verification commands:"
     info "  1. sudo virt-host-validate qemu"
     info "  2. virsh uri"
@@ -3347,14 +3338,14 @@ show_summary() {
     echo "Time: ${mins}m ${secs}s | Steps: ${COMPLETED_STEPS} completed, ${FAILED_STEPS} failed, ${SKIPPED_STEPS} skipped (of ${TOTAL_STEPS})"
 
     echo "Service Status:"
-    systemctl is-active --quiet tlp && echo "  ✅ TLP" || echo "  ❌ TLP"
-    systemctl is-active --quiet docker && echo "  ✅ Docker" || echo "  ❌ Docker"
+    systemctl is-active --quiet tlp && echo "  [active] TLP" || echo "  [inactive] TLP"
+    systemctl is-active --quiet docker && echo "  [active] Docker" || echo "  [inactive] Docker"
     local default_sh
     default_sh=$(basename "${SHELL:-/bin/bash}")
     if [[ "$default_sh" == "fish" || "$default_sh" == "zsh" ]]; then
-        echo "  ✅ Default shell: $default_sh"
+        echo "  [custom] Default shell: $default_sh"
     else
-        echo "  ℹ️  Default shell: $default_sh"
+        echo "  [standard] Default shell: $default_sh"
     fi
 
     if confirm "Verify hardware video acceleration?" "N"; then
@@ -3372,7 +3363,7 @@ show_summary() {
     echo "1. Reboot your system if you haven't already (Docker group, libvirt group, kernel modules)"
     echo "2. Open a new terminal to start using Fish/ZSH + Starship"
     echo "3. Review the log file: $LOG_FILE"
-    echo -e "${GREEN}System ready! 🚀${NC}"
+    echo -e "${GREEN}System ready!${NC}"
 }
 
 # ==============================================================================
