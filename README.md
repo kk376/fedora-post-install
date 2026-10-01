@@ -67,7 +67,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 | `creator`     | 11    | Minimal + power, GNOME tools, creator tools (OBS, akmod-v4l2loopback, GStreamer, NV Broadcast), Flatpaks, GPU drivers (last) |
 | `dev`         | 16    | Minimal + power, no-sleep, GNOME tools, dev genre packages (`--dev-type`), Code Editor, Flatpaks (Android Studio), Docker, KVM/QEMU, GPU drivers (last) |
 | `full`        | 17    | Complete public power-user superset: workstation + dev + gaming + creator, COPR packages                     |
-| `personal`    | 17    | Author's bespoke workflow: Full + ONLYOFFICE (LibreOffice swap), Ghostty with dev-suite configs, automated Fish & Starship, PostgreSQL 18, dpkg-dev, kkfetch, cliamp, ani-cli |
+| `personal`    | 17    | Author's bespoke workflow: Full + ONLYOFFICE (LibreOffice swap), Ghostty with dev-suite configs, automated Fish & Starship, PostgreSQL 18, packaging toolchains (dpkg-dev, copr-cli, osc), kkfetch, cliamp, ani-cli |
 
 ---
 

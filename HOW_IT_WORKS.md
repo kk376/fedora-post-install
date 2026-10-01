@@ -125,7 +125,7 @@ You don't need a heavy developer workstation if you just want to browse the web 
 * **Who it's for:** Users who want the full public superset: workstation + dev + gaming + creator, plus COPR packages (Scrcpy Android mirroring, Yazi file manager).
 
 ### 7. `personal`: The Author's Bespoke Workflow (17 steps)
-* **Who it's for:** Dedicated personal profile isolating the author's workflow: Full profile + automated Fish login shell with developer exports, automated Starship cross-shell prompt, automated Ghostty GPU terminal with dev-suite configs, ONLYOFFICE desktop editors (swapped for LibreOffice), automated PostgreSQL 18 server daemon, pgAdmin 4 desktop, dpkg-dev, X11 dev headers, cliamp, ani-cli, and kkfetch.
+* **Who it's for:** Dedicated personal profile isolating the author's workflow: Full profile + automated Fish login shell with developer exports, automated Starship cross-shell prompt, automated Ghostty GPU terminal with dev-suite configs, ONLYOFFICE desktop editors (swapped for LibreOffice), automated PostgreSQL 18 server daemon, pgAdmin 4 desktop, distro packaging toolchains (dpkg-dev for PPA, copr-cli for Copr, osc for openSUSE OBS), X11 dev headers, cliamp, ani-cli, and kkfetch.
 
 ---
 

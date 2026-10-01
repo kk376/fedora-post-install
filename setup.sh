@@ -2613,6 +2613,9 @@ setup_dev() {
     if [[ "$PROFILE" == "full" ]] || [[ "$PROFILE" == "personal" ]]; then
         dev_pkgs+=(
             dpkg-dev
+            copr-cli
+            osc
+            python3-keyring
             libX11-devel
             libxkbcommon-x11-devel
             libxcb-devel

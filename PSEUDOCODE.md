@@ -346,7 +346,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     StartDev(["Start setup_dev()"]) --> SelectGenres["Evaluate dev genres: setup_dev_genres<br/>(systems, web, android, ai)"]
-    SelectGenres --> BuildPkgs["Build dev_pkgs list:<br/>Base: meson, ninja, automake, gdb, valgrind, strace, git-lfs, python3-devel<br/>Systems: gcc, clang, llvm, make, cmake<br/>Web: nodejs, npm<br/>Android: java-latest-openjdk, maven<br/>AI: python3-pip, virtualenv, wheel, ruff<br/>Full/Personal: dpkg-dev, libX11-devel, alsa-lib-devel"]
+    SelectGenres --> BuildPkgs["Build dev_pkgs list:<br/>Base: meson, ninja, automake, gdb, valgrind, strace, git-lfs, python3-devel<br/>Systems: gcc, clang, llvm, make, cmake<br/>Web: nodejs, npm<br/>Android: java-latest-openjdk, maven<br/>AI: python3-pip, virtualenv, wheel, ruff<br/>Full/Personal: dpkg-dev, copr-cli, osc, python3-keyring, libX11-devel, alsa-lib-devel"]
     BuildPkgs --> InstallDevPkgs["Execute: dnf install -y --skip-unavailable dev_pkgs"]
     
     InstallDevPkgs --> CheckSystemsGenre{"Has 'systems' genre?"}

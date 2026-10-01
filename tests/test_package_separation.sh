@@ -736,16 +736,16 @@ for multilib_pkg in "glibc-devel.i686" "libstdc++-devel.i686" "zlib-ng-compat-de
     fi
 done
 
-# 9.4: Verify full profile only dev packages (dpkg-dev, GUI/audio development libraries)
+# 9.4: Verify full profile only dev packages (dpkg-dev, copr-cli, osc, python3-keyring, GUI/audio development libraries)
 dev_pkgs_array=$(sed -n '/setup_dev()/,/^}/p' "$SETUP_SCRIPT" | sed -n '/local dev_pkgs=(/,/)/p')
-for full_only_pkg in "dpkg-dev" "libX11-devel" "libxkbcommon-x11-devel" "libxcb-devel" "fontconfig-devel" "alsa-lib-devel"; do
+for full_only_pkg in "dpkg-dev" "copr-cli" "osc" "python3-keyring" "libX11-devel" "libxkbcommon-x11-devel" "libxcb-devel" "fontconfig-devel" "alsa-lib-devel"; do
     if echo "$dev_pkgs_array" | grep -q "$full_only_pkg"; then
         fail "$full_only_pkg is unconditionally present in dev_pkgs"
     else
         pass "$full_only_pkg is not in unconditional dev_pkgs array"
     fi
 
-    if grep -A 10 '\[\[ "\$PROFILE" == "full" \]\]' "$SETUP_SCRIPT" | grep -q "$full_only_pkg"; then
+    if grep -A 15 '\[\[ "\$PROFILE" == "full" \]\]' "$SETUP_SCRIPT" | grep -q "$full_only_pkg"; then
         pass "$full_only_pkg is strictly gated on PROFILE=full"
     else
         fail "$full_only_pkg is missing full profile gate in setup_dev"
