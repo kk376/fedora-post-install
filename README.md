@@ -17,7 +17,7 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 - **Hardware-aware**: detects Intel / AMD / NVIDIA GPUs, hybrid Optimus setups, and CPU virtualization support
 - **Secure Boot-aware NVIDIA setup**: builds kernel modules, generates keys, and walks you through MOK enrollment
 - **Idempotent**: state file tracks what's done; you can interrupt and pick up where you left off, or `--force` to re-run
-- **Profile-based**: seven profiles so you only install what you actually need
+- **Profile-based**: six profiles so you only install what you actually need
 - **Dry-run mode**: preview everything without touching the system
 - **Backup and restore**: backs up config files before modifying them
 - **Plain English guide**: see [HOW_IT_WORKS.md](HOW_IT_WORKS.md) for a friendly, creative layman walkthrough and transformation guide
@@ -25,11 +25,12 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ---
 
-## What's New in v5.9.0
+## What's New in v6.0.0
 
-- **Explicit Diagnostic Error Handling:** Replaced deceptive silent failure suppressions (`|| true`) across systemd services (Docker, Containerd, NetworkManager, Firewalld, Libvirtd, PostgreSQL 18), font cache builders, flatpak operations, and repository key imports with clear diagnostic warnings.
-- **Development Package Deduplication:** Consolidated identical full and personal profile development dependencies in `setup_dev()`, streamlining package matrix maintenance.
-- **Emoji & Punctuation Hygiene:** Purged unicode emoji icons across system verification, driver guidance, virtualization warnings, and summary reporting. Normalized punctuation to clean technical standards.
+- **Hardware-Agnostic & Generic Design**: Refactored the installer to follow the modular, hardware-agnostic architecture of `kkhypr`. Decoupled machine-specific assumptions, personal environment overrides, and author-specific packages from the script so users across any supported hardware run clean, quirk-free installations without unexpected system side-effects.
+- **Six Generic Profiles**: Standardized the system architecture to 6 generic profiles (`minimal`, `workstation`, `gaming`, `creator`, `dev`, `full`).
+- **Self-Contained Terminal Configurations**: Decoupled terminal configurations from external repositories, embedding clean, self-contained Tokyo Night themes directly inside the script for Ghostty, Kitty, and Alacritty.
+- **Explicit Diagnostic Error Handling**: Replaced deceptive silent failure suppressions (`|| true`) across systemd services, font cache builders, flatpak operations, and repository key imports with clear diagnostic warnings.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
@@ -55,7 +56,6 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 4. `creator` (11 steps)
 5. `dev` (16 steps: includes prompt for developer genres: systems, web, android, ai, or all)
 6. `full` (17 steps: default)
-7. `personal` (17 steps)
 
 ### Profiles
 
@@ -67,7 +67,6 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 | `creator`     | 11    | Minimal + power, GNOME tools, creator tools (OBS, akmod-v4l2loopback, GStreamer, NV Broadcast), Flatpaks, GPU drivers (last) |
 | `dev`         | 16    | Minimal + power, no-sleep, GNOME tools, dev genre packages (`--dev-type`), Code Editor, Flatpaks (Android Studio), Docker, KVM/QEMU, GPU drivers (last) |
 | `full`        | 17    | Complete public power-user superset: workstation + dev + gaming + creator, COPR packages                     |
-| `personal`    | 17    | Author's bespoke workflow: Full + ONLYOFFICE (LibreOffice swap), Ghostty with dev-suite configs, automated Fish & Starship, PostgreSQL 18, packaging toolchains (dpkg-dev, copr-cli, osc), kkfetch, cliamp, ani-cli |
 
 ---
 
@@ -85,7 +84,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 
 - Some steps require a reboot (GPU drivers, Docker group, Secure Boot, KVM)
 - NVIDIA users: read the Secure Boot prompts carefully; follow the MOK enrollment steps when prompted and complete key enrollment on reboot
-- Default shell change (interactive choice for Fish, ZSH, or Bash in Dev and Full profiles; automatically Fish in Personal profile) requires a logout/login
+- Default shell change (interactive choice for Fish, ZSH, or Bash in Dev and Full profiles) requires a logout/login
 - The VSCodium repository is imported with official GPG key verification (`https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg`).
 
 ---
@@ -98,7 +97,7 @@ DNF optimization (parallel downloads, fastest mirror, version pinning), RPM Fusi
 
 ### Shell
 
-Fish (recommended default) and ZSH, syntax highlighting, autosuggestions, clean modern aliases (clear, ls, cat, less). Developer and full profiles feature interactive login shell selection (Fish, ZSH, Bash), an interactive prompt for Starship cross-shell prompt installation with feature disclaimer, and a dedicated menu for developer environment exports and Git aliases. The personal profile automatically configures Fish as the default shell and deploys Starship with all developer exports directly enabled. All other profiles receive clean standard aliases without Starship or developer environment exports. Developer and full profiles also include interactive modern GPU terminal selection (Ghostty recommended, Kitty, or Alacritty) with Tokyo Night configuration synced from dev-suite, while the personal profile deploys Ghostty automatically.
+Fish (recommended default) and ZSH, syntax highlighting, autosuggestions, clean modern aliases (clear, ls, cat, less). Developer and full profiles feature interactive login shell selection (Fish, ZSH, Bash), an interactive prompt for Starship cross-shell prompt installation with feature disclaimer, and a dedicated menu for developer environment exports and Git aliases. All other profiles receive clean standard aliases without Starship or developer environment exports. Developer and full profiles also include interactive modern GPU terminal selection (Ghostty recommended, Kitty, or Alacritty) with self-contained Tokyo Night configuration.
 
 ### Power
 
@@ -118,7 +117,7 @@ GCC, Clang, LLVM, ccache (interactive disclaimer prompt for 50GB compressed cach
 
 ### Gaming
 
-Steam (with H.264 unlock), MangoHud (auto-configured with 32px HUD scaling, alpha transparency, and rounded corners), Vesktop, and Heroic Games Launcher (official Flathub Flatpak for Epic/GOG/sideloaded games, pre-configured with `disableUMU` to eliminate container exit lag, shared wine prefixes, and NVIDIA Prime offload). Included on `gaming`, `full`, and `personal` profiles.
+Steam (with H.264 unlock), MangoHud (auto-configured with 32px HUD scaling, alpha transparency, and rounded corners), Vesktop, and Heroic Games Launcher (official Flathub Flatpak for Epic/GOG/sideloaded games, pre-configured with `disableUMU` to eliminate container exit lag, shared wine prefixes, and NVIDIA Prime offload). Included on `gaming` and `full` profiles.
 
 ### Virtualization
 

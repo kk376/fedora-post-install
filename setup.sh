@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fedora 44 Post-Install Setup Script
 # Author: Kushagra Kumar
-# Version: 5.9.0
+# Version: 6.0.0
 
 # ==============================================================================
 # Configuration & Flags
@@ -9,7 +9,7 @@
 : "${DRY_RUN:=false}"
 : "${BACKUP_DIR:=$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)}"
 : "${LOG_FILE:=/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log}"
-: "${SCRIPT_VERSION:=5.9.0}"
+: "${SCRIPT_VERSION:=6.0.0}"
 : "${PROFILE:=full}"
 : "${DEV_TYPE:=all}"
 PROFILE_SPECIFIED=false
@@ -73,7 +73,6 @@ parse_args() {
                 echo "                           workstation - Productive desktop, multimedia, Flatpaks, GPU drivers"
                 echo "                           creator     - OBS Studio, v4l2loopback, GStreamer, NV Broadcast"
                 echo "                           full        - Complete public suite: Workstation + Dev + Gaming + Creator (default)"
-                echo "                           personal    - Author's bespoke workflow: Full + ONLYOFFICE (LibreOffice swap), Postgres 18, ccache, kkfetch, cliamp, ani-cli"
                 echo "  --dev-type=GENRE       Choose developer genre for dev profile (comma-separated):"
                 echo "                           systems     - C, C++, Rust, CMake, Meson, GDB, Valgrind, Hyperfine"
                 echo "                           web         - Node.js, PNPM/Yarn, Python 3, Docker, jq"
@@ -95,8 +94,8 @@ parse_args() {
     # Validate profile if explicitly specified
     if $PROFILE_SPECIFIED; then
         case "$PROFILE" in
-            minimal|dev|gaming|workstation|creator|full|personal) ;;
-            *) echo "Unknown profile: $PROFILE (use minimal, dev, gaming, workstation, creator, full, or personal)"; exit 1 ;;
+            minimal|dev|gaming|workstation|creator|full) ;;
+            *) echo "Unknown profile: $PROFILE (use minimal, dev, gaming, workstation, creator, or full)"; exit 1 ;;
         esac
     fi
 
@@ -164,15 +163,15 @@ run_sudo() {
 }
 
 is_gaming_profile() {
-    [[ "$PROFILE" == "gaming" || "$PROFILE" == "full" || "$PROFILE" == "personal" ]]
+    [[ "$PROFILE" == "gaming" || "$PROFILE" == "full" ]]
 }
 
 is_creator_profile() {
-    [[ "$PROFILE" == "creator" || "$PROFILE" == "full" || "$PROFILE" == "personal" ]]
+    [[ "$PROFILE" == "creator" || "$PROFILE" == "full" ]]
 }
 
 is_dev_profile() {
-    [[ "$PROFILE" == "dev" || "$PROFILE" == "full" || "$PROFILE" == "personal" ]]
+    [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]
 }
 
 set_zshrc_line() {
@@ -448,11 +447,10 @@ select_profile_menu() {
     echo "  4) creator     - Minimal + power, GNOME, OBS Studio, loopback, NV Broadcast (11 steps)"
     echo "  5) dev         - Developer stack, Docker, Antigravity, KVM/QEMU (16 steps)"
     echo "  6) full        - Complete public suite: Workstation + Dev + Gaming + Creator (default) (17 steps)"
-    echo "  7) personal    - Author's bespoke workflow: Full + ONLYOFFICE, Postgres, ccache, kkfetch, cliamp, ani-cli (17 steps)"
     echo ""
 
     local choice=""
-    read -r -p "Enter choice [1-7, default: 6 (full)]: " choice || choice=""
+    read -r -p "Enter choice [1-6, default: 6 (full)]: " choice || choice=""
     case "$choice" in
         1|minimal) PROFILE="minimal" ;;
         2|workstation) PROFILE="workstation" ;;
@@ -460,7 +458,6 @@ select_profile_menu() {
         4|creator) PROFILE="creator" ;;
         5|dev) PROFILE="dev" ;;
         6|full|"") PROFILE="full" ;;
-        7|personal) PROFILE="personal" ;;
         *)
             warn "Unrecognized selection '$choice'; defaulting to 'full' profile"
             PROFILE="full"
@@ -759,64 +756,132 @@ EOF
 }
 
 # ==============================================================================
-# Terminal Emulator Selection & Configuration (dev-suite integration)
+# Terminal Emulator Selection & Configuration
 # ==============================================================================
 deploy_terminal_config() {
     local target="$1"
-    local dev_suite_local="$HOME/code/dev-suite"
-    local dev_suite_raw="https://raw.githubusercontent.com/kk376/dev-suite/main"
 
     case "$target" in
         ghostty)
-            log "Deploying Ghostty configuration from dev-suite..."
+            log "Deploying Ghostty Tokyo Night configuration..."
             if ! $DRY_RUN; then
                 mkdir -p "$HOME/.config/ghostty"
-                backup_file "$HOME/.config/ghostty/config.ghostty"
-                backup_file "$HOME/.config/ghostty/gtk.css"
-
-                if [[ -d "$dev_suite_local/ghostty" ]]; then
-                    cp -f "$dev_suite_local/ghostty/config.ghostty" "$HOME/.config/ghostty/config.ghostty"
-                    [[ -f "$dev_suite_local/ghostty/gtk.css" ]] && cp -f "$dev_suite_local/ghostty/gtk.css" "$HOME/.config/ghostty/gtk.css"
-                else
-                    curl -fsSL "$dev_suite_raw/ghostty/config.ghostty" -o "$HOME/.config/ghostty/config.ghostty" 2>/dev/null || warn "Failed to download config.ghostty from dev-suite"
-                    curl -fsSL "$dev_suite_raw/ghostty/gtk.css" -o "$HOME/.config/ghostty/gtk.css" 2>/dev/null || warn "Failed to download gtk.css from dev-suite"
-                fi
-                ln -sf "$HOME/.config/ghostty/config.ghostty" "$HOME/.config/ghostty/config"
-                success "Ghostty configuration deployed to ~/.config/ghostty/"
+                backup_file "$HOME/.config/ghostty/config"
+                cat > "$HOME/.config/ghostty/config" <<'GHOSTTY_CONF'
+theme = TokyoNight
+font-family = Fira Code
+font-family = Symbols Nerd Font Mono
+font-size = 13
+background-opacity = 0.90
+background-blur = true
+window-padding-x = 16
+window-padding-y = 8,2
+window-decoration = auto
+confirm-close-surface = false
+cursor-style = bar
+cursor-style-blink = true
+copy-on-select = clipboard
+bell-features = no-audio
+GHOSTTY_CONF
+                success "Ghostty configuration deployed to ~/.config/ghostty/config"
             else
-                dry "Deploy Ghostty configuration from dev-suite to ~/.config/ghostty/"
+                dry "Deploy Ghostty Tokyo Night configuration to ~/.config/ghostty/config"
             fi
             ;;
         kitty)
-            log "Deploying Kitty configuration from dev-suite..."
+            log "Deploying Kitty Tokyo Night configuration..."
             if ! $DRY_RUN; then
                 mkdir -p "$HOME/.config/kitty"
                 backup_file "$HOME/.config/kitty/kitty.conf"
+                cat > "$HOME/.config/kitty/kitty.conf" <<'KITTY_CONF'
+font_family      Fira Code
+font_size        11.5
+disable_ligatures never
+background_opacity 1.0
+window_padding_width 8 16 2
+hide_window_decorations no
+confirm_os_window_close 0
+cursor_shape beam
+copy_on_select clipboard
+enable_audio_bell no
 
-                if [[ -d "$dev_suite_local/kitty" ]]; then
-                    cp -f "$dev_suite_local/kitty/kitty.conf" "$HOME/.config/kitty/kitty.conf"
-                else
-                    curl -fsSL "$dev_suite_raw/kitty/kitty.conf" -o "$HOME/.config/kitty/kitty.conf" 2>/dev/null || warn "Failed to download kitty.conf from dev-suite"
-                fi
+# Tokyo Night Color Scheme
+background #1a1b26
+foreground #c0caf5
+selection_background #33467c
+selection_foreground #c0caf5
+url_color #73daca
+cursor #c0caf5
+cursor_text_color #1a1b26
+active_tab_background #7aa2f7
+active_tab_foreground #16161e
+inactive_tab_background #24283b
+inactive_tab_foreground #787c99
+color0 #15161e
+color1 #f7768e
+color2 #9ece6a
+color3 #e0af68
+color4 #7aa2f7
+color5 #bb9af7
+color6 #7dcfff
+color7 #a9b1d6
+color8 #414868
+color9 #f7768e
+color10 #9ece6a
+color11 #e0af68
+color12 #7aa2f7
+color13 #bb9af7
+color14 #7dcfff
+color15 #c0caf5
+KITTY_CONF
                 success "Kitty configuration deployed to ~/.config/kitty/kitty.conf"
             else
-                dry "Deploy Kitty configuration from dev-suite to ~/.config/kitty/kitty.conf"
+                dry "Deploy Kitty Tokyo Night configuration to ~/.config/kitty/kitty.conf"
             fi
             ;;
         alacritty)
-            log "Deploying Alacritty configuration from dev-suite..."
+            log "Deploying Alacritty Tokyo Night configuration..."
             if ! $DRY_RUN; then
                 mkdir -p "$HOME/.config/alacritty"
                 backup_file "$HOME/.config/alacritty/alacritty.toml"
+                cat > "$HOME/.config/alacritty/alacritty.toml" <<'ALACRITTY_CONF'
+[font]
+size = 12.0
 
-                if [[ -d "$dev_suite_local/alacritty" ]]; then
-                    cp -f "$dev_suite_local/alacritty/alacritty.toml" "$HOME/.config/alacritty/alacritty.toml"
-                else
-                    curl -fsSL "$dev_suite_raw/alacritty/alacritty.toml" -o "$HOME/.config/alacritty/alacritty.toml" 2>/dev/null || warn "Failed to download alacritty.toml from dev-suite"
-                fi
+[font.normal]
+family = "Fira Code"
+
+[window]
+opacity = 0.95
+padding = { x = 12, y = 8 }
+
+[colors.primary]
+background = "#1a1b26"
+foreground = "#c0caf5"
+
+[colors.normal]
+black = "#15161e"
+red = "#f7768e"
+green = "#9ece6a"
+yellow = "#e0af68"
+blue = "#7aa2f7"
+magenta = "#bb9af7"
+cyan = "#7dcfff"
+white = "#a9b1d6"
+
+[colors.bright]
+black = "#414868"
+red = "#f7768e"
+green = "#9ece6a"
+yellow = "#e0af68"
+blue = "#7aa2f7"
+magenta = "#bb9af7"
+cyan = "#7dcfff"
+white = "#c0caf5"
+ALACRITTY_CONF
                 success "Alacritty configuration deployed to ~/.config/alacritty/alacritty.toml"
             else
-                dry "Deploy Alacritty configuration from dev-suite to ~/.config/alacritty/alacritty.toml"
+                dry "Deploy Alacritty Tokyo Night configuration to ~/.config/alacritty/alacritty.toml"
             fi
             ;;
     esac
@@ -824,24 +889,6 @@ deploy_terminal_config() {
 
 setup_terminal() {
     log "Configuring Terminal Emulator..."
-
-    if [[ "$PROFILE" == "personal" ]]; then
-        info "Author profile: Installing Ghostty (author's favorite) with dev-suite configuration..."
-        log "Enabling Copr repo scottames/ghostty and installing ghostty..."
-        if ! $DRY_RUN; then
-            local repo="scottames/ghostty"
-            if run_sudo dnf copr enable -y "$repo"; then
-                run_sudo dnf install -y --skip-unavailable ghostty || warn "Ghostty package installation failed"
-                success "Ghostty installed successfully"
-            else
-                warn "Failed to enable Copr repository $repo"
-            fi
-        else
-            dry "Enable Copr repo scottames/ghostty and install ghostty via dnf"
-        fi
-        deploy_terminal_config "ghostty"
-        return 0
-    fi
 
     # Dev and Full profiles: interactive choice
     if confirm "Install a modern GPU-accelerated terminal emulator instead of stock Ptyxis?" "Y"; then
@@ -876,7 +923,7 @@ setup_terminal() {
                     dry "Enable Copr repo scottames/ghostty and install ghostty via dnf"
                 fi
 
-                if confirm "Apply optimized Tokyo Night configuration from dev-suite for Ghostty?" "Y"; then
+                if confirm "Apply optimized Tokyo Night configuration for Ghostty?" "Y"; then
                     deploy_terminal_config "ghostty"
                 fi
                 ;;
@@ -884,7 +931,7 @@ setup_terminal() {
                 log "Installing Kitty terminal..."
                 run_sudo dnf install -y --skip-unavailable kitty
 
-                if confirm "Apply optimized Tokyo Night configuration from dev-suite for Kitty?" "Y"; then
+                if confirm "Apply optimized Tokyo Night configuration for Kitty?" "Y"; then
                     deploy_terminal_config "kitty"
                 fi
                 ;;
@@ -892,7 +939,7 @@ setup_terminal() {
                 log "Installing Alacritty terminal..."
                 run_sudo dnf install -y --skip-unavailable alacritty
 
-                if confirm "Apply optimized Tokyo Night configuration from dev-suite for Alacritty?" "Y"; then
+                if confirm "Apply optimized Tokyo Night configuration for Alacritty?" "Y"; then
                     deploy_terminal_config "alacritty"
                 fi
                 ;;
@@ -928,23 +975,7 @@ setup_shell() {
     local selected_shell_name=""
     local enable_dev_shell=false
 
-    if [[ "$PROFILE" == "personal" ]]; then
-        info "Author profile: Automatically setting Fish as default shell with developer environment..."
-        selected_shell="fish"
-        selected_shell_name="Fish"
-        enable_dev_shell=true
-        if ! $DRY_RUN; then
-            if command -v fish &>/dev/null; then
-                local fish_bin
-                fish_bin=$(command -v fish)
-                grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
-                run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || warn "Failed to set default shell to Fish via chsh"
-                success "Default shell set to Fish"
-            fi
-        else
-            dry "Set default login shell to Fish for personal profile"
-        fi
-    elif [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]; then
+    if [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]; then
         echo ""
         info "Default Interactive Shell:"
         info "  1) Fish (Recommended for built-in autosuggestions & syntax highlighting)"
@@ -1047,11 +1078,7 @@ setup_shell() {
     local zsh_dev=false
     local bash_dev=false
 
-    if [[ "$PROFILE" == "personal" ]]; then
-        fish_dev=true
-        zsh_dev=true
-        bash_dev=true
-    elif $enable_dev_shell; then
+    if $enable_dev_shell; then
         case "$selected_shell" in
             fish)
                 fish_dev=true
@@ -1077,10 +1104,7 @@ setup_shell() {
     # Starship cross-shell prompt configuration
     local install_starship=false
 
-    if [[ "$PROFILE" == "personal" ]]; then
-        info "Author profile: Automatically installing and configuring Starship cross-shell prompt..."
-        install_starship=true
-    elif [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]; then
+    if [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]; then
         echo ""
         info "Starship Cross-Shell Prompt:"
         info "  * Fast: Written in Rust, asynchronous architecture eliminates perceptible prompt lag."
@@ -1516,7 +1540,7 @@ set -gx LESS "-F -X -R"
 set -gx LIBVIRT_DEFAULT_URI "qemu:///system"
 set -gx SUDO_PROMPT "[sudo] password for %u: "
 
-# Add personal bin paths
+# Add user local bin paths
 fish_add_path -m $HOME/.local/bin $HOME/.cargo/bin $HOME/.opencode/bin
 
 # ===== Aliases =====
@@ -1646,27 +1670,9 @@ FISH_STARSHIP
         fi
     fi
 
-    # Terminal emulator configuration (dev, full, and personal profiles only)
+    # Terminal emulator configuration (dev and full profiles only)
     if is_dev_profile; then
         setup_terminal
-    fi
-
-    # Option: KKFetch System Information CLI (Created by Kushagra Kumar)
-    echo ""
-    info "KKFetch (by Kushagra Kumar / kk376, script author):"
-    info "  • Ultra-fast, zero-dependency cross-platform system information CLI written in Rust (Linux, macOS, Windows & Android)."
-    info "  • Why KKFetch? Sub-millisecond startup, zero-fork kernel probers, RPM MTIME package caching, and vibrant 256-color ANSI distro art with lower memory footprint than Neofetch or Fastfetch."
-    if confirm "Install KKFetch system information tool via Copr (kk376/kkfetch)?" "Y"; then
-        log "Enabling Copr repo kk376/kkfetch and installing kkfetch..."
-        local repo="kk376/kkfetch"
-        if run_sudo dnf copr enable -y "$repo"; then
-            run_sudo dnf install -y --skip-unavailable kkfetch || warn "kkfetch package installation failed"
-            success "KKFetch installed successfully"
-        else
-            warn "Failed to enable Copr repository $repo"
-        fi
-    else
-        info "Skipping KKFetch installation"
     fi
 
     step_complete "Shell configured"
@@ -1964,7 +1970,6 @@ setup_copr() {
     local coprs=(
         "zeno/scrcpy:scrcpy:Scrcpy - Android Screen Mirroring & Control:Low-latency Android device screen mirroring and control over USB/Wi-Fi without root.:Install if you mirror Android devices or test mobile apps. Otherwise skip."
         "lihaohong/yazi:yazi file ffmpeg 7zip jq poppler-utils fd-find ripgrep fzf zoxide resvg xclip wl-clipboard xsel ImageMagick:Yazi - Terminal File Manager with Rich Previews:Blazing-fast terminal file manager in Rust with async I/O and inline image/video/PDF previews.:Install if you prefer keyboard-driven terminal navigation with rich media previews. Otherwise skip."
-        "kk376/kkfetch:kkfetch:kkfetch - Fast System Info Fetch Tool:Lightweight, high-performance system information fetch tool in Rust.:Install if you want a fast, modern system fetch tool in your terminal. Otherwise skip."
     )
     for entry in "${coprs[@]}"; do
         local repo pkgs title desc rec
@@ -2191,18 +2196,6 @@ GTK_CSS
             dry "gsettings set org.gnome.mutter check-alive-timeout 0"
         fi
 
-        # Personal profile: top bar clock display (show seconds and weekday)
-        if [[ "$PROFILE" == "personal" ]]; then
-            log "Configuring personal top bar clock display (seconds & weekday)..."
-            if ! $DRY_RUN; then
-                gsettings set org.gnome.desktop.interface clock-show-seconds true 2>/dev/null || warn "Failed to set clock-show-seconds"
-                gsettings set org.gnome.desktop.interface clock-show-weekday true 2>/dev/null || warn "Failed to set clock-show-weekday"
-                success "Top bar clock configured (seconds and weekday enabled)"
-            else
-                dry "gsettings set org.gnome.desktop.interface clock-show-seconds true"
-                dry "gsettings set org.gnome.desktop.interface clock-show-weekday true"
-            fi
-        fi
     fi
 
     step_complete "GNOME tools and GSConnect configured"
@@ -2465,86 +2458,6 @@ HEROIC_EOF
         fi
     fi
 
-    # Personal Profile Suite: ONLYOFFICE swap, Cliamp, and ani-cli
-    if [[ "$PROFILE" == "personal" ]]; then
-        log "Setting up personal productivity & media tools (ONLYOFFICE, cliamp & ani-cli)..."
-        if ! $DRY_RUN; then
-            # 1. Swap LibreOffice with ONLYOFFICE Desktop Editors
-            log "Configuring personal office suite (ONLYOFFICE Desktop Editors)..."
-            if rpm -qa "libreoffice*" 2>/dev/null | grep -q libreoffice || command -v libreoffice &>/dev/null; then
-                log "Removing LibreOffice in favor of ONLYOFFICE..."
-                run_sudo dnf remove -y "libreoffice*" 2>/dev/null || warn "Failed to remove LibreOffice packages"
-                success "LibreOffice removed"
-            fi
-
-            if ! rpm -q onlyoffice-desktopeditors &>/dev/null; then
-                log "Installing ONLYOFFICE Desktop Editors..."
-                if run_sudo dnf install -y https://download.onlyoffice.com/install/desktop/editors/linux/onlyoffice-desktopeditors.x86_64.rpm; then
-                    success "ONLYOFFICE Desktop Editors installed"
-                else
-                    warn "Failed to install ONLYOFFICE Desktop Editors RPM"
-                fi
-            else
-                info "ONLYOFFICE Desktop Editors is already installed"
-            fi
-
-            mkdir -p "$HOME/.local/bin" "$HOME/.config/cliamp" "$HOME/.config/yt-dlp"
-            run_sudo dnf install -y --skip-unavailable mpv 2>/dev/null || warn "Failed to install mpv"
-
-            # 1. yt-dlp & python dependencies for cliamp
-            if ! command -v yt-dlp &>/dev/null; then
-                log "Installing yt-dlp standalone binary..."
-                if curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o "$HOME/.local/bin/yt-dlp" 2>/dev/null; then
-                    [[ -f "$HOME/.local/bin/yt-dlp" ]] && chmod +x "$HOME/.local/bin/yt-dlp"
-                fi
-            fi
-            cat > "$HOME/.config/yt-dlp/config" <<'YTDLP_CONF'
---js-runtimes node
-YTDLP_CONF
-
-            # Python SecretStorage for GNOME Keyring cookie decryption
-            if command -v python3 &>/dev/null; then
-                python3 -m pip install --user secretstorage cryptography jeepney 2>/dev/null || warn "Failed to install Python keyring packages for cliamp"
-            fi
-
-            # 2. cliamp
-            if ! command -v cliamp &>/dev/null; then
-                log "Installing cliamp retro music player..."
-                local cliamp_arch="amd64"
-                [[ "$(uname -m)" == "aarch64" ]] && cliamp_arch="arm64"
-                if github_download "bjarneo/cliamp" "cliamp-linux-${cliamp_arch}" "$HOME/.local/bin/cliamp"; then
-                    chmod +x "$HOME/.local/bin/cliamp"
-                    success "cliamp installed"
-                else
-                    warn "Failed to download cliamp release binary"
-                fi
-            fi
-
-            # Deploy cliamp YouTube Music configuration
-            backup_file "$HOME/.config/cliamp/config.toml"
-            cat > "$HOME/.config/cliamp/config.toml" <<'CLIAMP_CONF'
-provider = "ytmusic"
-theme = ""
-
-[ytmusic]
-cookies_from = "chrome+gnomekeyring"
-CLIAMP_CONF
-            success "cliamp installed and configured with YouTube Music"
-
-            # 3. ani-cli (with hianime provider patch)
-            log "Installing ani-cli (patched provider)..."
-            if curl -fsSL https://raw.githubusercontent.com/pystardust/ani-cli/refs/pull/1897/head/ani-cli -o "$HOME/.local/bin/ani-cli" 2>/dev/null; then
-                [[ -f "$HOME/.local/bin/ani-cli" ]] && chmod +x "$HOME/.local/bin/ani-cli"
-                success "ani-cli installed with working provider to ~/.local/bin/ani-cli"
-            else
-                warn "Failed to download patched ani-cli"
-            fi
-        else
-            dry "Swap LibreOffice with ONLYOFFICE Desktop Editors (remove libreoffice*, install onlyoffice-desktopeditors RPM)"
-            dry "Install cliamp, configure YouTube Music in ~/.config/cliamp/config.toml, and deploy patched ani-cli to ~/.local/bin/ani-cli"
-        fi
-    fi
-
     step_complete "Essential packages installed"
 }
 
@@ -2557,7 +2470,7 @@ setup_dev() {
     local selected_genres=()
     if [[ -n "${DEV_TYPE:-}" && "$DEV_TYPE" != "all" ]]; then
         IFS=',' read -ra selected_genres <<< "$DEV_TYPE"
-    elif [[ "$PROFILE" == "full" || "$PROFILE" == "personal" ]] || $DRY_RUN || ! [ -t 0 ]; then
+    elif [[ "$PROFILE" == "full" ]] || $DRY_RUN || ! [ -t 0 ]; then
         selected_genres=("systems" "web" "android" "ai")
     else
         echo ""
@@ -2610,7 +2523,7 @@ setup_dev() {
         dev_pkgs+=(java-latest-openjdk java-latest-openjdk-devel maven)
     fi
 
-    if [[ "$PROFILE" == "full" ]] || [[ "$PROFILE" == "personal" ]]; then
+    if [[ "$PROFILE" == "full" ]]; then
         dev_pkgs+=(
             dpkg-dev
             copr-cli
@@ -2718,9 +2631,7 @@ setup_dev() {
 
     # PostgreSQL 18 Server (PGDG Official Repository)
     local install_pg=false
-    if [[ "$PROFILE" == "personal" ]]; then
-        install_pg=true
-    elif [[ "$PROFILE" == "full" ]]; then
+    if [[ "$PROFILE" == "full" ]]; then
         if confirm "Install and configure PostgreSQL 18 Server & pgAdmin 4?" "N"; then
             install_pg=true
         fi
@@ -3469,7 +3380,6 @@ main() {
     PROFILE_STEPS[workstation]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[creator]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
     PROFILE_STEPS[full]=""
-    PROFILE_STEPS[personal]=""
 
     info "Profile: $PROFILE"
     [[ -n "${PROFILE_STEPS[$PROFILE]}" ]] && info "Running steps: ${PROFILE_STEPS[$PROFILE]}"

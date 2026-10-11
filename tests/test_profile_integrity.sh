@@ -68,7 +68,7 @@ get_profile_steps() {
 }
 
 echo "================================================================"
-echo "TEST SUITE: Profile Integrity & Execution Order (v5.9.0)"
+echo "TEST SUITE: Profile Integrity & Execution Order (v6.0.0)"
 echo "Target Script: $SCRIPT_PATH"
 echo "================================================================"
 
@@ -79,7 +79,6 @@ EXPECTED_STEPS[gaming]="setup_dnf setup_dns setup_power setup_fonts setup_shell 
 EXPECTED_STEPS[workstation]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
 EXPECTED_STEPS[creator]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
 EXPECTED_STEPS[full]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_copr setup_gnome setup_packages setup_dev setup_editor setup_flatpaks setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[personal]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_copr setup_gnome setup_packages setup_dev setup_editor setup_flatpaks setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
 
 declare -A EXPECTED_NAMES
 EXPECTED_NAMES[minimal]="DNF Configuration, DNS Configuration, System Fonts, ZSH + Starship, Brave + Multimedia, Pre-Driver Reboot, GPU Drivers"
@@ -88,7 +87,6 @@ EXPECTED_NAMES[gaming]="DNF Configuration, DNS Configuration, Power Management, 
 EXPECTED_NAMES[workstation]="DNF Configuration, DNS Configuration, Power Management, System Fonts, ZSH + Starship, Brave + Multimedia, GNOME Tools, Essential Packages, Flatpak Apps, Pre-Driver Reboot, GPU Drivers"
 EXPECTED_NAMES[creator]="DNF Configuration, DNS Configuration, Power Management, System Fonts, ZSH + Starship, Brave + Multimedia, GNOME Tools, Essential Packages, Flatpak Apps, Pre-Driver Reboot, GPU Drivers"
 EXPECTED_NAMES[full]="DNF Configuration, DNS Configuration, Power Management, No-Sleep Settings, System Fonts, ZSH + Starship, Brave + Multimedia, COPR Packages, GNOME Tools, Essential Packages, Development Tools, Code Editor, Flatpak Apps, Docker Setup, KVM/QEMU Virtualization, Pre-Driver Reboot, GPU Drivers"
-EXPECTED_NAMES[personal]="DNF Configuration, DNS Configuration, Power Management, No-Sleep Settings, System Fonts, ZSH + Starship, Brave + Multimedia, COPR Packages, GNOME Tools, Essential Packages, Development Tools, Code Editor, Flatpak Apps, Docker Setup, KVM/QEMU Virtualization, Pre-Driver Reboot, GPU Drivers"
 
 declare -A EXPECTED_COUNTS
 EXPECTED_COUNTS[minimal]=7
@@ -97,9 +95,8 @@ EXPECTED_COUNTS[gaming]=11
 EXPECTED_COUNTS[workstation]=11
 EXPECTED_COUNTS[creator]=11
 EXPECTED_COUNTS[full]=17
-EXPECTED_COUNTS[personal]=17
 
-ALL_PROFILES=("minimal" "dev" "gaming" "workstation" "creator" "full" "personal")
+ALL_PROFILES=("minimal" "dev" "gaming" "workstation" "creator" "full")
 
 # 1. Verify Step Lists and Step Counts for all 6 profiles
 echo ""

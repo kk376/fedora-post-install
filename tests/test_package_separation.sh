@@ -278,8 +278,8 @@ run_mock_setup_packages() {
     rm -rf "$sandbox"
 }
 
-# Test gaming packages in gaming, full, personal profiles
-for prof in "gaming" "full" "personal"; do
+# Test gaming packages in gaming and full profiles
+for prof in "gaming" "full"; do
     output=$(run_mock_setup_packages "$prof")
     dnf_pkgs=$(echo "$output" | grep "^DNF_PKGS:" | cut -d: -f2-)
     steam_unlocked=$(echo "$output" | grep "^STEAM_UNLOCKED:" | cut -d: -f2)
@@ -382,8 +382,8 @@ for non_game_prof in "workstation" "creator"; do
     fi
 done
 
-# Test creator packages (akmod-v4l2loopback) in creator, full, personal vs gaming, workstation
-for c_prof in "creator" "full" "personal"; do
+# Test creator packages (akmod-v4l2loopback) in creator and full vs gaming, workstation
+for c_prof in "creator" "full"; do
     output=$(run_mock_setup_packages "$c_prof")
     dnf_pkgs=$(echo "$output" | grep "^DNF_PKGS:" | cut -d: -f2-)
     if [[ " $dnf_pkgs " =~ " akmod-v4l2loopback " ]]; then
@@ -692,16 +692,6 @@ fi
 # 8.5: Test dry-run gaming profile does NOT prompt for terminal emulator
 if ! echo "$dry_output" | grep -q "Configuring Terminal Emulator"; then
     pass "Dry-run gaming profile does NOT prompt for terminal emulator (preserves stock Ptyxis)"
-else
-    fail "Dry-run gaming profile unexpectedly prompted for terminal emulator"
-fi
-
-# 8.6: Test dry-run personal profile automatically installs Ghostty without prompt
-dry_personal_output=$(bash "$SETUP_SCRIPT" --dry-run -f --profile=personal 2>&1)
-if echo "$dry_personal_output" | grep -q "Author profile: Installing Ghostty (author's favorite) with dev-suite configuration"; then
-    pass "Dry-run personal profile automatically installs Ghostty with dev-suite configuration"
-else
-    fail "Dry-run personal profile missing Ghostty automatic setup log"
 fi
 
 # ==============================================================================
@@ -753,60 +743,52 @@ for full_only_pkg in "dpkg-dev" "copr-cli" "osc" "python3-keyring" "libX11-devel
 done
 
 # ==============================================================================
-# Suite 10: Personal Profile Media Suite (cliamp & ani-cli)
+# Suite 10: Profile Cleanliness & Decoupling (No Personal Profile Quirks)
 # ==============================================================================
 echo ""
-echo -e "${BLUE}--- Suite 10: Personal Profile Media Suite ---${NC}"
+echo -e "${BLUE}--- Suite 10: Profile Cleanliness & Decoupling ---${NC}"
 
-# 10.1: Verify setup_packages contains personal profile gate for cliamp & ani-cli
-if sed -n '/setup_packages()/,/^}/p' "$SETUP_SCRIPT" | grep -q '\[\[ "$PROFILE" == "personal" \]\]'; then
-    pass "setup_packages() contains profile gate for personal profile media tools"
+# 10.1: Verify setup_packages does not contain personal profile gate
+if ! sed -n '/setup_packages()/,/^}/p' "$SETUP_SCRIPT" | grep -q '\[\[ "$PROFILE" == "personal" \]\]'; then
+    pass "setup_packages() contains no personal profile gate"
 else
-    fail "setup_packages() missing personal profile gate"
+    fail "setup_packages() still contains personal profile gate"
 fi
 
-# 10.2: Verify cliamp YouTube Music configuration is deployed in personal profile
+# 10.2: Verify setup_packages does not contain cliamp
 setup_pkg_body=$(sed -n '/setup_packages()/,/^}/p' "$SETUP_SCRIPT")
-if echo "$setup_pkg_body" | grep -q "cookies_from = \"chrome+gnomekeyring\""; then
-    pass "setup_packages() configures cliamp with YouTube Music chrome+gnomekeyring cookies"
+if ! echo "$setup_pkg_body" | grep -q "cliamp"; then
+    pass "setup_packages() excludes cliamp"
 else
-    fail "setup_packages() missing cliamp YouTube Music configuration"
+    fail "setup_packages() unexpectedly contains cliamp"
 fi
 
-# 10.3: Verify patched ani-cli provider is deployed in personal profile
-if echo "$setup_pkg_body" | grep -q "raw.githubusercontent.com/pystardust/ani-cli/refs/pull/1897/head/ani-cli"; then
-    pass "setup_packages() deploys patched ani-cli to ~/.local/bin/ani-cli"
+# 10.3: Verify setup_packages does not contain ani-cli
+if ! echo "$setup_pkg_body" | grep -q "ani-cli"; then
+    pass "setup_packages() excludes ani-cli"
 else
-    fail "setup_packages() missing patched ani-cli deployment"
+    fail "setup_packages() unexpectedly contains ani-cli"
 fi
 
-# 10.4: Verify dry-run personal profile logs media tools setup
-dry_personal_output=$(bash "$SETUP_SCRIPT" --dry-run -f --profile=personal 2>&1 || true)
-if echo "$dry_personal_output" | grep -q "Install cliamp, configure YouTube Music"; then
-    pass "Dry-run personal profile logs cliamp and ani-cli setup"
+# 10.4: Verify setup_packages does not contain ONLYOFFICE swap
+if ! echo "$setup_pkg_body" | grep -q "onlyoffice-desktopeditors"; then
+    pass "setup_packages() excludes ONLYOFFICE Desktop Editors"
 else
-    fail "Dry-run personal profile missing media tools log"
+    fail "setup_packages() unexpectedly contains ONLYOFFICE Desktop Editors"
 fi
 
-# 10.5: Verify setup_packages contains LibreOffice removal in personal profile
-if echo "$setup_pkg_body" | grep -q 'dnf remove -y "libreoffice\*"'; then
-    pass "setup_packages() removes LibreOffice in personal profile"
+# 10.5: Verify setup_copr does not contain kkfetch
+if ! sed -n '/setup_copr()/,/^}/p' "$SETUP_SCRIPT" | grep -q "kkfetch"; then
+    pass "setup_copr() excludes kkfetch"
 else
-    fail "setup_packages() missing LibreOffice removal command"
+    fail "setup_copr() unexpectedly contains kkfetch"
 fi
 
-# 10.6: Verify setup_packages installs ONLYOFFICE Desktop Editors RPM in personal profile
-if echo "$setup_pkg_body" | grep -q "download.onlyoffice.com/install/desktop/editors/linux/onlyoffice-desktopeditors.x86_64.rpm"; then
-    pass "setup_packages() installs ONLYOFFICE Desktop Editors RPM in personal profile"
+# 10.6: Verify setup_shell does not contain kkfetch
+if ! sed -n '/setup_shell()/,/^}/p' "$SETUP_SCRIPT" | grep -q "kkfetch"; then
+    pass "setup_shell() excludes kkfetch"
 else
-    fail "setup_packages() missing ONLYOFFICE Desktop Editors RPM installation"
-fi
-
-# 10.7: Verify dry-run personal profile logs ONLYOFFICE swap
-if echo "$dry_personal_output" | grep -q "Swap LibreOffice with ONLYOFFICE Desktop Editors"; then
-    pass "Dry-run personal profile logs LibreOffice to ONLYOFFICE swap"
-else
-    fail "Dry-run personal profile missing ONLYOFFICE swap log"
+    fail "setup_shell() unexpectedly contains kkfetch"
 fi
 
 # ==============================================================================
@@ -837,17 +819,7 @@ else
     fail "Dry-run dev profile missing shell selection or dev environment prompt logs"
 fi
 
-# 11.4: Verify dry-run personal profile automatically sets Fish without interactive prompts
-if echo "$dry_personal_output" | grep -q "Author profile: Automatically setting Fish as default shell with developer environment" && \
-   echo "$dry_personal_output" | grep -q "Set default login shell to Fish for personal profile" && \
-   ! echo "$dry_personal_output" | grep -q "Prompt user for default shell selection" && \
-   ! echo "$dry_personal_output" | grep -q "Prompt for developer environment & aliases configuration"; then
-    pass "Dry-run personal profile automatically configures Fish and bypasses shell menus"
-else
-    fail "Dry-run personal profile unexpectedly showed shell selection menu or missed automatic Fish"
-fi
-
-# 11.5: Verify dry-run gaming profile bypasses shell prompts and deploys clean standard aliases
+# 11.4: Verify dry-run gaming profile bypasses shell prompts and deploys clean standard aliases
 if ! echo "$dry_output" | grep -q "Prompt user for default shell selection" && \
    ! echo "$dry_output" | grep -q "Prompt for developer environment & aliases configuration" && \
    echo "$dry_output" | grep -q "Deploy Fish clean standard aliases" && \
@@ -858,7 +830,7 @@ else
     fail "Dry-run gaming profile unexpectedly prompted for shell selection or missed clean standard aliases"
 fi
 
-# 11.6: Verify setup_shell contains the 4 exact clean standard aliases
+# 11.5: Verify setup_shell contains the 4 exact clean standard aliases
 if grep -q "alias clear 'printf \"\\\033\[2J\\\033\[3J\\\033\[H\"'" "$SETUP_SCRIPT" && \
    grep -q "alias ls 'eza --group-directories-first --classify --icons --git'" "$SETUP_SCRIPT" && \
    grep -q "alias cat 'bat --paging=never --style=plain'" "$SETUP_SCRIPT" && \
@@ -868,14 +840,14 @@ else
     fail "setup_shell missing expected clean standard aliases"
 fi
 
-# 11.7: Verify setup_shell gates Starship confirmation prompt strictly to dev and full profiles
+# 11.6: Verify setup_shell gates Starship confirmation prompt strictly to dev and full profiles
 if grep -B 5 -A 5 'Starship Cross-Shell Prompt:' "$SETUP_SCRIPT" | grep -q 'PROFILE" == "dev" || "$PROFILE" == "full"'; then
     pass "setup_shell gates Starship prompt strictly to dev and full profiles"
 else
     fail "setup_shell does not gate Starship prompt to dev and full profiles"
 fi
 
-# 11.8: Verify dry-run dev profile logs Starship prompt and config deployment
+# 11.7: Verify dry-run dev profile logs Starship prompt and config deployment
 if echo "$dry_dev_output" | grep -q "Prompt: Install and configure Starship prompt?" && \
    echo "$dry_dev_output" | grep -q "Deploy Starship prompt configuration to ~/.config/starship.toml"; then
     pass "Dry-run dev profile prompts for Starship and logs configuration deployment"
@@ -883,16 +855,7 @@ else
     fail "Dry-run dev profile missing Starship prompt or configuration deployment log"
 fi
 
-# 11.9: Verify dry-run personal profile automatically configures Starship without prompting
-if ! echo "$dry_personal_output" | grep -q "Prompt: Install and configure Starship prompt?" && \
-   echo "$dry_personal_output" | grep -q "Author profile: Automatically installing and configuring Starship" && \
-   echo "$dry_personal_output" | grep -q "Deploy Starship prompt configuration to ~/.config/starship.toml"; then
-    pass "Dry-run personal profile automatically configures Starship without interactive prompts"
-else
-    fail "Dry-run personal profile unexpectedly prompted for Starship or missed automatic deployment"
-fi
-
-# 11.10: Verify dry-run gaming profile bypasses Starship prompt and does NOT deploy starship.toml
+# 11.8: Verify dry-run gaming profile bypasses Starship prompt and does NOT deploy starship.toml
 if ! echo "$dry_output" | grep -q "Prompt: Install and configure Starship prompt?" && \
    ! echo "$dry_output" | grep -q "Deploy Starship prompt configuration to ~/.config/starship.toml"; then
     pass "Dry-run gaming profile completely bypasses Starship prompt and configuration deployment"
@@ -920,14 +883,6 @@ if echo "$dry_dev_output" | grep -q "Prompt: Install and configure ccache" && \
     pass "Dry-run dev profile prompts for ccache and logs installation & configuration"
 else
     fail "Dry-run dev profile missing ccache prompt or configuration logs"
-fi
-
-# 12.3: Verify dry-run personal profile prompts for ccache
-if echo "$dry_personal_output" | grep -q "Prompt: Install and configure ccache" && \
-   echo "$dry_personal_output" | grep -q "sudo dnf install -y --skip-unavailable ccache"; then
-    pass "Dry-run personal profile prompts for ccache as part of systems dev genre"
-else
-    fail "Dry-run personal profile missing ccache prompt"
 fi
 
 # 12.4: Verify dry-run gaming profile does not prompt for or configure ccache

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v6.0.0] - 2026-10-11
+
+### Changed
+
+- **Hardware-Agnostic Architecture Refactor**: Refactored the core installer to follow the modular, hardware-agnostic architecture of `kkhypr`. Purged machine-specific assumptions, personal profile configurations, author-specific packages, and external repository syncing from the codebase. The script is now universally generic so users across any supported machine configuration run clean, predictable installations without unexpected quirks or environment collisions.
+- **Generic 6-Profile Topology**: Streamlined the profile architecture to 6 generic profiles (`minimal`, `workstation`, `gaming`, `creator`, `dev`, `full`), standardizing default options and removing machine-specific profile variants.
+- **Embedded Terminal Themes**: Embedded self-contained Tokyo Night themes directly within the script for Ghostty, Kitty, and Alacritty, eliminating external repository network downloads and git checkout requirements during terminal setup.
+- **COPR Boundary Cleanup**: Standardized COPR repositories to public, community-maintained packages (`zeno/scrcpy` and `lihaohong/yazi`), removing author-specific repositories and bespoke streaming scripts.
+
 ## [v5.9.0] - 2026-10-01
 
 ### Changed

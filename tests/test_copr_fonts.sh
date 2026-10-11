@@ -81,8 +81,8 @@ echo -e "${BLUE}=== Suite 1: setup_copr Configuration Audit ===${NC}"
 copr_entries=$(sed -n '/setup_copr()/,/^}/p' "$SETUP_SCRIPT" | sed -n '/local coprs=(/,/)/p' | grep '"' | sed 's/^[ \t]*"//; s/"[ \t]*$//')
 
 copr_repos=$(echo "$copr_entries" | awk -F':' '{print $1}')
-expected_repos=$'zeno/scrcpy\nlihaohong/yazi\nkk376/kkfetch'
-assert_eq "COPR repos contain exactly zeno/scrcpy, lihaohong/yazi, and kk376/kkfetch" "$expected_repos" "$copr_repos"
+expected_repos=$'zeno/scrcpy\nlihaohong/yazi'
+assert_eq "COPR repos contain exactly zeno/scrcpy and lihaohong/yazi" "$expected_repos" "$copr_repos"
 
 # Check no extraneous COPR enables exist anywhere in setup.sh
 all_copr_enables=$(grep -n "copr enable" "$SETUP_SCRIPT" | grep -v 'dnf copr enable -y "\$repo"' || true)
@@ -161,8 +161,6 @@ assert_contains "setup_copr enables zeno/scrcpy" "SUDO: dnf copr enable -y zeno/
 assert_contains "setup_copr installs scrcpy" "SUDO: dnf install -y --skip-unavailable scrcpy" "$copr_exec_out"
 assert_contains "setup_copr enables lihaohong/yazi" "SUDO: dnf copr enable -y lihaohong/yazi" "$copr_exec_out"
 assert_contains "setup_copr installs yazi with preview tools" "SUDO: dnf install -y --skip-unavailable yazi file ffmpeg 7zip jq poppler-utils fd-find ripgrep fzf zoxide resvg xclip wl-clipboard xsel ImageMagick" "$copr_exec_out"
-assert_contains "setup_copr enables kk376/kkfetch" "SUDO: dnf copr enable -y kk376/kkfetch" "$copr_exec_out"
-assert_contains "setup_copr installs kkfetch" "SUDO: dnf install -y --skip-unavailable kkfetch" "$copr_exec_out"
 assert_contains "setup_copr marks step complete" "STEP: COPR packages installed" "$copr_exec_out"
 assert_not_contains "setup_copr has 0 warnings on success" "WARN:" "$copr_exec_out"
 

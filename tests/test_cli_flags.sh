@@ -107,11 +107,9 @@ run_test "Profile full step count (= syntax)" 0 "of 17" --profile=full -n
 run_test "Profile full (space syntax)" 0 "Profile: full" --profile full -n
 run_test "Profile full step count (space syntax)" 0 "of 17" --profile full -n
 
-# Personal profile (17 steps)
-run_test "Profile personal (= syntax)" 0 "Profile: personal" --profile=personal -n
-run_test "Profile personal step count (= syntax)" 0 "of 17" --profile=personal -n
-run_test "Profile personal (space syntax)" 0 "Profile: personal" --profile personal -n
-run_test "Profile personal step count (space syntax)" 0 "of 17" --profile personal -n
+# Personal profile (rejected as invalid/detached)
+run_test "Profile personal rejected (= syntax)" 1 "Unknown profile: personal" --profile=personal -n
+run_test "Profile personal rejected (space syntax)" 1 "Unknown profile: personal" --profile personal -n
 
 # Default profile (when no profile flag passed)
 run_test "Default profile is full" 0 "Profile: full" -n
@@ -143,7 +141,7 @@ run_test "Combo: -n -f --profile=minimal" 0 "Profile: minimal" -n -f --profile=m
 run_test "Combo: --profile=creator -f -n" 0 "Profile: creator" --profile=creator -f -n
 run_test "Combo: --profile workstation -n --force" 0 "Profile: workstation" --profile workstation -n --force
 run_test "Combo: -n --profile=dev -f" 0 "Profile: dev" -n --profile=dev -f
-run_test "Combo: --profile=personal -f -n" 0 "Profile: personal" --profile=personal -f -n
+run_test "Combo: --profile=full -f -n" 0 "Profile: full" --profile=full -f -n
 run_test "Combo: --dry-run -h (help exit)" 0 "Usage: .*setup\.sh \[OPTIONS\]" --dry-run -h
 
 echo "------------------------------------------------------------"

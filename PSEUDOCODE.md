@@ -69,7 +69,7 @@ flowchart TD
     end
 
     subgraph StepOrchestration ["Phase 2: Profile Filtering & Step Loop"]
-        FilterSteps["Filter Step Sequence for Profile<br/>(minimal | dev | gaming | workstation | creator | full | personal)"]
+        FilterSteps["Filter Step Sequence for Profile<br/>(minimal | dev | gaming | workstation | creator | full)"]
         FilterSteps --> InitState["Initialize State Tracking File<br/>(~/.config/fedora-setup/state.txt)"]
         InitState --> LoopNext{"More steps in profile?"}
         
@@ -113,7 +113,6 @@ flowchart TD
     SwitchProfile -- workstation --> P_Work["workstation Profile<br/>(11 Steps: Minimal + Power, GNOME & AppIndicator, Productivity Packages, Flatpaks, Drivers)"]
     SwitchProfile -- creator --> P_Creator["creator Profile<br/>(11 Steps: Minimal + Power, GNOME, Creator Packages with OBS/V4L2/GStreamer, Flatpaks, Drivers)"]
     SwitchProfile -- full --> P_Full["full Profile (Default)<br/>(All 17 Steps: Public Superset of Workstation + Dev + Gaming + Creator + COPR)"]
-    SwitchProfile -- personal --> P_Personal["personal Profile<br/>(All 17 Steps: Full Suite + automated Fish, Starship, Ghostty, ONLYOFFICE, PG18, dpkg-dev)"]
 
     P_Min --> CoreOnly["Target: Minimalist server, container host, or lean desktop"]
     P_Dev --> DevOnly["Target: Software engineers across systems, web, android, or ai genres"]
@@ -121,7 +120,6 @@ flowchart TD
     P_Work --> WorkOnly["Target: Clean, daily productive desktop without gaming or virtualization overhead"]
     P_Creator --> CreatorOnly["Target: Streamers, video editors, audio engineers, Linux desktop creators"]
     P_Full --> FullOnly["Target: Power users wanting complete public workstation, dev, and gaming suite"]
-    P_Personal --> PersonalOnly["Target: Author's bespoke daily workstation with automated Fish, Starship, Ghostty, ONLYOFFICE & PostgreSQL 18"]
 ```
 
 ---
@@ -229,27 +227,19 @@ flowchart TD
     InstallShellPkgs --> ClonePlugins["Clone ZSH Plugins:<br/>zsh-autosuggestions, zsh-syntax-highlighting"]
     ClonePlugins --> CheckShellProfile{"Profile category?"}
     
-    CheckShellProfile -->|"personal"| AutoFishPersonal["Auto-set Fish as default shell via chsh<br/>Directly enable developer environment exports & full aliases<br/>Auto-install Starship prompt"] --> DeployConfigs
     CheckShellProfile -->|"dev or full"| ShellMenuPrompt["Interactive Default Shell Menu:<br/>1. Fish (Recommended)<br/>2. ZSH<br/>3. Bash<br/>4. Skip (current shell)"]
     ShellMenuPrompt --> DevEnvPrompt["Interactive Menu:<br/>Developer exports & aliases for chosen shell?<br/>1. Full developer environment<br/>2. Clean standard aliases only"]
     DevEnvPrompt --> StarshipPrompt["Interactive Option:<br/>Install and configure Starship prompt? [Y/n]<br/>(Displays speed, git, and cross-shell benefits)"] --> DeployConfigs
     CheckShellProfile -->|"minimal, workstation, gaming, creator"| StdAliasesOnly["Skip shell menu, dev exports & Starship<br/>Prepare clean standard aliases (clear, ls, cat, less)"] --> DeployConfigs
 
-    DeployConfigs["Deploy ~/.zshrc, ~/.bashrc, and ~/.config/fish/config.fish<br/>Deploy ~/.config/starship.toml if Starship enabled"] --> CheckTermProfile{"Is dev, full, or personal profile?"}
+    DeployConfigs["Deploy ~/.zshrc, ~/.bashrc, and ~/.config/fish/config.fish<br/>Deploy ~/.config/starship.toml if Starship enabled"] --> CheckTermProfile{"Is dev or full profile?"}
 
-    CheckTermProfile -- No --> KKFetchPrompt
-    CheckTermProfile -- Yes --> CheckPersonalProfile{"Is personal profile?"}
+    CheckTermProfile -- No --> EndShell(["Mark completed"])
+    CheckTermProfile -- Yes --> TerminalPrompt{"Install modern GPU terminal instead of stock Ptyxis? [Y/n]"}
     
-    CheckPersonalProfile -- Yes --> InstallGhosttyAuto["Auto-install Ghostty via Copr<br/>Deploy dev-suite configs (config.ghostty, gtk.css)"] --> KKFetchPrompt
-    CheckPersonalProfile -- No --> TerminalPrompt{"Install modern GPU terminal instead of stock Ptyxis? [Y/n]"}
-    
-    TerminalPrompt -- No --> KKFetchPrompt
+    TerminalPrompt -- No --> EndShell
     TerminalPrompt -- Yes --> ChooseTerminal["Choose Terminal Emulator:<br/>1. Ghostty (Recommended)<br/>2. Kitty<br/>3. Alacritty"]
-    ChooseTerminal --> InstallAndDeployTerm["Install package via DNF / Copr<br/>Optional prompt: Sync dev-suite Tokyo Night config"] --> KKFetchPrompt
-    
-    KKFetchPrompt{"Install KKFetch system info CLI (by Kushagra Kumar)? [Y/n]"}
-    KKFetchPrompt -- Yes --> EnableKKFetchCopr["Enable Copr repo 'kk376/kkfetch' & install kkfetch"] --> EndShell(["Mark completed"])
-    KKFetchPrompt -- No --> EndShell
+    ChooseTerminal --> InstallAndDeployTerm["Install package via DNF / Copr<br/>Deploy embedded self-contained Tokyo Night config"] --> EndShell
 ```
 
 ---
@@ -378,13 +368,12 @@ flowchart TD
     CheckWebGenre -- No --> PythonSymlinks
     
     PythonSymlinks["Create Python symlinks in ~/.local/bin/python"] --> GitDefaults
-    GitDefaults["Configure Git global defaults:<br/>core.pager=cat, push.autoSetupRemote=true, pull.rebase=true, diff.colorMoved=zebra"] --> CheckPGProfile{"Profile type for PostgreSQL 18?"}
+    GitDefaults["Configure Git global defaults:<br/>core.pager=cat, push.autoSetupRemote=true, pull.rebase=true, diff.colorMoved=zebra"] --> CheckPGProfile{"Is full profile?"}
     
-    CheckPGProfile -->|"personal"| AutoInstallPG["Set install_pg=true automatically"] --> InstallPG18
-    CheckPGProfile -->|"full"| PGPrompt{"Install PostgreSQL 18 Server & pgAdmin 4? [y/N]"}
+    CheckPGProfile -- Yes --> PGPrompt{"Install PostgreSQL 18 Server & pgAdmin 4? [y/N]"}
     PGPrompt -- Yes --> InstallPG18
     PGPrompt -- No --> EndDev(["Mark completed"])
-    CheckPGProfile -->|"dev or other"| EndDev
+    CheckPGProfile -- No --> EndDev
     
     InstallPG18["Install PostgreSQL 18 Server from official PGDG repository"] --> InitPG18{"Is /var/lib/pgsql/18/data initialized?"}
     InitPG18 -- No --> RunInitDB["Run: /usr/pgsql-18/bin/postgresql-18-setup initdb"] --> EnablePGService

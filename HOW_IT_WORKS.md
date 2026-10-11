@@ -78,7 +78,7 @@ The script contains zero reckless deletion commands. Critical kernel drivers, An
 
 ---
 
-## 3. Choose Your Vibe: The 7 Profiles
+## 3. Choose Your Vibe: The 6 Profiles
 
 You don't need a heavy developer workstation if you just want to browse the web and play games. Pick the profile that matches what you do:
 
@@ -88,9 +88,7 @@ You don't need a heavy developer workstation if you just want to browse the web 
                   └──────────────────────────────────────────────┘
                                          │
                  Do you want everything (workstation, dev, gaming, creator)?
-                                ├── YES ──► Want author's personal defaults (ONLYOFFICE, PG18, Ghostty)?
-                                │             ├── YES ──► PERSONAL PROFILE
-                                │             └── NO  ──► FULL PROFILE (Default)
+                                ├── YES ──► FULL PROFILE (Default)
                                 │
                                 └── NO  ──► Do you want a dedicated developer workstation?
                                               ├── YES ──► DEV PROFILE (Choose dev genres)
@@ -123,9 +121,6 @@ You don't need a heavy developer workstation if you just want to browse the web 
 
 ### 6. `full`: The Complete Public Powerhouse (17 steps, Default)
 * **Who it's for:** Users who want the full public superset: workstation + dev + gaming + creator, plus COPR packages (Scrcpy Android mirroring, Yazi file manager).
-
-### 7. `personal`: The Author's Bespoke Workflow (17 steps)
-* **Who it's for:** Dedicated personal profile isolating the author's workflow: Full profile + automated Fish login shell with developer exports, automated Starship cross-shell prompt, automated Ghostty GPU terminal with dev-suite configs, ONLYOFFICE desktop editors (swapped for LibreOffice), automated PostgreSQL 18 server daemon, pgAdmin 4 desktop, distro packaging toolchains (dpkg-dev for PPA, copr-cli for Copr, osc for openSUSE OBS), X11 dev headers, cliamp, ani-cli, and kkfetch.
 
 ---
 
@@ -176,10 +171,8 @@ Here is a simple walkthrough of each room the setup crew visits:
   - Interactive login shell menu (Fish [Recommended], ZSH, Bash, Skip) in `dev` and `full` profiles.
   - Interactive Starship prompt installation option with feature disclaimer in `dev` and `full` profiles.
   - Interactive developer environment menu (Git aliases, Neovim editor, Cargo/OpenCode PATH) tailored to the chosen shell in `dev` and `full` profiles.
-  - Automated Fish login shell and Starship prompt with all developer environment exports directly configured for the `personal` profile.
   - Clean standard aliases (clear, ls, cat, less) across all shells without Starship or developer bloat on standard profiles (`minimal`, `workstation`, `gaming`, `creator`).
-  - Optional modern GPU terminal emulator (Ghostty recommended, Kitty, or Alacritty) with Tokyo Night configuration synced from `dev-suite` (automated for personal profile).
-  - Optional KKFetch system info banner created by Kushagra Kumar.
+  - Optional modern GPU terminal emulator (Ghostty recommended, Kitty, or Alacritty) with self-contained Tokyo Night configuration.
 * **Decision:** Always say **YES**.
 
 ---
@@ -228,7 +221,7 @@ Here is a simple walkthrough of each room the setup crew visits:
   - **AI Genre:** Hardware-gated check for **NVIDIA CUDA** development libraries (safely skipped with ROCm notice on AMD GPUs).
   - **Web Genre:** Enables Node.js **Corepack** (`pnpm`/`yarn`).
   - Configures **Python development symlinks** (`~/.local/bin/python`) and global **Git defaults** (`core.pager=cat`, `push.autoSetupRemote=true`, `pull.rebase=true`).
-  - Installs official **PostgreSQL 18 Server** from PGDG (automated in `personal`, interactive prompt in `full`), initializes the database automatically, enables the service, and installs **pgAdmin 4** Desktop.
+  - Installs official **PostgreSQL 18 Server** from PGDG (interactive prompt in `full`), initializes the database automatically, enables the service, and installs **pgAdmin 4** Desktop.
 * **Decision:** Say **YES** if you build software or websites.
 
 ---
@@ -311,7 +304,7 @@ Here is a simple walkthrough of each room the setup crew visits:
    [ 🛡️ Preflight Checks ] ──► Internet OK? Space ≥ 20GB? Backups ready?
              │
              ▼
-   [ 🎯 Select Your Profile ] ──► (minimal, dev, gaming, workstation, creator, full, personal)
+   [ 🎯 Select Your Profile ] ──► (minimal, dev, gaming, workstation, creator, full)
              │
              ▼
  ┌────────────────────────────────────────────────────────────────────────┐
