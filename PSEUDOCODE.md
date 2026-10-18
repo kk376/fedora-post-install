@@ -12,24 +12,24 @@ This document provides a **complete visual flowchart and logic breakdown** of th
 1. [Master Lifecycle Flowchart](#1-master-lifecycle-flowchart)
 2. [Profile Selection & Routing Decision Tree](#2-profile-selection--routing-decision-tree)
 3. [Subsystem Flowcharts (Step-by-Step)](#3-subsystem-flowcharts-step-by-step)
-   - [Step 1: DNF & Repository Setup (`setup_dnf`)](#step-1-dnf--repository-setup-setup_dnf)
-   - [Step 2: DNS Configuration (`setup_dns`)](#step-2-dns-configuration-setup_dns)
-   - [Step 3: Power Optimization & TLP (`setup_power`)](#step-3-power-optimization--tlp-setup_power)
-   - [Step 4: No-Sleep & Greeter Policies (`setup_nosleep`)](#step-4-no-sleep--greeter-policies-setup_nosleep)
-   - [Step 5: System Fonts & Nerd Fonts (`setup_fonts`)](#step-5-system-fonts--nerd-fonts-setup_fonts)
-   - [Step 6: ZSH Shell, Starship & Terminal (`setup_shell`)](#step-6-zsh-shell-starship--terminal-setup_shell)
-   - [Step 7: Browser, Codecs & Bluetooth HD Audio (`setup_browser_multimedia`)](#step-7-browser-codecs--bluetooth-hd-audio-setup_browser_multimedia)
-   - [Step 8: COPR Packaging Isolation (`setup_copr`)](#step-8-copr-packaging-isolation-setup_copr)
-   - [Step 9: GNOME Desktop Polish & GSConnect (`setup_gnome`)](#step-9-gnome-desktop-polish--gsconnect-setup_gnome)
-   - [Step 10: Essential Packages & Gaming (`setup_packages`)](#step-10-essential-packages--gaming-setup_packages)
-   - [Step 11: Developer Ecosystem & PostgreSQL 18 (`setup_dev`)](#step-11-developer-ecosystem--postgresql-18-setup_dev)
-   - [Step 12: Code Editor Suite & Polyglot Runner (`setup_editor`)](#step-12-code-editor-suite--polyglot-runner-setup_editor)
-   - [Step 13: Flatpak Applications (`setup_flatpaks`)](#step-13-flatpak-applications-setup_flatpaks)
-   - [Step 14: Docker Container Engine (`setup_docker`)](#step-14-docker-container-engine-setup_docker)
-   - [Step 15: KVM/QEMU Hardware Virtualization (`setup_kvm`)](#step-15-kvmqemu-hardware-virtualization-setup_kvm)
+   - [Step 1: DNF5 & Repository Setup (`setup_dnf`)](#step-1-dnf--repository-setup-setup_dnf)
+   - [Step 2: DNS Resolvers (`setup_dns`)](#step-2-dns-configuration-setup_dns)
+   - [Step 3: Core CLI Utilities (`setup_cli_core`)](#step-3-power-optimization--tlp-setup_power)
+   - [Step 4: Shell, Starship & Modern Terminal (`setup_shell`)](#step-6-zsh-shell-starship--terminal-setup_shell)
+   - [Step 5: System, Microsoft & Nerd Fonts (`setup_fonts`)](#step-5-system-fonts--nerd-fonts-setup_fonts)
+   - [Step 6: Multimedia Codecs & Dynamic PipeWire Audio (`setup_multimedia`)](#step-7-browser-codecs--bluetooth-hd-audio-setup_browser_multimedia)
+   - [Step 7: GNOME Desktop Polish & GSConnect (`setup_gnome`)](#step-9-gnome-desktop-polish--gsconnect-setup_gnome)
+   - [Step 8: Desktop Applications & Productivity (`setup_desktop_apps`)](#step-10-essential-packages--gaming-setup_packages)
+   - [Step 9: Power Policies & High-Performance ZRAM (`setup_power`)](#step-3-power-optimization--tlp-setup_power)
+   - [Step 10: Modular Development Toolchains (`setup_dev`)](#step-11-developer-ecosystem--postgresql-18-setup_dev)
+   - [Step 11: Code Editor Suite (`setup_editor`)](#step-12-code-editor-suite--polyglot-runner-setup_editor)
+   - [Step 12: Docker Container Engine (`setup_docker`)](#step-14-docker-container-engine-setup_docker)
+   - [Step 13: KVM/QEMU Hardware Virtualization (`setup_kvm`)](#step-15-kvmqemu-hardware-virtualization-setup_kvm)
+   - [Step 14: Gaming Stack & Heroic (`setup_gaming`)](#step-10-essential-packages--gaming-setup_packages)
+   - [Step 15: Creator & Streaming Suite (`setup_creator`)](#step-10-essential-packages--gaming-setup_packages)
    - [Step 16: Pre-Driver Kernel Gate (`setup_pre_driver_reboot`)](#step-16-pre-driver-kernel-gate-setup_pre_driver_reboot)
-   - [Step 17: GPU Driver Detection & Secure Boot MOK (`setup_drivers`)](#step-17-gpu-driver-detection--secure-boot-mok-setup_drivers)
-   - [Step 18: Summary & Service Health Check (`show_summary`)](#step-18-summary--service-health-check-show_summary)
+   - [Step 17: Multi-Vendor GPU Drivers & Secure Boot MOK (`setup_drivers`)](#step-17-gpu-driver-detection--secure-boot-mok-setup_drivers)
+   - [Summary & Health Check (`show_summary`)](#step-18-summary--service-health-check-show_summary)
 4. [Idempotency, State & Rollback Flowchart](#4-idempotency-state--rollback-flowchart)
 
 ---
@@ -107,19 +107,19 @@ flowchart TD
 flowchart TD
     UserSelect(["User selects Profile via Interactive Menu or --profile=<name> (Default: full)"]) --> SwitchProfile{Selected Profile}
 
-    SwitchProfile -- minimal --> P_Min["minimal Profile<br/>(7 Steps: DNF, DNS, Fonts, Shell, Browser/Codecs, Pre-Driver Reboot, Drivers)"]
-    SwitchProfile -- dev --> P_Dev["dev Profile<br/>(16 Steps: Minimal + Power, No-Sleep, GNOME, Packages, Dev Genres, Editor, Flatpaks, Docker, KVM, Drivers)"]
-    SwitchProfile -- gaming --> P_Gaming["gaming Profile<br/>(11 Steps: Minimal + Power, GNOME, Gaming Packages with Steam/MangoHud/Heroic, Flatpaks, Drivers)"]
-    SwitchProfile -- workstation --> P_Work["workstation Profile<br/>(11 Steps: Minimal + Power, GNOME & AppIndicator, Productivity Packages, Flatpaks, Drivers)"]
-    SwitchProfile -- creator --> P_Creator["creator Profile<br/>(11 Steps: Minimal + Power, GNOME, Creator Packages with OBS/V4L2/GStreamer, Flatpaks, Drivers)"]
-    SwitchProfile -- full --> P_Full["full Profile (Default)<br/>(All 17 Steps: Public Superset of Workstation + Dev + Gaming + Creator + COPR)"]
+    SwitchProfile -- minimal --> P_Min["minimal Profile<br/>(4 Steps: DNF, DNS, CLI Core, Shell & Terminal)"]
+    SwitchProfile -- workstation --> P_Work["workstation Profile<br/>(11 Steps: Minimal + Fonts, Codecs, GNOME, Desktop Apps, Power, Pre-Driver Reboot, Drivers)"]
+    SwitchProfile -- dev --> P_Dev["dev Profile<br/>(15 Steps: Workstation + Dev Stack, Editor, Docker, KVM)"]
+    SwitchProfile -- gaming --> P_Gaming["gaming Profile<br/>(12 Steps: Workstation + Gaming Stack with Steam/MangoHud/Heroic)"]
+    SwitchProfile -- creator --> P_Creator["creator Profile<br/>(12 Steps: Workstation + Creator Suite with OBS/V4L2/GStreamer)"]
+    SwitchProfile -- full --> P_Full["full Profile (Default)<br/>(All 17 Steps: Superset of Workstation + Dev + Gaming + Creator)"]
 
-    P_Min --> CoreOnly["Target: Minimalist server, container host, or lean desktop"]
+    P_Min --> CoreOnly["Target: Minimalist server, container host, or lean terminal desktop"]
+    P_Work --> WorkOnly["Target: Clean, daily productive desktop without gaming or virtualization overhead"]
     P_Dev --> DevOnly["Target: Software engineers across systems, web, android, or ai genres"]
     P_Gaming --> GameOnly["Target: Linux gamers, Discord users, multimedia consumers"]
-    P_Work --> WorkOnly["Target: Clean, daily productive desktop without gaming or virtualization overhead"]
     P_Creator --> CreatorOnly["Target: Streamers, video editors, audio engineers, Linux desktop creators"]
-    P_Full --> FullOnly["Target: Power users wanting complete public workstation, dev, and gaming suite"]
+    P_Full --> FullOnly["Target: Power users wanting complete workstation, dev, and gaming suite"]
 ```
 
 ---

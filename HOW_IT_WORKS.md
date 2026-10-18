@@ -99,28 +99,28 @@ You don't need a heavy developer workstation if you just want to browse the web 
                                                             └── MINIMAL (Lean daily driver)
 ```
 
-### 1. `minimal`: The Clean Minimalist (7 steps)
-* **Who it's for:** People who want Fedora to feel snappy, modern, and play videos, without installing heavy packages.
-* **What you get:** DNF download turbo, DNS, modern fonts, Fish/Zsh terminal, Brave browser, multimedia codecs, and GPU drivers.
+### 1. `minimal`: The Clean Minimalist (4 steps)
+* **Who it's for:** People who want Fedora to feel snappy, modern, and lean, without installing heavy desktop applications.
+* **What you get:** DNF download turbo, DNS, essential core CLI utilities, and modern shells (Fish/Zsh/Bash) with clean aliases.
 
-### 2. `dev`: The Software Engineer (16 steps)
+### 2. `workstation`: The Daily Productivity Desktop (11 steps)
+* **Who it's for:** Professional desktop users who want a clean, complete desktop with fonts, codecs, power policies, and GPU drivers.
+* **What you get:** Everything in Minimal + Microsoft & Nerd Fonts, multimedia codecs, PipeWire dynamic sample rates, GNOME tweaks, desktop applications (Brave, Vesktop, Yazi, Flatpaks), power tuning with ZRAM, pre-driver reboot gate, and GPU drivers.
+
+### 3. `dev`: The Software Engineer (15 steps)
 * **Who it's for:** Software engineers across any discipline (`--dev-type=systems,web,android,ai,all`).
-* **What you get:** Everything in Minimal + Power management, No-Sleep lock, GNOME tools & AppIndicator, domain toolchains based on dev genres (systems, web, android, ai), Code Editor (Zed/Codium/Antigravity/Code), Flatpaks (Android Studio), Docker Engine, and KVM Virtual Machines.
+* **What you get:** Everything in Workstation + modular developer toolchains based on dev genres (systems, web, android, ai), Code Editor (Zed/Codium/Antigravity/Code), Docker & Compose, and KVM/QEMU Virtualization.
 
-### 3. `gaming`: The Linux Gamer (11 steps)
+### 4. `gaming`: The Linux Gamer (12 steps)
 * **Who it's for:** Gamers playing on Steam, Discord users, and media lovers.
-* **What you get:** Everything in Minimal + Power tuning, GNOME tools, Steam with H.264 video unlock, MangoHud FPS & temperature overlay (with 32px HUD scaling), GameMode, Vesktop (Discord with screen audio), Heroic Games Launcher (Flathub Flatpak for Epic/GOG with UMU exit lag fix), and Flatpaks.
+* **What you get:** Everything in Workstation + Steam with H.264 video unlock, MangoHud FPS & temperature overlay (with scaled metrics), GameMode, and Heroic Games Launcher (Flathub Flatpak for Epic/GOG/Amazon).
 
-### 4. `workstation`: The Daily Productivity Desktop (11 steps)
-* **Who it's for:** Professional desktop users who want a clean, productive machine without gaming overhead, virtualization clutter, or compilers.
-* **What you get:** Everything in Minimal + Power tuning, GNOME tools & AppIndicator, productivity utilities, and Flatpaks (Extension Manager).
-
-### 5. `creator`: The Streamer & Content Creator (11 steps)
-* **Who it's for:** People who stream, record YouTube videos, edit podcasts, or design GTK apps.
-* **What you get:** Everything in Workstation + OBS Studio, akmod-v4l2loopback virtual camera, GStreamer media pipeline headers, GTK4/Adwaita design tools, and NVIDIA Broadcast AI audio noise removal.
+### 5. `creator`: The Streamer & Content Creator (12 steps)
+* **Who it's for:** People who stream, record YouTube videos, edit podcasts, or capture screens.
+* **What you get:** Everything in Workstation + OBS Studio, akmod-v4l2loopback virtual camera, wf-recorder Wayland screen recorder, GStreamer media pipeline headers, and NVIDIA Broadcast AI audio noise removal.
 
 ### 6. `full`: The Complete Public Powerhouse (17 steps, Default)
-* **Who it's for:** Users who want the full public superset: workstation + dev + gaming + creator, plus COPR packages (Scrcpy Android mirroring, Yazi file manager).
+* **Who it's for:** Users who want the full superset: Workstation + Dev + Gaming + Creator with all tools and toolchains.
 
 ---
 
@@ -139,64 +139,48 @@ Here is a simple walkthrough of each room the setup crew visits:
 
 ### 🌐 Step 2: Private, Fast DNS (`setup_dns`)
 * **The Problem:** Your internet provider's default DNS can be slow and may block or log websites you visit.
-* **The Fix:** Lets you switch to **Cloudflare (1.1.1.1)** or **Google (8.8.8.8)** for faster browsing. It smartly ignores internal Docker and VM networks so you never lose connection to local development servers.
+* **The Fix:** Lets you switch to **Cloudflare (1.1.1.1)**, **Google (8.8.8.8)**, or **Quad9 (9.9.9.9)** for faster, private browsing. It smartly ignores internal Docker and VM networks so you never lose connection to local development servers.
 * **Decision:** Say **YES** for faster browsing. Say **NO** if you are on a university or strict corporate VPN that requires company DNS.
 
 ---
 
-### ⚡ Step 3: Battery & Power Management (`setup_power`)
-* **The Problem:** Laptops can run hot or drain battery quickly without proper power governors.
-* **The Fix:** Offers to install **TLP** for advanced battery savings. It transparently explains the difference between TLP and Fedora's built-in power profiles so you can choose what's best for your machine.
-* **Decision:** Say **YES** on Intel/older laptops for max battery. Say **NO** on modern AMD Ryzen laptops to keep GNOME's built-in Power Slider.
-
----
-
-### ☕ Step 4: No-Sleep Mode (`setup_nosleep`)
-* **The Problem:** Fedora loves to put your computer or login lockscreen to sleep while you are downloading large files, compiling code, or stepping away for a coffee.
-* **The Fix:** Disables automatic sleep when plugged into AC power for both your user account and the GDM login screen.
-* **Decision:** Say **YES** if you hate your PC going to sleep during long tasks.
-
----
-
-### 🔤 Step 5: Beautiful Fonts & Icons (`setup_fonts`)
-* **The Problem:** Microsoft Word documents look messy without standard fonts, and programmer code editors look bland without modern coding ligatures.
-* **The Fix:** Installs Microsoft Core fonts (Arial, Times New Roman, Calibri), Google Noto, and downloads the gorgeous **FiraCode Nerd Font** (which renders arrows `->` as `→` and adds terminal icons).
+### 🛠️ Step 3: Core CLI Utilities (`setup_cli_core`)
+* **The Problem:** Stock Fedora installs miss modern terminal productivity utilities (fast search, modern ls/cat, smart fuzzy finding, git clipboard).
+* **The Fix:** Installs blazing-fast modern CLI essentials: `fastfetch`, `bat`, `eza`, `fd-find`, `ripgrep`, `fzf`, `zoxide`, `btop`, `duf`, `plocate`, `jq`, `wl-clipboard`, `android-tools`, and `git`.
 * **Decision:** Always say **YES**.
 
 ---
 
-### 🐚 Step 6: Dream Terminal & Shell (`setup_shell`)
+### 🐚 Step 4: Shell, Starship & Modern Terminal (`setup_shell`)
 * **The Problem:** The default terminal is a plain black box with basic text and standard Bash defaults.
 * **The Fix:** Equips your environment with modern shells (Fish and ZSH) and optional **Starship** cross-shell prompt.
   - Interactive login shell menu (Fish [Recommended], ZSH, Bash, Skip) in `dev` and `full` profiles.
   - Interactive Starship prompt installation option with feature disclaimer in `dev` and `full` profiles.
   - Interactive developer environment menu (Git aliases, Neovim editor, Cargo/OpenCode PATH) tailored to the chosen shell in `dev` and `full` profiles.
   - Clean standard aliases (clear, ls, cat, less) across all shells without Starship or developer bloat on standard profiles (`minimal`, `workstation`, `gaming`, `creator`).
-  - Optional modern GPU terminal emulator (Ghostty recommended, Kitty, or Alacritty) with self-contained Tokyo Night configuration.
+  - Modern GPU terminal emulator (Ghostty recommended, Kitty, or Alacritty) with self-contained Tokyo Night configuration.
 * **Decision:** Always say **YES**.
 
 ---
 
-### 🎬 Step 7: Brave Browser & Media Codecs (`setup_browser_multimedia`)
-* **The Problem:** Fedora cannot ship proprietary video codecs due to legal patent restrictions. YouTube videos can drop frames, and Bluetooth headphones often sound tinny.
+### 🔤 Step 5: Beautiful Fonts & Icons (`setup_fonts`)
+* **The Problem:** Microsoft Word documents look messy without standard fonts, and programmer code editors look bland without modern coding ligatures.
+* **The Fix:** Installs Microsoft Core fonts (Arial, Times New Roman, Calibri), Aptos, Segoe UI, Google Noto, and downloads the gorgeous **FiraCode Nerd Font** and **Symbols Nerd Font**.
+* **Decision:** Always say **YES**.
+
+---
+
+### 🎬 Step 6: Multimedia Codecs & Dynamic PipeWire Audio (`setup_multimedia`)
+* **The Problem:** Fedora cannot ship proprietary video codecs due to legal patent restrictions, and Bluetooth headphones often suffer from low-quality audio or mic hijacking.
 * **The Fix:**
-  - Installs **Brave Browser** (blocks ads and trackers by default).
-  - Swaps in full **FFmpeg freeworld** codecs so every MP4, MKV, and web video plays smoothly on your GPU.
-  - Upgrades **WirePlumber Bluetooth Audio** to prioritize Hi-Fi codecs (LDAC, AAC, SBC-XQ).
+  - Swaps in full **FFmpeg freeworld** codecs and GStreamer plugins so every MP4, MKV, and web video plays smoothly on your GPU.
+  - Upgrades **WirePlumber Bluetooth Audio** to prioritize Hi-Fi codecs (LDAC, AAC, SBC-XQ, aptX).
+  - Unlocks **PipeWire Dynamic Clock Rates** (44.1kHz up to 192kHz) for bit-perfect audio playback without lossy software resampling.
 * **Decision:** Always say **YES**.
 
 ---
 
-### 📦 Step 8: Curated COPR Utilities (`setup_copr`)
-* **The Problem:** Some amazing tools aren't in standard Fedora repositories yet.
-* **The Fix:** Confined strictly to the `full` profile, this step asks if you want:
-  - 📱 **Scrcpy:** Plug in your Android phone via USB and control it with your mouse and keyboard with ultra-low latency.
-  - 📂 **Yazi:** A terminal file manager in Rust with instant inline image and PDF previews.
-* **Decision:** Say **YES** to what you need; say **NO** to skip.
-
----
-
-### 📱 Step 9: GNOME Polish & Mobile Sync (`setup_gnome`)
+### 📱 Step 7: GNOME Polish & Mobile Sync (`setup_gnome`)
 * **The Problem:** Out of the box, Fedora doesn't easily talk to your Android phone, and app titlebars can take up too much vertical space.
 * **The Fix:**
   - Installs **GSConnect** (KDE Connect protocol) and opens firewall ports so you can sync clipboard, share files, and see phone notifications on your desktop.
@@ -205,93 +189,109 @@ Here is a simple walkthrough of each room the setup crew visits:
 
 ---
 
-### 🧰 Step 10: Essential Toolbox & Gaming (`setup_packages`)
-* **The Problem:** Missing day-to-day tools like Fastfetch, Timeshift (system restore), VLC, Neovim, ADB/Fastboot, or Steam gaming optimizations.
-* **The Fix:** Installs a comprehensive toolset, unlocks Steam's hardware H.264 video decoder, creates a gaming FPS HUD overlay (**MangoHud** with scaled metrics), and offers **Heroic Games Launcher** (Flathub Flatpak with pre-configured UMU fix and Wine prefixes), **Vesktop** (Discord with working Wayland screen audio), and **Stirling-PDF** (offline PDF Swiss Army knife).
+### 💻 Step 8: Desktop Applications & Productivity (`setup_desktop_apps`)
+* **The Problem:** Setting up browsers, media players, and Discord with screen sharing takes manual hunting across websites.
+* **The Fix:** Installs **Brave Browser**, **VLC**, **qBittorrent**, **Telegram**, **Timeshift**, **GParted**, **LocalSend** (cross-platform AirDrop alternative), **Extension Manager**, **Yazi** (Rust terminal file manager with previews), and **Vesktop** (Discord client with working Wayland screen audio).
 * **Decision:** Always say **YES**.
 
 ---
 
-### 💻 Step 11: Developer Engine & PostgreSQL 18 (`setup_dev`)
-* **The Problem:** Setting up compilers, Python symlinks, Node corepack (`pnpm`/`yarn`), compiler cache, and database servers manually takes hours of troubleshooting.
+### ⚡ Step 9: Power Policies & High-Performance ZRAM (`setup_power`)
+* **The Problem:** Laptops drain battery quickly without proper power governors, and desktops can run out of memory during heavy compilation tasks.
 * **The Fix:**
-  - Installs low-level developer tools (GCC, Clang, LLVM, Make, CMake, Ninja, Meson, GDB, Valgrind, Bear, Hyperfine).
-  - **Systems Genre:** Prompts for full **Rust toolchain** (rustup, clippy, rust-analyzer) and **ccache** (50GB compressed compiler cache with technical disclaimer).
-  - **Android Genre:** Prompts for **Android Studio** (Flathub Flatpak) with hardware-accelerated emulator support.
-  - **AI Genre:** Hardware-gated check for **NVIDIA CUDA** development libraries (safely skipped with ROCm notice on AMD GPUs).
-  - **Web Genre:** Enables Node.js **Corepack** (`pnpm`/`yarn`).
-  - Configures **Python development symlinks** (`~/.local/bin/python`) and global **Git defaults** (`core.pager=cat`, `push.autoSetupRemote=true`, `pull.rebase=true`).
-  - Installs official **PostgreSQL 18 Server** from PGDG (interactive prompt in `full`), initializes the database automatically, enables the service, and installs **pgAdmin 4** Desktop.
-* **Decision:** Say **YES** if you build software or websites.
+  - Hardware-aware chassis detection: skips laptop battery daemons (TLP) on desktop towers.
+  - Safe AC no-sleep: disables automatic sleep when plugged into AC power while preserving battery sleep safety.
+  - Applies **high-performance ZRAM memory tuning** (zstd compression algorithm with up to 16GB RAM allocation and swappiness=100) to double effective memory bandwidth.
+* **Decision:** Always say **YES**.
 
 ---
 
-### 📝 Step 12: Code Editor Suite & Polyglot Runner (`setup_editor`)
+### 🛠️ Step 10: Modular Development Toolchains (`setup_dev`)
+* **The Problem:** Setting up compilers, Python symlinks, Node corepack (`pnpm`/`yarn`), compiler cache, and database servers manually takes hours of troubleshooting.
+* **The Fix:**
+  - Installs baseline developer tools (Git LFS, GPG, Neovim, GitHub/GitLab CLI).
+  - **Systems Genre:** C/C++, CMake, Meson, Ninja, GDB, Valgrind, Rustup, and **ccache** (50GB compressed compiler cache).
+  - **Web Genre:** Node.js, Corepack (`pnpm`/`yarn`), Python 3, and `jq`.
+  - **Android Genre:** ADB/Fastboot, Java OpenJDK, Maven, Android Studio (Flatpak), and **Scrcpy** (low-latency screen mirroring).
+  - **AI Genre:** Python Devel, Ruff, UV, and multi-vendor GPU compute (NVIDIA CUDA, AMD ROCm, Intel Level Zero).
+  - Architecture-aware **PostgreSQL 18** server configuration.
+* **Decision:** Say **YES** if you build software.
+
+---
+
+### 📝 Step 11: Code Editor Suite (`setup_editor`)
 * **The Problem:** Installing editors, themes, font settings, and configuring code execution shortcuts is repetitive.
 * **The Fix:** Lets you choose your favorite editor from a clean menu:
-  1. **Zed (Recommended):** Blazing-fast GPU-accelerated editor with Catppuccin Mocha theme and a custom `zed-run` engine: press **F5** or **Ctrl+Alt+N** to run Python, Rust, C, C++, Go, JS, or Bash instantly. If you press **Ctrl+C**, it drops you into an interactive shell instead of quitting!
-  2. 🕊️ **VS Codium:** 100% Free/Libre VS Code without Microsoft telemetry or proprietary branding.
+  1. **Zed (Recommended):** Blazing-fast GPU-accelerated editor with Catppuccin Mocha theme and a custom `zed-run` polyglot runner (F5 / Ctrl+Alt+N).
+  2. 🕊️ **VS Codium:** 100% Free/Libre VS Code without Microsoft telemetry.
   3. 🚀 **Google Antigravity IDE:** The next-gen agentic developer IDE.
   4. 🔷 **VS Code:** Standard Microsoft VS Code.
 * **Decision:** Pick your favorite editor!
 
 ---
 
-### 📦 Step 13: Sandboxed Flatpak Apps (`setup_flatpaks`)
-* **The Problem:** Need reliable utilities without polluting system libraries or triggering laptop sleep/GPU lockups.
-* **The Fix:** Installs **LocalSend** (cross-platform AirDrop alternative for local Wi-Fi sharing) and **Extension Manager** (browse and manage GNOME Shell extensions cleanly). Redundant managers like ProtonPlus are omitted since Heroic Games Launcher includes a native Wine/Proton manager with zero bloat. *Note: Mission Center was purged in v5.5.0 to eliminate MUXless laptop freeze issues.*
-* **Decision:** Say **YES**.
-
----
-
-### 🐳 Step 14: Docker Container Engine (`setup_docker`)
+### 🐳 Step 12: Docker Container Engine (`setup_docker`)
 * **The Problem:** Installing Docker on Fedora often breaks container networking because Fedora's Firewall and NetworkManager interfere with Docker's virtual bridge (`docker0`).
 * **The Fix:**
-  - Installs Docker Engine and containerd.
-  - Configures NetworkManager and Firewalld to leave `docker0` alone so container networking never breaks.
-  - Adds your user to the `docker` group (no more typing `sudo docker`).
-  - Downloads **Docker Compose v2** CLI plugin.
+  - Installs Docker Engine, containerd, and Docker Compose.
+  - Configures NetworkManager to leave `docker0` unmanaged.
+  - Adds your user to the `docker` group (no `sudo` required).
+  - Architecture-aware Docker Compose CLI plugin fallback.
 * **Decision:** Say **YES** if you use containers.
 
 ---
 
-### 🖥️ Step 15: KVM/QEMU Virtual Machines (`setup_kvm`)
+### 🖥️ Step 13: KVM/QEMU Virtual Machines (`setup_kvm`)
 * **The Problem:** Setting up hardware-accelerated Linux and Windows Virtual Machines usually requires confusing command-line configurations.
 * **The Fix:**
-  - Verifies your CPU has hardware virtualization enabled in BIOS (Intel VT-x / AMD-V).
+  - Verifies CPU hardware virtualization (Intel VT-x / AMD-V).
   - Installs **Virt-Manager** and **GNOME Boxes**.
-  - Switches to modern on-demand socket activation (`virtqemud.socket`).
-  - Installs official **Windows VirtIO high-speed disk & network drivers**.
-  - Tunes kernel memory latency with the `virtual-host` performance profile.
+  - Modern modular libvirt socket activation (`virtqemud.socket`).
+  - Windows VirtIO paravirtualized drivers.
 * **Decision:** Say **YES** if you run Virtual Machines.
 
 ---
 
+### 🎮 Step 14: Gaming Stack (`setup_gaming`)
+* **The Problem:** Steam needs hardware video decoder unlocks, and gaming overlays require manual config files.
+* **The Fix:**
+  - Installs **Steam**, **MangoHud**, **GameMode**, and Vulkan tools.
+  - Unlocks Steam H.264 video codec decoding via `steam-devices` & `mozilla-openh264`.
+  - Deploys pre-tuned **MangoHud** overlay configuration (scaled metrics, alpha transparency).
+  - Installs **Heroic Games Launcher** (Flathub Flatpak for Epic/GOG/Amazon games) with shared Wine prefix directory.
+* **Decision:** Say **YES** if you play games.
+
+---
+
+### 🎥 Step 15: Creator & Streaming Suite (`setup_creator`)
+* **The Problem:** Screen recording and virtual webcam routing require out-of-tree kernel modules and complex audio loopback configurations.
+* **The Fix:**
+  - Installs **OBS Studio**, **akmod-v4l2loopback**, and **wf-recorder** Wayland screen recorder.
+  - Offers **NVIDIA Broadcast for Linux** (AI microphone noise removal and virtual green screen).
+* **Decision:** Say **YES** if you create videos or stream.
+
+---
+
 ### 🚦 Step 16: Pre-Driver Kernel Gate (`setup_pre_driver_reboot`)
-* **The Problem:** If Step 1 updated your Linux kernel, building graphics drivers (like NVIDIA) right away would compile against the *old* kernel instead of the *new* one, causing broken drivers after reboot.
-* **The Fix:** Checks if your running kernel matches the newest installed kernel. If a newer kernel is waiting, it gracefully saves your progress and asks to reboot first so drivers build on the exact kernel you'll be using.
+* **The Problem:** If earlier package installations updated your Linux kernel, building graphics drivers (like NVIDIA akmods) right away would compile against the *old* running kernel instead of the *new* one, causing broken drivers after reboot.
+* **The Fix:** Compares your running kernel against the latest installed `kernel-core`. If a newer kernel is waiting, it gracefully saves your progress and reboots first so drivers build on the exact kernel you'll be using.
 * **Decision:** Say **YES** if prompted to reboot.
 
 ---
 
-### 🎮 Step 17: Smart GPU Drivers & Secure Boot MOK (`setup_drivers`)
+### 🎮 Step 17: Multi-Vendor GPU Drivers & Secure Boot MOK (`setup_drivers`)
 * **The Problem:** NVIDIA, AMD, and Intel GPUs require completely different drivers, and NVIDIA drivers on UEFI Secure Boot systems won't load without signed keys.
 * **The Fix:**
-  - 🔵 **Intel GPUs:** Installs `intel-media-driver` for hardware video decoding.
-  - 🔴 **AMD GPUs:** Swaps in Mesa freeworld drivers for full video decode acceleration.
-  - 🟢 **NVIDIA GPUs:** Installs `akmod-nvidia`, CUDA, virtual camera modules, and provides an idiot-proof step-by-step walkthrough to enroll your **MOK (Machine Owner Key)** on the blue boot screen so Secure Boot stays 100% enabled.
-  - ⚡ **Hybrid Graphics Optimization (Optimus / MUXless Laptops):** On laptops with both an integrated GPU (AMD Radeon or Intel) and an NVIDIA discrete GPU, configures `/etc/environment.d/10-vulkan-hybrid.conf` (`VK_LOADER_DRIVERS_SELECT`) so GTK4 and Libadwaita applications (Files, Settings, Text Editor) open instantly on the iGPU instead of stalling 2+ seconds waking the dGPU from PCIe D3cold sleep.
+  - 🔵 **Intel GPUs:** Installs `intel-media-driver` and `libva-intel-driver` for hardware video decoding.
+  - 🔴 **AMD GPUs:** Swaps in Mesa freeworld drivers for full VA-API/VDPAU video decode acceleration.
+  - 🟢 **NVIDIA GPUs:** Installs `akmod-nvidia`, CUDA, and VA-API bridge, with step-by-step guidance to enroll your **MOK (Machine Owner Key)** on the blue boot screen.
+  - ⚡ **Hybrid Graphics Optimization (Optimus Laptops):** Sets `VK_LOADER_DRIVERS_SELECT` to prioritize the integrated GPU so desktop apps open instantly without waking the discrete NVIDIA GPU.
 * **Decision:** Always say **YES**.
 
 ---
 
-### 🏁 Step 18: Summary & Health Check (`show_summary`)
-* **The Problem:** You finish running a script and wonder: *"Did everything actually work?"*
-* **The Fix:** Displays a clean scorecard:
-  - ⏱️ Total time taken and step counts (Completed / Skipped / Failed).
-  - 🩺 Live service health audit (TLP, Docker, NVIDIA, Default Shell).
-  - 📺 Optional hardware video acceleration test (`vainfo`).
-  - 🚀 Actionable next steps so you know exactly what to do next.
+### 🏁 Summary & Health Check (`show_summary`)
+* Displays duration, profile, completed/skipped/failed step counts, active login shell, and log file path.
 
 ---
 
@@ -304,24 +304,21 @@ Here is a simple walkthrough of each room the setup crew visits:
    [ 🛡️ Preflight Checks ] ──► Internet OK? Space ≥ 20GB? Backups ready?
              │
              ▼
-   [ 🎯 Select Your Profile ] ──► (minimal, dev, gaming, workstation, creator, full)
+   [ 🎯 Select Your Profile ] ──► (minimal, workstation, dev, gaming, creator, full)
              │
              ▼
  ┌────────────────────────────────────────────────────────────────────────┐
  │                      THE INTERACTIVE STEP LOOP                         │
  │                                                                        │
- │   1. DNF Fast Mirrors & Repos   ────► 2. Private DNS (Cloudflare)     │
- │   3. Battery / Power Tuning     ────► 4. No-Sleep AC Policy           │
- │   5. System & Nerd Fonts        ────► 6. ZSH + Starship Terminal      │
- │   7. Brave & Video Codecs       ────► 8. Curated COPR Tools           │
- │   9. GNOME & Android Sync       ────► 10. Essential Packages & Gaming │
- │  11. Dev Stack & PostgreSQL 18  ────► 12. Code Editor (Zed / Codium)  │
- │  13. Flatpak Desktop Apps       ────► 14. Docker Container Engine     │
- │  15. KVM/QEMU Virtual Machines  ────► 16. Kernel Reboot Gate          │
- │  17. Smart GPU Drivers & MOK    ───────────────────────────────────────┘
-             │
-             ▼
-   [ 🩺 System Health Audit ] ──► TLP: Active | Docker: Active | NVIDIA: Ready
+ │   1. DNF5 Mirrors & Repos       ────► 2. Private DNS (Cloudflare)      │
+ │   3. Core CLI Utilities         ────► 4. Shell, Starship & Terminal    │
+ │   5. System & Nerd Fonts        ────► 6. Codecs & Dynamic PipeWire     │
+ │   7. GNOME & Mobile Sync        ────► 8. Desktop Apps & Productivity   │
+ │   9. Power & ZRAM Tuning        ────► 10. Modular Dev Toolchains       │
+ │  11. Code Editor Suite          ────► 12. Docker & Compose Engine      │
+ │  13. KVM/QEMU Virtual Machines  ────► 14. Gaming Stack & Heroic        │
+ │  15. Creator Suite & OBS        ────► 16. Pre-Driver Kernel Gate       │
+ │  17. GPU Drivers & Secure Boot  ───────────────────────────────────────┘
              │
              ▼
    [ 🎉 System Ready! 🚀 ] ──► Reboot once, open a new terminal, and enjoy!
