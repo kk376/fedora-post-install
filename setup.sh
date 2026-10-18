@@ -905,7 +905,6 @@ setup_shell() {
         fi
     fi
 
-    local selected_shell="skip"
     local selected_shell_name="Fish"
     local enable_dev_shell=false
     local install_starship=false
@@ -928,7 +927,6 @@ setup_shell() {
 
         case "$shell_choice" in
             1)
-                selected_shell="fish"
                 selected_shell_name="Fish"
                 if ! $DRY_RUN && command -v fish &>/dev/null; then
                     local fish_bin
@@ -941,7 +939,6 @@ setup_shell() {
                 fi
                 ;;
             2)
-                selected_shell="zsh"
                 selected_shell_name="ZSH"
                 if ! $DRY_RUN && command -v zsh &>/dev/null; then
                     local zsh_bin
@@ -954,7 +951,6 @@ setup_shell() {
                 fi
                 ;;
             3)
-                selected_shell="bash"
                 selected_shell_name="Bash"
                 if ! $DRY_RUN; then
                     run_sudo chsh -s /bin/bash "${USER:-$(id -un)}" 2>/dev/null || warn "Failed to set login shell to Bash"
@@ -1000,7 +996,6 @@ setup_shell() {
             fi
         fi
     else
-        selected_shell="skip"
         enable_dev_shell=false
         if $DRY_RUN; then
             dry "Deploy Fish clean standard aliases"
@@ -1198,7 +1193,9 @@ ZSHRC_DEV
         fi
 
         if $install_starship; then
-            echo 'command -v starship >/dev/null && eval "$(starship init zsh)"' >> "$HOME/.zshrc"
+            cat >> "$HOME/.zshrc" <<'ZSHRC_STARSHIP'
+command -v starship >/dev/null && eval "$(starship init zsh)"
+ZSHRC_STARSHIP
         fi
     else
         dry "Deploy ~/.zshrc configuration"
@@ -1242,7 +1239,9 @@ BASHRC_DEV
         fi
 
         if $install_starship; then
-            echo 'command -v starship >/dev/null && eval "$(starship init bash)"' >> "$HOME/.bashrc"
+            cat >> "$HOME/.bashrc" <<'BASHRC_STARSHIP'
+command -v starship >/dev/null && eval "$(starship init bash)"
+BASHRC_STARSHIP
         fi
         echo "# <<< FEDORA_POST_INSTALL_MANAGED <<<" >> "$HOME/.bashrc"
     else

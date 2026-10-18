@@ -39,30 +39,12 @@ fail() {
     [[ -n "${2:-}" ]] && echo "         Detail: $2"
 }
 
-assert_eq() {
-    local label="$1" expected="$2" actual="$3"
-    if [[ "$expected" == "$actual" ]]; then
-        pass "$label"
-    else
-        fail "$label" "Expected: '$expected', Actual: '$actual'"
-    fi
-}
-
 assert_contains() {
     local label="$1" needle="$2" haystack="$3"
     if [[ "$haystack" == *"$needle"* ]]; then
         pass "$label"
     else
         fail "$label" "Expected output to contain '$needle'"
-    fi
-}
-
-assert_not_contains() {
-    local label="$1" needle="$2" haystack="$3"
-    if [[ "$haystack" != *"$needle"* ]]; then
-        pass "$label"
-    else
-        fail "$label" "Expected output NOT to contain '$needle'"
     fi
 }
 
