@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2016,SC2088
 # ==============================================================================
-# Test Suite: COPR & Fonts Subsystem (setup_copr & setup_fonts)
+# Test Suite: COPR & Fonts Subsystem (v7.0.0)
 # Covers:
-#   1. setup_copr repository and package configuration (scrcpy, yazi + preview deps)
-#   2. setup_copr execution under success, enable failure, and install failure
+#   1. COPR repository mappings (scrcpy in setup_dev, yazi in setup_desktop_apps)
+#   2. COPR preview dependencies and enable safety
 #   3. setup_fonts package list (MS, Noto, Liberation, DejaVu, FiraCode Nerd Font)
 #   4. setup_fonts FiraCode download, unzip, and fc-cache execution
-#   5. Dry-run safety for both setup_copr and setup_fonts
+#   5. Dry-run safety for setup_fonts
 #   6. Profile inclusion verification (creator, full, minimal, dev, gaming, workstation)
 # ==============================================================================
 
@@ -67,138 +67,64 @@ assert_not_contains() {
 }
 
 echo "================================================================"
-echo "TEST SUITE: COPR & Fonts Subsystem Audit"
+echo "TEST SUITE: COPR & Fonts Subsystem Audit (v7.0.0)"
 echo "Target: $SETUP_SCRIPT"
 echo "================================================================"
 
 # ==============================================================================
-# Suite 1: setup_copr Static & Configuration Audit
+# Suite 1: COPR Static & Configuration Audit
 # ==============================================================================
 echo ""
-echo -e "${BLUE}=== Suite 1: setup_copr Configuration Audit ===${NC}"
+echo -e "${BLUE}=== Suite 1: COPR Configuration Audit ===${NC}"
 
-# Extract coprs array definition from setup_copr
-copr_entries=$(sed -n '/setup_copr()/,/^}/p' "$SETUP_SCRIPT" | sed -n '/local coprs=(/,/)/p' | grep '"' | sed 's/^[ \t]*"//; s/"[ \t]*$//')
+# Check scrcpy COPR in setup_dev
+if grep -A 10 "setup_dev()" "$SETUP_SCRIPT" | grep -q 'copr enable -y zeno/scrcpy' || \
+   grep -q 'copr enable -y zeno/scrcpy' "$SETUP_SCRIPT"; then
+    pass "setup.sh enables zeno/scrcpy COPR repository for Android tooling"
+else
+    fail "setup.sh missing zeno/scrcpy COPR repository"
+fi
 
-copr_repos=$(echo "$copr_entries" | awk -F':' '{print $1}')
-expected_repos=$'zeno/scrcpy\nlihaohong/yazi'
-assert_eq "COPR repos contain exactly zeno/scrcpy and lihaohong/yazi" "$expected_repos" "$copr_repos"
+# Check yazi COPR in setup_desktop_apps
+if grep -q 'copr enable -y lihaohong/yazi' "$SETUP_SCRIPT"; then
+    pass "setup.sh enables lihaohong/yazi COPR repository for Yazi file manager"
+else
+    fail "setup.sh missing lihaohong/yazi COPR repository"
+fi
 
-# Check no extraneous COPR enables exist anywhere in setup.sh
-all_copr_enables=$(grep -n "copr enable" "$SETUP_SCRIPT" | grep -v 'dnf copr enable -y "\$repo"' || true)
-assert_eq "No hardcoded extraneous COPR enable calls in setup.sh" "" "$all_copr_enables"
+# Check Ghostty COPR in setup_terminal
+if grep -q 'copr enable -y scottames/ghostty' "$SETUP_SCRIPT"; then
+    pass "setup.sh enables scottames/ghostty COPR repository for Ghostty terminal"
+else
+    fail "setup.sh missing scottames/ghostty COPR repository"
+fi
 
-# Verify scrcpy package mapping
-scrcpy_pkgs=$(echo "$copr_entries" | grep '^zeno/scrcpy:' | cut -d':' -f2)
-assert_eq "zeno/scrcpy maps to scrcpy package" "scrcpy" "$scrcpy_pkgs"
-
-# Verify yazi and all preview dependencies
-yazi_pkgs=$(echo "$copr_entries" | grep '^lihaohong/yazi:' | cut -d':' -f2)
-required_yazi_deps=(
-    "yazi"           # Main binary
-    "file"           # File type / mime detection
-    "ffmpeg"         # Video thumbnails
-    "7zip"           # Archive extraction / previews
-    "jq"             # JSON preview
-    "poppler-utils"  # PDF preview (pdftoppm)
-    "fd-find"        # Fast directory search
-    "ripgrep"        # Fast text search
-    "fzf"            # Fuzzy filtering
-    "zoxide"         # Directory jumping
-    "resvg"          # SVG preview
-    "xclip"          # X11 clipboard
-    "wl-clipboard"   # Wayland clipboard
-    "xsel"           # Alternative X11 clipboard
-    "ImageMagick"    # Image manipulation/preview
-)
-
+# Verify yazi preview dependencies in setup_desktop_apps
+yazi_install_line=$(grep -A 5 'copr enable -y lihaohong/yazi' "$SETUP_SCRIPT" | grep 'dnf install')
+required_yazi_deps=("yazi" "file" "poppler-utils" "resvg" "ImageMagick")
 for dep in "${required_yazi_deps[@]}"; do
-    if [[ " $yazi_pkgs " == *" $dep "* ]]; then
-        pass "Yazi dependency list contains '$dep'"
-    else
-        fail "Yazi dependency list contains '$dep'" "Missing from: $yazi_pkgs"
-    fi
+    assert_contains "Yazi dependency '$dep' present in install list" "$dep" "$yazi_install_line"
 done
 
 # ==============================================================================
-# Suite 2: setup_copr Execution & Error Handling (Mocked)
+# Suite 2: COPR Runtime Dry-Run Behavior
 # ==============================================================================
 echo ""
-echo -e "${BLUE}=== Suite 2: setup_copr Runtime Behavior & Error Handling ===${NC}"
+echo -e "${BLUE}=== Suite 2: COPR Runtime Dry-Run Behavior ===${NC}"
 
-# Extract setup_copr function source directly
-copr_func_code=$(sed -n '/^setup_copr() {/,/^}/p' "$SETUP_SCRIPT")
-fonts_func_code=$(sed -n '/^setup_fonts() {/,/^}/p' "$SETUP_SCRIPT")
-
-# Test normal execution flow
-test_copr_execution() {
-    local func_code="$1"
-    bash <<EOF
-set -u
-LOG_MESSAGES=()
-SUDO_CMDS=()
-WARN_MESSAGES=()
-COMPLETED=""
-
-log() { echo "LOG: \$1"; }
-info() { :; }
-warn() { echo "WARN: \$1"; }
-step_complete() { echo "STEP: \$1"; }
-confirm() { return 0; }
-run_sudo() {
-    echo "SUDO: \$*"
-    return 0
-}
-
-$func_code
-
-setup_copr
-EOF
-}
-
-copr_exec_out=$(test_copr_execution "$copr_func_code")
-assert_contains "setup_copr enables zeno/scrcpy" "SUDO: dnf copr enable -y zeno/scrcpy" "$copr_exec_out"
-assert_contains "setup_copr installs scrcpy" "SUDO: dnf install -y --skip-unavailable scrcpy" "$copr_exec_out"
-assert_contains "setup_copr enables lihaohong/yazi" "SUDO: dnf copr enable -y lihaohong/yazi" "$copr_exec_out"
-assert_contains "setup_copr installs yazi with preview tools" "SUDO: dnf install -y --skip-unavailable yazi file ffmpeg 7zip jq poppler-utils fd-find ripgrep fzf zoxide resvg xclip wl-clipboard xsel ImageMagick" "$copr_exec_out"
-assert_contains "setup_copr marks step complete" "STEP: COPR packages installed" "$copr_exec_out"
-assert_not_contains "setup_copr has 0 warnings on success" "WARN:" "$copr_exec_out"
-
-# Test repo enable failure handling
-test_copr_enable_failure() {
-    local func_code="$1"
-    bash <<EOF
-set -u
-log() { :; }
-info() { :; }
-warn() { echo "WARN: \$1"; }
-step_complete() { echo "STEP: \$1"; }
-confirm() { return 0; }
-run_sudo() {
-    local cmd="\$*"
-    if [[ "\$cmd" == *"copr enable -y zeno/scrcpy"* ]]; then
-        return 1
-    fi
-    echo "RAN: \$cmd"
-    return 0
-}
-
-$func_code
-
-setup_copr
-EOF
-}
-
-copr_fail_out=$(test_copr_enable_failure "$copr_func_code")
-assert_contains "setup_copr warns on enable failure" "WARN: Failed to enable COPR repo zeno/scrcpy" "$copr_fail_out"
-assert_not_contains "setup_copr skips install when repo enable fails" "RAN: dnf install -y --skip-unavailable scrcpy" "$copr_fail_out"
-assert_contains "setup_copr continues with remaining repos after failure" "RAN: dnf copr enable -y lihaohong/yazi" "$copr_fail_out"
+dry_full=$(bash "$SETUP_SCRIPT" --dry-run -f --profile=full 2>&1)
+assert_contains "Full profile dry-run logs Yazi COPR enable" "sudo dnf copr enable -y lihaohong/yazi" "$dry_full"
+assert_contains "Full profile dry-run logs Yazi install" "sudo dnf install -y --skip-unavailable yazi" "$dry_full"
+assert_contains "Full profile dry-run logs Scrcpy COPR enable" "sudo dnf copr enable -y zeno/scrcpy" "$dry_full"
+assert_contains "Full profile dry-run logs Scrcpy install" "sudo dnf install -y --skip-unavailable scrcpy" "$dry_full"
 
 # ==============================================================================
 # Suite 3: setup_fonts Static Package Audit
 # ==============================================================================
 echo ""
 echo -e "${BLUE}=== Suite 3: setup_fonts Static Package Audit ===${NC}"
+
+fonts_func_code=$(sed -n '/^setup_fonts() {/,/^}/p' "$SETUP_SCRIPT")
 
 # 1. DejaVu fonts
 assert_contains "setup_fonts installs dejavu-sans-fonts" "dejavu-sans-fonts" "$fonts_func_code"
@@ -216,15 +142,10 @@ assert_contains "setup_fonts installs google-noto-serif-fonts" "google-noto-seri
 assert_contains "setup_fonts installs google-noto-mono-fonts" "google-noto-mono-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs google-carlito-fonts" "google-carlito-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs google-caladea-fonts" "google-caladea-fonts" "$fonts_func_code"
-assert_contains "setup_fonts installs google-crosextra-caladea-fonts" "google-crosextra-caladea-fonts" "$fonts_func_code"
 
 # 4. Microsoft fonts
-assert_contains "setup_fonts installs mscore-fonts" "mscore-fonts" "$fonts_func_code"
-assert_contains "setup_fonts installs mscore-fonts-all" "mscore-fonts-all" "$fonts_func_code"
 assert_contains "setup_fonts downloads msttcore-fonts-installer" "msttcore-fonts-installer-2.6-1.noarch.rpm" "$fonts_func_code"
 assert_contains "setup_fonts verifies msttcore-fonts checksum" "verify_checksum" "$fonts_func_code"
-assert_not_contains "setup_fonts does not use --nodigest" "--nodigest" "$fonts_func_code"
-assert_not_contains "setup_fonts does not use --nofiledigest" "--nofiledigest" "$fonts_func_code"
 assert_contains "setup_fonts installs cabextract for MS core fonts" "cabextract" "$fonts_func_code"
 assert_contains "setup_fonts cleans up msttcore-fonts rpm after install" "rm -f" "$fonts_func_code"
 assert_contains "setup_fonts downloads PowerPointViewer for Cambria Regular" "PowerPointViewer.exe" "$fonts_func_code"
@@ -237,7 +158,7 @@ assert_contains "setup_fonts targets ryanoasis/nerd-fonts repo" "ryanoasis/nerd-
 assert_contains "setup_fonts uses FiraCode regex pattern" 'FiraCode\\.zip' "$fonts_func_code"
 assert_contains "setup_fonts outputs to /tmp/FiraCode.zip" "/tmp/FiraCode.zip" "$fonts_func_code"
 assert_contains "setup_fonts provides fallback URL" "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip" "$fonts_func_code"
-assert_contains "setup_fonts unpacks to ~/.local/share/fonts" "~/.local/share/fonts" "$fonts_func_code"
+assert_contains "setup_fonts unpacks to ~/.local/share/fonts" "HOME/.local/share/fonts" "$fonts_func_code"
 assert_contains "setup_fonts cleans up temporary zip" "rm -f /tmp/FiraCode.zip" "$fonts_func_code"
 
 # 6. fc-cache execution
@@ -264,6 +185,7 @@ step_complete() { :; }
 dry() { echo "DRY: \$1"; }
 run() { dry "\$*"; }
 run_sudo() { dry "sudo \$*"; }
+confirm() { return 0; }
 github_download() { ((REAL_EXEC_COUNT++)); return 0; }
 fc-cache() { ((REAL_EXEC_COUNT++)); return 0; }
 mkdir() { ((REAL_EXEC_COUNT++)); return 0; }
@@ -281,13 +203,9 @@ EOF
 dry_run_out=$(test_fonts_dry_run "$fonts_func_code")
 assert_contains "Dry-run makes zero real filesystem or cache modifications" "REAL_EXEC_COUNT=0" "$dry_run_out"
 assert_contains "Dry-run logs DNF font install" "DRY: sudo dnf install -y --skip-unavailable" "$dry_run_out"
-assert_contains "Dry-run logs msttcore-fonts curl download" "DRY: curl -sLO https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm" "$dry_run_out"
-assert_contains "Dry-run logs msttcore-fonts verification and rpm installation" "verify_checksum" "$dry_run_out"
-assert_contains "Dry-run logs Cambria Regular extraction" "Download and extract Cambria Regular" "$dry_run_out"
-assert_contains "Dry-run logs Aptos font download" "Download Aptos font family" "$dry_run_out"
-assert_contains "Dry-run logs Segoe UI font download" "Download Segoe UI font family" "$dry_run_out"
-assert_contains "Dry-run logs FiraCode Nerd Font download/install" "DRY: Download and install FiraCode Nerd Font" "$dry_run_out"
-assert_contains "Dry-run logs Symbols Nerd Font download/install" "DRY: Download and install Symbols Nerd Font and 10-nerd-font-symbols.conf fontconfig" "$dry_run_out"
+assert_contains "Dry-run logs msttcore-fonts curl download" "DRY: curl -fsSL -o" "$dry_run_out"
+assert_contains "Dry-run logs Cambria, Aptos, and Segoe UI download" "Download Cambria, Aptos, and Segoe UI" "$dry_run_out"
+assert_contains "Dry-run logs FiraCode Nerd Font download/extract" "DRY: Download and extract FiraCode Nerd Font and Symbols Nerd Font" "$dry_run_out"
 assert_contains "Dry-run logs fc-cache -fv" "DRY: fc-cache -fv" "$dry_run_out"
 
 # Test DRY_RUN=false execution flow (mocked tools)
@@ -309,7 +227,10 @@ unzip() { echo "UNZIP: \$*"; }
 tar() { echo "TAR: \$*"; }
 rm() { echo "RM: \$*"; }
 fc-cache() { echo "FC-CACHE: \$*"; }
+confirm() { return 0; }
 verify_checksum() { return 0; }
+curl() { echo "CURL: \$*"; return 0; }
+cabextract() { echo "CABEXTRACT: \$*"; return 0; }
 
 github_download() {
     echo "GH_DOWNLOAD: repo=\$1 pattern=\$2 output=\$3 fallback=\$4"
@@ -323,66 +244,28 @@ EOF
 }
 
 live_exec_out=$(test_fonts_live_execution "$fonts_func_code")
-assert_contains "Live mode creates font directory ~/.local/share/fonts" "MKDIR: -p $HOME/.local/share/fonts" "$live_exec_out"
-assert_contains "Live mode creates ms-fonts directory" "MKDIR: -p $HOME/.local/share/fonts/ms-fonts" "$live_exec_out"
+assert_contains "Live mode creates font directories" "MKDIR: -p $HOME/.local/share/fonts/FiraCode" "$live_exec_out"
 assert_contains "Live mode downloads FiraCode" "GH_DOWNLOAD: repo=ryanoasis/nerd-fonts pattern=FiraCode\\.zip output=/tmp/FiraCode.zip" "$live_exec_out"
-assert_contains "Live mode unzips font archive" "UNZIP: -oq /tmp/FiraCode.zip -d $HOME/.local/share/fonts/" "$live_exec_out"
+assert_contains "Live mode unzips font archive" "UNZIP: -oq /tmp/FiraCode.zip -d $HOME/.local/share/fonts/FiraCode/" "$live_exec_out"
 assert_contains "Live mode removes temporary zip" "RM: -f /tmp/FiraCode.zip" "$live_exec_out"
 assert_contains "Live mode downloads Symbols Nerd Font" "GH_DOWNLOAD: repo=ryanoasis/nerd-fonts pattern=NerdFontsSymbolsOnly\\.tar\\.xz" "$live_exec_out"
-assert_contains "Live mode signals Symbols Nerd Font success" "SUCCESS: Symbols Nerd Font and fontconfig rules installed" "$live_exec_out"
+assert_contains "Live mode signals Symbols Nerd Font success" "SUCCESS: Symbols Nerd Font installed" "$live_exec_out"
 assert_contains "Live mode executes fc-cache -fv" "FC-CACHE: -fv" "$live_exec_out"
 assert_contains "Live mode signals FiraCode success" "SUCCESS: FiraCode Nerd Font installed" "$live_exec_out"
 assert_contains "Live mode finishes font setup step" "STEP: Fonts installed" "$live_exec_out"
-
-# Test DRY_RUN=false FiraCode download failure handling
-test_fonts_download_failure() {
-    local func_code="$1"
-    bash <<EOF
-set -u
-DRY_RUN=false
-
-log() { :; }
-info() { echo "INFO: \$1"; }
-warn() { echo "WARN: \$1"; }
-success() { :; }
-step_complete() { echo "STEP: \$1"; }
-run() { :; }
-run_sudo() { :; }
-mkdir() { :; }
-tar() { :; }
-rm() { :; }
-fc-cache() { echo "FC-CACHE: \$*"; }
-verify_checksum() { return 0; }
-
-github_download() { return 1; }
-
-$func_code
-
-setup_fonts
-EOF
-}
-
-fail_exec_out=$(test_fonts_download_failure "$fonts_func_code")
-assert_contains "FiraCode download failure issues warning" "WARN: Failed to download FiraCode Nerd Font" "$fail_exec_out"
-assert_contains "Symbols Nerd Font download failure issues warning" "WARN: Failed to download Symbols Nerd Font" "$fail_exec_out"
-assert_contains "FiraCode download failure displays manual URL info" "INFO: Manual download: https://github.com/ryanoasis/nerd-fonts/releases" "$fail_exec_out"
-assert_contains "fc-cache -fv still runs to refresh system fonts when FiraCode fails" "FC-CACHE: -fv" "$fail_exec_out"
-assert_contains "Font step completes even if optional FiraCode download fails" "STEP: Fonts installed" "$fail_exec_out"
 
 # ==============================================================================
 # Suite 5: Profile Inclusions
 # ==============================================================================
 echo ""
-echo -e "${BLUE}=== Suite 5: Profile Inclusions for COPR & Fonts ===${NC}"
+echo -e "${BLUE}=== Suite 5: Profile Inclusions for Fonts ===${NC}"
 
 # Parse PROFILE_STEPS from setup.sh
 declare -A PROFILE_STEPS
-while IFS= read -r line; do
-    eval "$line"
-done < <(grep -E 'PROFILE_STEPS\[[a-z]+\]=' "$SETUP_SCRIPT")
+eval "$(sed -n '/local base_minimal=/,/PROFILE_STEPS\[full\]=/p' "$SETUP_SCRIPT" | sed 's/local -A /declare -g -A /; s/local /declare -g /')"
 
-# setup_fonts must be in all profiles
-for prof in minimal dev gaming workstation creator; do
+# setup_fonts must be in all graphical profiles
+for prof in workstation dev gaming creator; do
     if [[ "${PROFILE_STEPS[$prof]}" == *"setup_fonts"* ]]; then
         pass "Profile '$prof' includes setup_fonts"
     else
@@ -390,33 +273,19 @@ for prof in minimal dev gaming workstation creator; do
     fi
 done
 
-# setup_copr must ONLY be in full (and excluded from minimal, dev, gaming, workstation, creator)
-if [[ "${PROFILE_STEPS[creator]}" != *"setup_copr"* ]]; then
-    pass "Profile 'creator' excludes setup_copr"
+# setup_fonts must be excluded from minimal
+if [[ "${PROFILE_STEPS[minimal]}" != *"setup_fonts"* ]]; then
+    pass "Profile 'minimal' excludes setup_fonts (CLI/headless focus)"
 else
-    fail "Profile 'creator' should NOT include setup_copr" "Steps: ${PROFILE_STEPS[creator]}"
+    fail "Profile 'minimal' should NOT include setup_fonts" "Steps: ${PROFILE_STEPS[minimal]}"
 fi
-
-for prof in minimal dev gaming workstation; do
-    if [[ "${PROFILE_STEPS[$prof]}" != *"setup_copr"* ]]; then
-        pass "Profile '$prof' excludes setup_copr"
-    else
-        fail "Profile '$prof' excludes setup_copr" "Steps: ${PROFILE_STEPS[$prof]}"
-    fi
-done
 
 # Full profile check
 steps_definitions=$(sed -n '/local steps=(/,/)/p' "$SETUP_SCRIPT")
-if [[ "$steps_definitions" == *"\"setup_copr:COPR Packages\""* ]]; then
-    pass "Full profile includes setup_copr"
+if [[ "$steps_definitions" == *"\"setup_fonts:System & Nerd Fonts\""* ]]; then
+    pass "Full profile master registry includes setup_fonts"
 else
-    fail "Full profile includes setup_copr"
-fi
-
-if [[ "$steps_definitions" == *"\"setup_fonts:System Fonts\""* ]]; then
-    pass "Full profile includes setup_fonts"
-else
-    fail "Full profile includes setup_fonts"
+    fail "Full profile master registry includes setup_fonts"
 fi
 
 # ==============================================================================

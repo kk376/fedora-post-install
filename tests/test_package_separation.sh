@@ -45,34 +45,34 @@ echo "================================================================"
 echo ""
 echo -e "${BLUE}--- Suite 1: Static Code Analysis ---${NC}"
 
-# 1.1 eza in DNF packages in setup_packages
-if grep -A 10 "setup_packages()" "$SETUP_SCRIPT" | grep -q "eza"; then
-    pass "eza is present in setup_packages() DNF package list"
+# 1.1 eza in DNF packages in setup_cli_core
+if grep -A 10 "setup_cli_core()" "$SETUP_SCRIPT" | grep -q "eza"; then
+    pass "eza is present in setup_cli_core() DNF package list"
 else
-    fail "eza is NOT present in setup_packages() DNF package list"
+    fail "eza is NOT present in setup_cli_core() DNF package list"
 fi
 
-# 1.2 eza NOT in setup_copr()
-if sed -n '/setup_copr()/,/^}/p' "$SETUP_SCRIPT" | grep -q "eza"; then
-    fail "eza found in setup_copr() (should be removed from COPR)"
+# 1.2 eza NOT in COPR repositories
+if grep -i "copr" "$SETUP_SCRIPT" | grep -q "eza"; then
+    fail "eza found in COPR repositories (should be standard DNF package)"
 else
-    pass "eza is NOT present in setup_copr() COPR repositories"
+    pass "eza is NOT present in COPR repositories"
 fi
 
 # 1.3 COPR entries contain scrcpy and yazi
-if sed -n '/setup_copr()/,/^}/p' "$SETUP_SCRIPT" | grep -q "zeno/scrcpy" && \
-   sed -n '/setup_copr()/,/^}/p' "$SETUP_SCRIPT" | grep -q "lihaohong/yazi"; then
-    pass "setup_copr() contains expected COPR entries (scrcpy, yazi)"
+if grep -q "zeno/scrcpy" "$SETUP_SCRIPT" && \
+   grep -q "lihaohong/yazi" "$SETUP_SCRIPT"; then
+    pass "setup.sh contains expected COPR entries (scrcpy, yazi)"
 else
-    fail "setup_copr() missing expected COPR repositories"
+    fail "setup.sh missing expected COPR repositories"
 fi
 
-# 1.4 Steam and MangoHud profile gating logic check in setup_packages
-gating_check=$(sed -n '/setup_packages()/,/^}/p' "$SETUP_SCRIPT" | grep -E 'is_gaming_profile|PROFILE.*==.*(gaming|workstation|creator|full)')
-if [[ -n "$gating_check" ]]; then
-    pass "setup_packages() contains profile gate for gaming/workstation/creator/full"
+# 1.4 Steam and MangoHud domain step isolation
+if grep -A 10 "setup_gaming()" "$SETUP_SCRIPT" | grep -qE "steam|mangohud|gamemode" && \
+   grep -A 10 "setup_creator()" "$SETUP_SCRIPT" | grep -q "akmod-v4l2loopback"; then
+    pass "Domain packages (gaming: steam/mangohud, creator: akmod-v4l2loopback) are isolated to dedicated steps"
 else
-    fail "setup_packages() missing profile gating for gaming packages"
+    fail "Domain packages missing proper step isolation"
 fi
 
 # ==============================================================================
@@ -110,45 +110,45 @@ get_steps_for_profile() {
 
 minimal_steps=$(get_steps_for_profile "minimal")
 
-# 2.1 minimal skips setup_packages and setup_copr
-if [[ ! " $minimal_steps " =~ " setup_packages " ]]; then
-    pass "minimal profile excludes setup_packages"
+# 2.1 minimal skips desktop_apps and gaming
+if [[ ! " $minimal_steps " =~ " setup_desktop_apps " ]]; then
+    pass "minimal profile excludes setup_desktop_apps"
 else
-    fail "minimal profile should NOT include setup_packages"
+    fail "minimal profile should NOT include setup_desktop_apps"
 fi
 
-if [[ ! " $minimal_steps " =~ " setup_copr " ]]; then
-    pass "minimal profile excludes setup_copr"
+if [[ ! " $minimal_steps " =~ " setup_gaming " ]]; then
+    pass "minimal profile excludes setup_gaming"
 else
-    fail "minimal profile should NOT include setup_copr"
+    fail "minimal profile should NOT include setup_gaming"
 fi
 
-# 2.2 Non-minimal profiles include setup_packages
+# 2.2 Non-minimal profiles include setup_desktop_apps
 for p in "dev" "gaming" "workstation" "creator" "full"; do
     steps_var=$(get_steps_for_profile "$p")
-    if [[ " $steps_var " =~ " setup_packages " ]]; then
-        pass "Profile '$p' includes setup_packages"
+    if [[ " $steps_var " =~ " setup_desktop_apps " ]]; then
+        pass "Profile '$p' includes setup_desktop_apps"
     else
-        fail "Profile '$p' missing setup_packages"
+        fail "Profile '$p' missing setup_desktop_apps"
     fi
 done
 
-# 2.3 COPR step is only in full profile
-for p in "minimal" "dev" "gaming" "workstation" "creator"; do
+# 2.3 Gaming step isolation across profiles
+for p in "minimal" "dev" "workstation" "creator"; do
     steps_var=$(get_steps_for_profile "$p")
-    if [[ ! " $steps_var " =~ " setup_copr " ]]; then
-        pass "Profile '$p' excludes setup_copr"
+    if [[ ! " $steps_var " =~ " setup_gaming " ]]; then
+        pass "Profile '$p' excludes setup_gaming"
     else
-        fail "Profile '$p' should NOT include setup_copr"
+        fail "Profile '$p' should NOT include setup_gaming"
     fi
 done
 
 p="full"
 steps_var=$(get_steps_for_profile "$p")
-if [[ " $steps_var " =~ " setup_copr " ]]; then
-    pass "Profile '$p' includes setup_copr"
+if [[ " $steps_var " =~ " setup_gaming " ]]; then
+    pass "Profile '$p' includes setup_gaming"
 else
-    fail "Profile '$p' missing setup_copr"
+    fail "Profile '$p' missing setup_gaming"
 fi
 
 # ==============================================================================
@@ -182,6 +182,11 @@ run_mock_setup_packages() {
         step_complete() { :; }
         backup_file() { :; }
         confirm() { return 0; }
+        prompt_input() { echo "${2:-}"; }
+        HAS_NVIDIA=false
+        HAS_AMD=false
+        HAS_INTEL=false
+        IS_LAPTOP=false
 
         run_sudo() {
             if [[ "$1" == "dnf" && "$2" == "install" ]]; then
@@ -190,11 +195,12 @@ run_mock_setup_packages() {
                     case "$1" in
                         -y|--skip-unavailable) shift ;;
                         /tmp/vesktop.rpm) touch "$sandbox/.vesktop_installed"; shift ;;
+                        steam-devices) touch "$sandbox/.steam_unlocked"; echo -n "$1 " >> "$sandbox/.dnf_pkgs"; shift ;;
                         *) echo -n "$1 " >> "$sandbox/.dnf_pkgs"; shift ;;
                     esac
                 done
                 return 0
-            elif [[ "$1" == "dnf" && ( "$2" == "remove" || "$2" == "config-manager" ) ]]; then
+            elif [[ "$1" == "dnf" && ( "$2" == "remove" || "$2" == "config-manager" || "$2" == "copr" ) ]]; then
                 return 0
             fi
             "$@"
@@ -256,13 +262,33 @@ run_mock_setup_packages() {
         }
         sleep() { command sleep 0.05; }
 
-        # Extract profile helpers and setup_packages definitions from setup.sh
+        SYS_ARCH="$(uname -m)"
+        DEV_TYPE="all"
+
+        # Extract profile helpers and domain step definitions from setup.sh
         eval "$(sed -n "/is_gaming_profile() {/,/^}/p" "$setup_script")"
         eval "$(sed -n "/is_creator_profile() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/setup_packages() {/,/^}/p" "$setup_script")"
+        eval "$(sed -n "/is_dev_profile() {/,/^}/p" "$setup_script")"
+        eval "$(sed -n "/setup_cli_core() {/,/^}/p" "$setup_script")"
+        eval "$(sed -n "/setup_desktop_apps() {/,/^}/p" "$setup_script")"
+        eval "$(sed -n "/setup_gaming() {/,/^}/p" "$setup_script")"
+        eval "$(sed -n "/setup_creator() {/,/^}/p" "$setup_script")"
+        eval "$(sed -n "/setup_dev() {/,/^}/p" "$setup_script")"
 
-        # Execute setup_packages
-        setup_packages
+        # Execute domain steps according to profile
+        setup_cli_core
+        if [[ "$PROFILE" != "minimal" ]]; then
+            setup_desktop_apps
+        fi
+        if [[ "$PROFILE" == "gaming" || "$PROFILE" == "full" ]]; then
+            setup_gaming
+        fi
+        if [[ "$PROFILE" == "creator" || "$PROFILE" == "full" ]]; then
+            setup_creator
+        fi
+        if [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]; then
+            setup_dev
+        fi
 
         # Output state
         echo -n "DNF_PKGS:"
@@ -478,6 +504,12 @@ run_mock_setup_copr() {
         success() { :; }
         step_complete() { :; }
         confirm() { return 0; }
+        prompt_input() { echo "${2:-}"; }
+        github_download() { touch "$3"; return 0; }
+        HAS_NVIDIA=false
+        HAS_AMD=false
+        HAS_INTEL=false
+        IS_LAPTOP=false
 
         run_sudo() {
             if [[ "$1" == "dnf" && "$2" == "copr" && "$3" == "enable" ]]; then
@@ -496,10 +528,15 @@ run_mock_setup_copr() {
             return 0
         }
 
-        # Extract setup_copr definition from setup.sh
-        eval "$(sed -n "/setup_copr() {/,/^}/p" "$setup_script")"
+        # Extract domain functions with COPR from setup.sh
+        eval "$(sed -n "/setup_desktop_apps() {/,/^}/p" "$setup_script")"
+        eval "$(sed -n "/setup_dev() {/,/^}/p" "$setup_script")"
 
-        setup_copr
+        SYS_ARCH="$(uname -m)"
+        DEV_TYPE="android"
+        PROFILE="full"
+        setup_desktop_apps
+        setup_dev
 
         echo -n "COPR_REPOS:"
         [[ -f "$sandbox/.copr_repos" ]] && cat "$sandbox/.copr_repos"
@@ -577,8 +614,8 @@ test_mangohud_content() {
 
         eval "$(sed -n "/is_gaming_profile() {/,/^}/p" "$setup_script")"
         eval "$(sed -n "/is_creator_profile() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/setup_packages() {/,/^}/p" "$setup_script")"
-        setup_packages
+        eval "$(sed -n "/setup_gaming() {/,/^}/p" "$setup_script")"
+        setup_gaming
     ' _ "$sandbox" "$SETUP_SCRIPT"
 
     local conf_file="$sandbox/.config/MangoHud/MangoHud.conf"
@@ -700,12 +737,12 @@ fi
 echo ""
 echo -e "${BLUE}--- Suite 9: AOSP/Multilib Removal & dpkg-dev Profile Isolation ---${NC}"
 
-# 9.1: Verify android-tools is included in setup_packages for phone connectivity/debugging
-pkgs_to_install_array=$(sed -n '/setup_packages()/,/^}/p' "$SETUP_SCRIPT" | sed -n '/local pkgs_to_install=(/,/)/p')
+# 9.1: Verify android-tools is included in setup_cli_core for phone connectivity/debugging
+pkgs_to_install_array=$(sed -n '/setup_cli_core()/,/^}/p' "$SETUP_SCRIPT" | sed -n '/local cli_pkgs=(/,/)/p')
 if echo "$pkgs_to_install_array" | grep -q "android-tools"; then
-    pass "android-tools is included in setup_packages() for Android device connectivity"
+    pass "android-tools is included in setup_cli_core() for Android device connectivity"
 else
-    fail "android-tools missing from setup_packages()"
+    fail "android-tools missing from setup_cli_core()"
 fi
 
 # 9.2: Verify AOSP build packages removed from setup_dev

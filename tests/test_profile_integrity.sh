@@ -68,35 +68,35 @@ get_profile_steps() {
 }
 
 echo "================================================================"
-echo "TEST SUITE: Profile Integrity & Execution Order (v6.0.0)"
+echo "TEST SUITE: Profile Integrity & Execution Order (v7.0.0)"
 echo "Target Script: $SCRIPT_PATH"
 echo "================================================================"
 
 declare -A EXPECTED_STEPS
-EXPECTED_STEPS[minimal]="setup_dnf setup_dns setup_fonts setup_shell setup_browser_multimedia setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[dev]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_dev setup_editor setup_flatpaks setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[gaming]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[workstation]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[creator]="setup_dnf setup_dns setup_power setup_fonts setup_shell setup_browser_multimedia setup_gnome setup_packages setup_flatpaks setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[full]="setup_dnf setup_dns setup_power setup_nosleep setup_fonts setup_shell setup_browser_multimedia setup_copr setup_gnome setup_packages setup_dev setup_editor setup_flatpaks setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[minimal]="setup_dnf setup_dns setup_cli_core setup_shell"
+EXPECTED_STEPS[workstation]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[dev]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_dev setup_editor setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[gaming]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_gaming setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[creator]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_creator setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[full]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_dev setup_editor setup_docker setup_kvm setup_gaming setup_creator setup_pre_driver_reboot setup_drivers"
 
 declare -A EXPECTED_NAMES
-EXPECTED_NAMES[minimal]="DNF Configuration, DNS Configuration, System Fonts, ZSH + Starship, Brave + Multimedia, Pre-Driver Reboot, GPU Drivers"
-EXPECTED_NAMES[dev]="DNF Configuration, DNS Configuration, Power Management, No-Sleep Settings, System Fonts, ZSH + Starship, Brave + Multimedia, GNOME Tools, Essential Packages, Development Tools, Code Editor, Flatpak Apps, Docker Setup, KVM/QEMU Virtualization, Pre-Driver Reboot, GPU Drivers"
-EXPECTED_NAMES[gaming]="DNF Configuration, DNS Configuration, Power Management, System Fonts, ZSH + Starship, Brave + Multimedia, GNOME Tools, Essential Packages, Flatpak Apps, Pre-Driver Reboot, GPU Drivers"
-EXPECTED_NAMES[workstation]="DNF Configuration, DNS Configuration, Power Management, System Fonts, ZSH + Starship, Brave + Multimedia, GNOME Tools, Essential Packages, Flatpak Apps, Pre-Driver Reboot, GPU Drivers"
-EXPECTED_NAMES[creator]="DNF Configuration, DNS Configuration, Power Management, System Fonts, ZSH + Starship, Brave + Multimedia, GNOME Tools, Essential Packages, Flatpak Apps, Pre-Driver Reboot, GPU Drivers"
-EXPECTED_NAMES[full]="DNF Configuration, DNS Configuration, Power Management, No-Sleep Settings, System Fonts, ZSH + Starship, Brave + Multimedia, COPR Packages, GNOME Tools, Essential Packages, Development Tools, Code Editor, Flatpak Apps, Docker Setup, KVM/QEMU Virtualization, Pre-Driver Reboot, GPU Drivers"
+EXPECTED_NAMES[minimal]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal"
+EXPECTED_NAMES[workstation]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, Desktop Applications, Power & Sleep Management, Pre-Driver Kernel Checkpoint, GPU Drivers"
+EXPECTED_NAMES[dev]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, Desktop Applications, Power & Sleep Management, Development Toolchains, Code Editor, Docker & Compose, KVM/QEMU Virtualization, Pre-Driver Kernel Checkpoint, GPU Drivers"
+EXPECTED_NAMES[gaming]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, Desktop Applications, Power & Sleep Management, Gaming Stack, Pre-Driver Kernel Checkpoint, GPU Drivers"
+EXPECTED_NAMES[creator]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, Desktop Applications, Power & Sleep Management, Creator & Streaming Suite, Pre-Driver Kernel Checkpoint, GPU Drivers"
+EXPECTED_NAMES[full]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, Desktop Applications, Power & Sleep Management, Development Toolchains, Code Editor, Docker & Compose, KVM/QEMU Virtualization, Gaming Stack, Creator & Streaming Suite, Pre-Driver Kernel Checkpoint, GPU Drivers"
 
 declare -A EXPECTED_COUNTS
-EXPECTED_COUNTS[minimal]=7
-EXPECTED_COUNTS[dev]=16
-EXPECTED_COUNTS[gaming]=11
+EXPECTED_COUNTS[minimal]=4
 EXPECTED_COUNTS[workstation]=11
-EXPECTED_COUNTS[creator]=11
+EXPECTED_COUNTS[dev]=15
+EXPECTED_COUNTS[gaming]=12
+EXPECTED_COUNTS[creator]=12
 EXPECTED_COUNTS[full]=17
 
-ALL_PROFILES=("minimal" "dev" "gaming" "workstation" "creator" "full")
+ALL_PROFILES=("minimal" "workstation" "dev" "gaming" "creator" "full")
 
 # 1. Verify Step Lists and Step Counts for all 6 profiles
 echo ""
@@ -109,10 +109,11 @@ for p in "${ALL_PROFILES[@]}"; do
     assert_eq "Profile '$p' exact step sequence" "${EXPECTED_STEPS[$p]}" "$actual_steps"
 done
 
-# 2. Verify Driver Steps Order in All Profiles (All profiles now end with pre-reboot -> drivers)
+# 2. Verify Driver Steps Order Across Workstation Profiles
 echo ""
-echo "--- 2. Testing Driver Steps Order Across All Profiles ---"
-for p in "${ALL_PROFILES[@]}"; do
+echo "--- 2. Testing Driver Steps Order Across Workstation Profiles ---"
+WORKSTATION_PROFILES=("workstation" "dev" "gaming" "creator" "full")
+for p in "${WORKSTATION_PROFILES[@]}"; do
     actual_steps=$(get_profile_steps "$p")
     read -r -a steps_arr <<< "$actual_steps"
     total=${#steps_arr[@]}
@@ -125,6 +126,10 @@ for p in "${ALL_PROFILES[@]}"; do
     assert_contains "Profile '$p' contains setup_pre_driver_reboot" "setup_pre_driver_reboot" "$actual_steps"
     assert_contains "Profile '$p' contains setup_drivers" "setup_drivers" "$actual_steps"
 done
+
+# Minimal profile is CLI-only and excludes driver steps
+assert_not_contains "Profile 'minimal' excludes setup_pre_driver_reboot" "setup_pre_driver_reboot" "$(get_profile_steps minimal)"
+assert_not_contains "Profile 'minimal' excludes setup_drivers" "setup_drivers" "$(get_profile_steps minimal)"
 
 # 3. Verify End-to-End Dry-Run Execution Trace
 echo ""

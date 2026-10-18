@@ -71,23 +71,23 @@ run_test "Force flag reversed order (-n --force)" 0 "DRY-RUN MODE" -n --force
 run_test "Force flag reversed short (-n -f)" 0 "DRY-RUN MODE" -n -f
 
 # 4. Profile flags (--profile=VALUE and --profile VALUE)
-# Minimal profile (7 steps)
+# Minimal profile (4 steps)
 run_test "Profile minimal (= syntax)" 0 "Profile: minimal" --profile=minimal -n
-run_test "Profile minimal step count (= syntax)" 0 "of 7" --profile=minimal -n
+run_test "Profile minimal step count (= syntax)" 0 "of 4" --profile=minimal -n
 run_test "Profile minimal (space syntax)" 0 "Profile: minimal" --profile minimal -n
-run_test "Profile minimal step count (space syntax)" 0 "of 7" --profile minimal -n
+run_test "Profile minimal step count (space syntax)" 0 "of 4" --profile minimal -n
 
-# Dev profile (16 steps)
+# Dev profile (15 steps)
 run_test "Profile dev (= syntax)" 0 "Profile: dev" --profile=dev -n
-run_test "Profile dev step count (= syntax)" 0 "of 16" --profile=dev -n
+run_test "Profile dev step count (= syntax)" 0 "of 15" --profile=dev -n
 run_test "Profile dev (space syntax)" 0 "Profile: dev" --profile dev -n
-run_test "Profile dev step count (space syntax)" 0 "of 16" --profile dev -n
+run_test "Profile dev step count (space syntax)" 0 "of 15" --profile dev -n
 
-# Gaming profile (11 steps)
+# Gaming profile (12 steps)
 run_test "Profile gaming (= syntax)" 0 "Profile: gaming" --profile=gaming -n
-run_test "Profile gaming step count (= syntax)" 0 "of 11" --profile=gaming -n
+run_test "Profile gaming step count (= syntax)" 0 "of 12" --profile=gaming -n
 run_test "Profile gaming (space syntax)" 0 "Profile: gaming" --profile gaming -n
-run_test "Profile gaming step count (space syntax)" 0 "of 11" --profile gaming -n
+run_test "Profile gaming step count (space syntax)" 0 "of 12" --profile gaming -n
 
 # Workstation profile (11 steps)
 run_test "Profile workstation (= syntax)" 0 "Profile: workstation" --profile=workstation -n
@@ -95,11 +95,11 @@ run_test "Profile workstation step count (= syntax)" 0 "of 11" --profile=worksta
 run_test "Profile workstation (space syntax)" 0 "Profile: workstation" --profile workstation -n
 run_test "Profile workstation step count (space syntax)" 0 "of 11" --profile workstation -n
 
-# Creator profile (11 steps)
+# Creator profile (12 steps)
 run_test "Profile creator (= syntax)" 0 "Profile: creator" --profile=creator -n
-run_test "Profile creator step count (= syntax)" 0 "of 11" --profile=creator -n
+run_test "Profile creator step count (= syntax)" 0 "of 12" --profile=creator -n
 run_test "Profile creator (space syntax)" 0 "Profile: creator" --profile creator -n
-run_test "Profile creator step count (space syntax)" 0 "of 11" --profile creator -n
+run_test "Profile creator step count (space syntax)" 0 "of 12" --profile creator -n
 
 # Full profile (17 steps)
 run_test "Profile full (= syntax)" 0 "Profile: full" --profile=full -n
