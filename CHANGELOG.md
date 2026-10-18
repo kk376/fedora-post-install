@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v7.0.0] - 2026-10-18
+
+### Added
+
+- **Multi-Architecture Support**: Native architecture detection supporting both `x86_64` and `aarch64` systems, replacing hardcoded x86 assumptions with architecture-aware dynamic downloads for Vesktop, Stirling-PDF, Docker Compose, and PostgreSQL (official PGDG RPM for x86_64, standard Fedora repositories for aarch64).
+- **Multi-Vendor GPU Compute Stacks**: Added GPU compute support under the AI developer genre: NVIDIA CUDA development toolkits (`xorg-x11-drv-nvidia-cuda`), AMD ROCm HIP/OpenCL runtime (`rocm-hip`, `rocm-opencl`), and Intel Compute Runtime / Level Zero (`intel-compute-runtime`, `oneapi-level-zero`).
+- **Interactive Developer Stack Menu**: Added `--dev-type` CLI flag and interactive multi-genre selection (`systems`, `web`, `android`, `ai`, or `all`) to tailor toolchain installations without installing unnecessary packages.
+- **Modernized Test Suite Harness**: Upgraded the automated test harness to 6 comprehensive suites with 100% test coverage (337/337 tests passing), testing profile step sequences, backup/restore, CLI flags, helper functions, and domain step execution.
+
+### Changed
+
+- **Domain-Modular Step Architecture**: Refactored monolithic steps into clean, isolated domain steps (`setup_cli_core`, `setup_desktop_apps`, `setup_gaming`, `setup_creator`, `setup_multimedia`, `setup_gnome`, `setup_power`).
+- **On-Demand COPR Repositories**: Removed monolithic COPR setup step; COPR repositories (`scottames/ghostty`, `lihaohong/yazi`, `zeno/scrcpy`) are now enabled on demand strictly when the corresponding application is selected.
+- **Layered Profile Definitions**: Profile step arrays now strictly layer atop modular base definitions (`minimal` = 4 steps, `workstation` = 11 steps, `dev` = 15 steps, `gaming` = 12 steps, `creator` = 12 steps, `full` = 17 steps).
+
 ## [v6.0.0] - 2026-10-11
 
 ### Changed
