@@ -165,7 +165,7 @@ Here is a simple walkthrough of each room the setup crew visits:
 
 ### 🔤 Step 5: Beautiful Fonts & Icons (`setup_fonts`)
 * **The Problem:** Microsoft Word documents look messy without standard fonts, and programmer code editors look bland without modern coding ligatures.
-* **The Fix:** Installs Microsoft Core fonts (Arial, Times New Roman, Calibri), Aptos, Segoe UI, Google Noto, and downloads the gorgeous **FiraCode Nerd Font** and **Symbols Nerd Font**.
+* **The Fix:** Installs Microsoft Core fonts (Arial, Times New Roman, Calibri), Aptos, Segoe UI, Google Noto, and downloads the gorgeous **FiraCode Nerd Font** and **Symbols Nerd Font**, backed by automated font cache (`fc-cache`) rebuilding and Copr font repository fallback validation.
 * **Decision:** Always say **YES**.
 
 ---
