@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v8.0.0] - 2026-11-01
+
+### Added
+
+- **Curl-Ready One-Liner Execution**: Integrated interactive terminal detection (`/dev/tty` fallback) into `prompt_input()` and `confirm()` to enable seamless execution via `bash -c "$(curl -fsSL ...)"` and `curl -fsSL ... | bash` without stdin starvation or pipe interference.
+- **Systemd Drop-In ZRAM & Memory Tuning**: Migrated ZRAM configuration from monolithic `/etc/systemd/zram-generator.conf` to drop-in directory `/etc/systemd/zram-generator.conf.d/10-zram.conf`. Removed the hardcoded 16GB ceiling to dynamically scale to full RAM capacity (`zram-size = ram`) using zstd compression.
+- **Modern Kernel Memory Parameters**: Deployed high-performance sysctl drop-in (`/etc/sysctl.d/99-zram.conf`) with `vm.swappiness = 180`, `vm.watermark_boost_factor = 0`, `vm.watermark_scale_factor = 125`, and `vm.page-cluster = 0` to prioritize compressed RAM over disk paging.
+
+### Changed
+
+- **Zero-Trust Security & Git Protection**: Completely purged silent `core.pager cat` overrides that broke global git paging. Gated git sensible defaults behind an explicit user prompt with automatic `~/.gitconfig` backups via `backup_file`.
+- **Sudo Asterisks Feedback Opt-In**: Wrapped `/etc/sudoers.d/pwfeedback` creation in an explicit user confirmation prompt to preserve security in shoulder-surfing sensitive environments.
+- **Hardware-Agnostic Multi-Monitor Safety**: Added external display compatibility warnings and confirmation prompts before writing `VK_LOADER_DRIVERS_SELECT` overrides on hybrid GPU laptops, preventing black screens on laptops with HDMI/DP ports wired directly to the NVIDIA dGPU.
+- **Ghostty Tab Alignment**: Updated Ghostty configuration path to `~/.config/ghostty/config.ghostty` and streamlined configuration to enforce bottom tab placement and clean behavior without unsolicited theme overrides.
+- **Filesystem Hygiene**: Shifted third-party repository clones (such as NVIDIA Broadcast) out of `$HOME` root into `~/.local/share/`.
+
 ## [v7.0.0] - 2026-10-18
 
 ### Added

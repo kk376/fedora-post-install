@@ -25,13 +25,13 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ---
 
-## What's New in v7.0.0
+## What's New in v8.0.0
 
-- **Modular Domain Architecture**: Replaced monolithic setup steps with clean, single-responsibility domain steps (`setup_cli_core`, `setup_desktop_apps`, `setup_gaming`, `setup_creator`, `setup_power`, etc.).
-- **Multi-Architecture Support**: Native architecture detection supporting both `x86_64` and `aarch64` systems, with architecture-aware downloads for Vesktop, Stirling-PDF, Docker Compose, and PostgreSQL.
-- **Multi-Vendor GPU Compute**: Added GPU compute support under the AI developer genre: NVIDIA CUDA (`xorg-x11-drv-nvidia-cuda`), AMD ROCm HIP/OpenCL runtime (`rocm-hip`), and Intel Compute Runtime / Level Zero (`intel-compute-runtime`, `oneapi-level-zero`).
-- **Granular Developer Stack Selection**: Interactive and CLI (`--dev-type`) genre selection allowing developers to install only the toolchains they use (`systems`, `web`, `android`, `ai`, or `all`).
-- **100% Automated Test Coverage**: Modernized test harness with 6 comprehensive suites covering 337 tests passing with zero failures.
+- **Curl-Ready One-Liner Execution**: Full support for interactive execution via `bash -c "$(curl -fsSL ...)"` and `curl -fsSL ... | bash` with automatic `/dev/tty` fallback handling.
+- **Systemd Drop-In ZRAM & Memory Tuning**: Migrated to `/etc/systemd/zram-generator.conf.d/10-zram.conf`, removed the arbitrary 16GB RAM cap in favor of dynamic full-RAM allocation (`zram-size = ram`), and applied high-performance zstd kernel sysctl parameters (`swappiness = 180`, `watermark_scale_factor = 125`, `watermark_boost_factor = 0`).
+- **Zero-Trust Security & Git Protection**: Removed silent `core.pager cat` clobbering, gated git workflow settings behind explicit confirmation with automated backups of `~/.gitconfig`, and made sudo asterisk feedback opt-in.
+- **Hardware-Agnostic Multi-Monitor Safety**: Added external display safety checks and confirmation prompts to hybrid Vulkan priority configuration, protecting laptops with display outputs wired directly to discrete GPUs.
+- **Ghostty Tab Alignment & Filesystem Hygiene**: Corrected Ghostty configuration path to `config.ghostty` enforcing tab layout defaults, and moved third-party clones into `~/.local/share/`.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
@@ -39,7 +39,25 @@ See [CHANGELOG.md](CHANGELOG.md) for the full history.
 
 ## Usage
 
+### Quick Start (One-Liner)
+
+Run directly via `curl` without cloning the repository:
+
 ```bash
+# Full profile, interactive
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/kk376/fedora-post-install/main/setup.sh)"
+
+# Preview dev profile without making changes
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/kk376/fedora-post-install/main/setup.sh)" -- --profile=dev -n
+```
+
+### Local Clone
+
+```bash
+# Clone repository
+git clone https://github.com/kk376/fedora-post-install.git
+cd fedora-post-install
+
 # Full profile, interactive
 ./setup.sh
 

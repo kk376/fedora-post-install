@@ -1,7 +1,7 @@
 #!/bin/bash
 # Fedora 44 Post-Install Setup Script
 # Author: Kushagra Kumar
-# Version: 7.0.0
+# Version: 8.0.0
 
 # ==============================================================================
 # Configuration & Flags
@@ -10,7 +10,7 @@
 : "${UNATTENDED:=false}"
 : "${BACKUP_DIR:=$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)}"
 : "${LOG_FILE:=/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log}"
-: "${SCRIPT_VERSION:=7.0.0}"
+: "${SCRIPT_VERSION:=8.0.0}"
 : "${PROFILE:=full}"
 : "${DEV_TYPE:=all}"
 PROFILE_SPECIFIED=false
@@ -122,7 +122,7 @@ Options:
                           systems     - C, C++, Rust, CMake, Meson, GDB, Valgrind, ccache
                           web         - Node.js, Corepack (PNPM/Yarn), Python 3, jq
                           android     - ADB, Fastboot, Scrcpy, OpenJDK, Maven, Android Studio
-                          ai          - Python Devel, Ruff, GPU Compute (CUDA / ROCm / Intel Compute)
+                          ai          - Python Devel, Ruff, UV, GPU Compute (CUDA / ROCm / Intel Compute)
                           all         - Full development suite (default)
   --force, -f           Re-run already completed steps
   --help, -h            Show this help message
@@ -230,7 +230,11 @@ prompt_input() {
         echo "$default_val"
         return 0
     fi
-    read -r -p "$prompt_text" reply || reply=""
+    if [[ ! -t 0 ]] && [[ -t 1 ]] && [[ -r /dev/tty ]]; then
+        read -r -p "$prompt_text" reply < /dev/tty || reply=""
+    else
+        read -r -p "$prompt_text" reply || reply=""
+    fi
     echo "${reply:-$default_val}"
 }
 
@@ -250,7 +254,11 @@ confirm() {
     local suffix="(y/N)"
     [[ "$default" == "Y" ]] && suffix="(Y/n)"
 
-    read -p "$prompt $suffix: " -n 1 -r yn || yn=""
+    if [[ ! -t 0 ]] && [[ -t 1 ]] && [[ -r /dev/tty ]]; then
+        read -p "$prompt $suffix: " -n 1 -r yn < /dev/tty || yn=""
+    else
+        read -p "$prompt $suffix: " -n 1 -r yn || yn=""
+    fi
     echo
 
     if [[ "$default" == "Y" ]]; then
@@ -510,7 +518,7 @@ select_profile_menu() {
         echo "  1) systems - C, C++, Rust, CMake, Meson, GDB, Valgrind, ccache"
         echo "  2) web     - Node.js, Corepack (PNPM/Yarn), Python 3, jq"
         echo "  3) android - ADB, Fastboot, Scrcpy, OpenJDK, Maven, Android Studio"
-        echo "  4) ai      - Python Devel, Ruff, GPU Compute (CUDA / ROCm / Intel Compute)"
+        echo "  4) ai      - Python Devel, Ruff, UV, GPU Compute (CUDA / ROCm / Intel Compute)"
         echo "  5) all     - Full development suite [default]"
         echo ""
 
@@ -623,16 +631,18 @@ EOF
 
     run_sudo dnf upgrade -y --refresh --setopt=best=True
 
-    log "Configuring sudo password feedback (asterisks)..."
-    if ! $DRY_RUN; then
-        run_sudo mkdir -p /etc/sudoers.d
-        run_sudo tee /etc/sudoers.d/pwfeedback > /dev/null <<'EOF'
+    if confirm "Configure sudo password feedback (display asterisks)?" "N"; then
+        log "Configuring sudo password feedback (asterisks)..."
+        if ! $DRY_RUN; then
+            run_sudo mkdir -p /etc/sudoers.d
+            run_sudo tee /etc/sudoers.d/pwfeedback > /dev/null <<'EOF'
 Defaults pwfeedback
 EOF
-        run_sudo chmod 0440 /etc/sudoers.d/pwfeedback
-        success "Sudo password feedback configured (/etc/sudoers.d/pwfeedback)"
-    else
-        dry "Configure sudo pwfeedback in /etc/sudoers.d/pwfeedback"
+            run_sudo chmod 0440 /etc/sudoers.d/pwfeedback
+            success "Sudo password feedback configured (/etc/sudoers.d/pwfeedback)"
+        else
+            dry "Configure sudo pwfeedback in /etc/sudoers.d/pwfeedback"
+        fi
     fi
 
     step_complete "DNF & repositories configured"
@@ -717,29 +727,20 @@ deploy_terminal_config() {
 
     case "$target" in
         ghostty)
-            log "Deploying Ghostty Tokyo Night configuration..."
+            log "Deploying Ghostty tab configuration..."
             if ! $DRY_RUN; then
                 mkdir -p "$HOME/.config/ghostty"
-                backup_file "$HOME/.config/ghostty/config"
-                cat > "$HOME/.config/ghostty/config" <<'GHOSTTY_CONF'
-theme = TokyoNight
-font-family = FiraCode Nerd Font
-font-family = Symbols Nerd Font Mono
-font-size = 13
-background-opacity = 0.90
-background-blur = true
-window-padding-x = 16
-window-padding-y = 8,2
-window-decoration = auto
-confirm-close-surface = false
-cursor-style = bar
-cursor-style-blink = true
-copy-on-select = clipboard
-bell-features = no-audio
+                backup_file "$HOME/.config/ghostty/config.ghostty"
+                cat > "$HOME/.config/ghostty/config.ghostty" <<'GHOSTTY_CONF'
+gtk-tabs-location = bottom
+gtk-wide-tabs = false
+gtk-toolbar-style = flat
+window-new-tab-position = end
+tab-inherit-working-directory = false
 GHOSTTY_CONF
-                success "Ghostty configuration deployed to ~/.config/ghostty/config"
+                success "Ghostty tab configuration deployed to ~/.config/ghostty/config.ghostty"
             else
-                dry "Deploy Ghostty Tokyo Night configuration to ~/.config/ghostty/config"
+                dry "Deploy Ghostty tab configuration to ~/.config/ghostty/config.ghostty"
             fi
             ;;
         kitty)
@@ -1656,27 +1657,37 @@ EOF
         fi
     fi
 
-    # High-Performance ZRAM & Kernel Memory Tuning (up to 16GB zstd)
-    if confirm "Apply high-performance ZRAM memory tuning (zstd compression, swappiness 100)?" "Y"; then
+    # High-Performance ZRAM & Kernel Memory Tuning (Dynamic RAM allocation, zstd)
+    if confirm "Apply high-performance ZRAM memory tuning (zstd compression, swappiness 180)?" "Y"; then
         if ! $DRY_RUN; then
-            run_sudo mkdir -p /etc/systemd /etc/sysctl.d
-            run_sudo tee /etc/systemd/zram-generator.conf > /dev/null <<'ZRAM_EOF'
+            run_sudo mkdir -p /etc/systemd/zram-generator.conf.d /etc/sysctl.d
+            run_sudo tee /etc/systemd/zram-generator.conf.d/10-zram.conf > /dev/null <<'ZRAM_EOF'
 [zram0]
-zram-size = min(ram, 16384)
+zram-size = ram
 compression-algorithm = zstd
 ZRAM_EOF
 
             run_sudo tee /etc/sysctl.d/99-zram.conf > /dev/null <<'SYSCTL_EOF'
-vm.swappiness = 100
+vm.swappiness = 180
+vm.watermark_boost_factor = 0
+vm.watermark_scale_factor = 125
 vm.page-cluster = 0
 SYSCTL_EOF
 
+            # Remove legacy monolithic config to avoid precedence conflict with drop-in
+            if [[ -f /etc/systemd/zram-generator.conf ]]; then
+                backup_file "/etc/systemd/zram-generator.conf"
+                run_sudo rm -f /etc/systemd/zram-generator.conf
+            fi
+
             run_sudo sysctl --system >/dev/null 2>&1 || true
+            run_sudo systemctl daemon-reload 2>/dev/null || true
             run_sudo swapoff /dev/zram0 2>/dev/null || true
-            run_sudo systemctl restart systemd-zram-setup@zram0.service 2>/dev/null || true
-            success "High-performance ZRAM tuning applied (/etc/systemd/zram-generator.conf)"
+            run_sudo systemctl restart systemd-zram-setup@zram0.service 2>/dev/null || \
+                info "ZRAM size update will take full effect on next reboot"
+            success "High-performance ZRAM drop-in applied (/etc/systemd/zram-generator.conf.d/10-zram.conf)"
         else
-            dry "Configure /etc/systemd/zram-generator.conf (zstd, 16GB max) and /etc/sysctl.d/99-zram.conf"
+            dry "Configure /etc/systemd/zram-generator.conf.d/10-zram.conf (zstd, full RAM) and /etc/sysctl.d/99-zram.conf"
         fi
     fi
 
@@ -1829,14 +1840,22 @@ setup_dev() {
         fi
     fi
 
-    # Configure Python symlinks & Git sensible defaults
+    # Configure Python symlink & optional Git sensible defaults
     if ! $DRY_RUN; then
         mkdir -p "$HOME/.local/bin"
         ln -sf "$(command -v python3 || echo /usr/bin/python3)" "$HOME/.local/bin/python" 2>/dev/null || true
-        git config --global core.pager cat 2>/dev/null || true
-        git config --global push.autoSetupRemote true 2>/dev/null || true
-        git config --global pull.rebase true 2>/dev/null || true
-        git config --global diff.colorMoved zebra 2>/dev/null || true
+    fi
+
+    if confirm "Configure sensible Git workflow defaults (autoSetupRemote, pull.rebase, diff.colorMoved)?" "N"; then
+        if ! $DRY_RUN; then
+            backup_file "$HOME/.gitconfig"
+            git config --global push.autoSetupRemote true 2>/dev/null || true
+            git config --global pull.rebase true 2>/dev/null || true
+            git config --global diff.colorMoved zebra 2>/dev/null || true
+            success "Git workflow defaults applied"
+        else
+            dry "Configure git push.autoSetupRemote, pull.rebase, and diff.colorMoved"
+        fi
     fi
 
     # Architecture-Aware PostgreSQL Server
@@ -2300,12 +2319,14 @@ setup_creator() {
     run_sudo dnf install -y --skip-unavailable "${creator_pkgs[@]}"
 
     if $HAS_NVIDIA && confirm "Install NVIDIA Broadcast for Linux (AI noise removal & virtual camera)?" "N"; then
+        local nb_dir="$HOME/.local/share/nvidia-broadcast-linux"
         if ! $DRY_RUN; then
-            if [[ ! -d "$HOME/nvidia-broadcast-linux" ]]; then
-                git clone --depth 1 --branch v1.5.2 https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$HOME/nvidia-broadcast-linux" || warn "Failed to clone nvidia-broadcast-linux"
+            mkdir -p "$HOME/.local/share"
+            if [[ ! -d "$nb_dir" ]]; then
+                git clone --depth 1 --branch v1.5.2 https://github.com/Hkshoonya/nvidia-broadcast-linux.git "$nb_dir" || warn "Failed to clone nvidia-broadcast-linux"
             fi
-            if [[ -f "$HOME/nvidia-broadcast-linux/install.sh" ]]; then
-                (cd "$HOME/nvidia-broadcast-linux" && ./install.sh --runtime cuda) || warn "NVIDIA Broadcast install finished with warnings"
+            if [[ -f "$nb_dir/install.sh" ]]; then
+                (cd "$nb_dir" && ./install.sh --runtime cuda) || warn "NVIDIA Broadcast install finished with warnings"
             fi
         else
             dry "Clone and install NVIDIA Broadcast for Linux"
@@ -2382,19 +2403,28 @@ setup_drivers() {
 
         # Hybrid graphics optimization ONLY on laptops with both an iGPU (AMD/Intel) and an NVIDIA dGPU
         if $IS_LAPTOP && { $HAS_AMD || $HAS_INTEL; }; then
-            log "Hybrid Optimus laptop detected: Setting iGPU as primary Vulkan device to prevent dGPU wakeups..."
             local vulkan_conf="/etc/environment.d/10-vulkan-hybrid.conf"
             local selected_driver=""
             $HAS_AMD && selected_driver="*radeon*"
             [[ -z "$selected_driver" ]] && $HAS_INTEL && selected_driver="*intel*"
 
-            if [[ -n "$selected_driver" ]] && ! $DRY_RUN; then
-                run_sudo mkdir -p /etc/environment.d
-                run_sudo tee "$vulkan_conf" > /dev/null <<EOF
+            if [[ -n "$selected_driver" ]]; then
+                log "Hybrid Optimus laptop detected: iGPU power optimization available ($selected_driver + NVIDIA)."
+                info "Note: Forcing iGPU Vulkan priority saves battery, but may affect external displays wired directly to dGPU."
+                if confirm "Set $selected_driver as primary Vulkan device for battery savings?" "Y"; then
+                    if ! $DRY_RUN; then
+                        run_sudo mkdir -p /etc/environment.d
+                        run_sudo tee "$vulkan_conf" > /dev/null <<EOF
 # Prevent desktop apps from waking the discrete NVIDIA GPU unnecessarily
 VK_LOADER_DRIVERS_SELECT=$selected_driver
 EOF
-                success "Hybrid Vulkan priority set to $selected_driver ($vulkan_conf)"
+                        success "Hybrid Vulkan priority set to $selected_driver ($vulkan_conf)"
+                    else
+                        dry "Set VK_LOADER_DRIVERS_SELECT=$selected_driver in $vulkan_conf"
+                    fi
+                else
+                    info "Preserving default Vulkan device discovery for external monitor compatibility"
+                fi
             fi
         fi
 
