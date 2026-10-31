@@ -2358,7 +2358,7 @@ setup_pre_driver_reboot() {
         info "  Installed kernel: $installed_kernel"
         echo ""
         info "Rebooting before building GPU kernel modules ensures akmods targets the new kernel."
-        info "Re-run this script after rebooting—it will resume automatically at the GPU Drivers step."
+        info "Re-run this script after rebooting - it will resume automatically at the GPU Drivers step."
         if confirm "Reboot now?" "Y"; then
             mark_step_completed "setup_pre_driver_reboot"
             step_complete "Reboot checkpoint (rebooting)"

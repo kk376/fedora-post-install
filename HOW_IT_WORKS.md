@@ -1,6 +1,6 @@
 # 🚀 How Fedora Post-Install Works: The Plain English Guide
 
-> *"Think of a fresh Fedora install like moving into a brand-new, modern apartment. The walls are solid, the water flows, and the lights turn on—but there's no furniture, the Wi-Fi isn't optimized, the kitchen doesn't have your favorite spices, and your workbench is empty.*  
+> *"Think of a fresh Fedora install like moving into a brand-new, modern apartment. The walls are solid, the water flows, and the lights turn on - but there's no furniture, the Wi-Fi isn't optimized, the kitchen doesn't have your favorite spices, and your workbench is empty.*  
 >  
 > *This script is your friendly interior setup crew. It walks in with a clipboard, knocks on each room's door, asks you what you want, sets up your tools neatly, and hands you the keys with zero mess."*
 
@@ -10,7 +10,7 @@
 
 1. [The "Before & After" Transformation](#1-the-before--after-transformation)
 2. [The 4 Peace-of-Mind Safety Rules](#2-the-4-peace-of-mind-safety-rules)
-3. [Choose Your Vibe: The 7 Profiles](#3-choose-your-vibe-the-7-profiles)
+3. [Choose Your Vibe: The 6 Profiles](#3-choose-your-vibe-the-6-profiles)
 4. [The 17-Step Tour (Plain English Breakdown)](#4-the-17-step-tour-plain-english-breakdown)
 5. [Visual Roadtrip (How the Script Flows)](#5-visual-roadtrip-how-the-script-flows)
 6. [Beginner FAQ & Safety Net](#6-beginner-faq--safety-net)
@@ -158,7 +158,8 @@ Here is a simple walkthrough of each room the setup crew visits:
   - Interactive Starship prompt installation option with feature disclaimer in `dev` and `full` profiles.
   - Interactive developer environment menu (Git aliases, Neovim editor, Cargo/OpenCode PATH) tailored to the chosen shell in `dev` and `full` profiles.
   - Clean standard aliases (clear, ls, cat, less) across all shells without Starship or developer bloat on standard profiles (`minimal`, `workstation`, `gaming`, `creator`).
-  - Modern GPU terminal emulator (Ghostty recommended, Kitty, or Alacritty) with self-contained Tokyo Night configuration.
+  - Git productivity defaults (`pull.rebase`, `push.autoSetupRemote`, `diff.colorMoved`) gated by confirmation, with automatic `~/.gitconfig` backups.
+  - Modern GPU terminal emulator (Ghostty recommended, Kitty, or Alacritty) deploying tab ergonomics directly to `~/.config/ghostty/config.ghostty` without overriding themes.
 * **Decision:** Always say **YES**.
 
 ---
@@ -197,11 +198,12 @@ Here is a simple walkthrough of each room the setup crew visits:
 ---
 
 ### ⚡ Step 9: Power Policies & High-Performance ZRAM (`setup_power`)
-* **The Problem:** Laptops drain battery quickly without proper power governors, and desktops can run out of memory during heavy compilation tasks.
+* **The Problem:** Laptops drain battery quickly without proper power governors, and systems can run out of memory or experience heavy paging latency during compilation and multitasking.
 * **The Fix:**
   - Hardware-aware chassis detection: skips laptop battery daemons (TLP) on desktop towers.
   - Safe AC no-sleep: disables automatic sleep when plugged into AC power while preserving battery sleep safety.
-  - Applies **high-performance ZRAM memory tuning** (zstd compression algorithm with up to 16GB RAM allocation and swappiness=100) to double effective memory bandwidth.
+  - Modern drop-in **high-performance ZRAM memory tuning** (`/etc/systemd/zram-generator.conf.d/10-zram.conf`) with full RAM allocation (`zram-size = ram`, zstd compression) and optimized kernel sysctls (`/etc/sysctl.d/99-zram.conf` with `swappiness=180` and `page-cluster=0`) to maximize throughput.
+  - Optional opt-in for sudo password visual feedback (`pwfeedback`) with complete backup protection.
 * **Decision:** Always say **YES**.
 
 ---
@@ -267,7 +269,7 @@ Here is a simple walkthrough of each room the setup crew visits:
 * **The Problem:** Screen recording and virtual webcam routing require out-of-tree kernel modules and complex audio loopback configurations.
 * **The Fix:**
   - Installs **OBS Studio**, **akmod-v4l2loopback**, and **wf-recorder** Wayland screen recorder.
-  - Offers **NVIDIA Broadcast for Linux** (AI microphone noise removal and virtual green screen).
+  - Offers **NVIDIA Broadcast for Linux** (AI microphone noise removal and virtual green screen), neatly installed into `~/.local/share/nvidia-broadcast-linux`.
 * **Decision:** Say **YES** if you create videos or stream.
 
 ---
@@ -285,7 +287,7 @@ Here is a simple walkthrough of each room the setup crew visits:
   - 🔵 **Intel GPUs:** Installs `intel-media-driver` and `libva-intel-driver` for hardware video decoding.
   - 🔴 **AMD GPUs:** Swaps in Mesa freeworld drivers for full VA-API/VDPAU video decode acceleration.
   - 🟢 **NVIDIA GPUs:** Installs `akmod-nvidia`, CUDA, and VA-API bridge, with step-by-step guidance to enroll your **MOK (Machine Owner Key)** on the blue boot screen.
-  - ⚡ **Hybrid Graphics Optimization (Optimus Laptops):** Sets `VK_LOADER_DRIVERS_SELECT` to prioritize the integrated GPU so desktop apps open instantly without waking the discrete NVIDIA GPU.
+  - ⚡ **Hybrid Graphics Optimization (Optimus Laptops):** Guides you to prioritize the integrated GPU via `VK_LOADER_DRIVERS_SELECT` with external display safety confirmation, preventing discrete GPU battery drain.
 * **Decision:** Always say **YES**.
 
 ---
@@ -338,6 +340,17 @@ chmod +x setup.sh
 ./setup.sh
 ```
 It defaults to the interactive `full` profile and walks you through every choice with plain English prompts.
+
+### Q: Can I run this directly with curl without cloning the repository?
+**A:** Yes! You can run the one-liner command:
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/kk376/fedora-post-install/main/setup.sh)"
+```
+or pipe directly into bash:
+```bash
+curl -fsSL https://raw.githubusercontent.com/kk376/fedora-post-install/main/setup.sh | bash
+```
+The script detects pipe execution and reads interactive prompts directly from `/dev/tty`, so your choices are never bypassed or stalled.
 
 ### Q: What if I make a mistake or want to undo a setting?
 **A:** Just re-run `./setup.sh` and answer `Y` to **"Restore from previous backup?"**. It will restore your original `.zshrc`, `.bashrc`, `dnf.conf`, and other config files from timestamped backup storage.

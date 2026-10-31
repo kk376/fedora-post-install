@@ -105,14 +105,14 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 - **Process Monitor Modernization**: Replaced `htop` with modern `btop` in the essential packages list.
 
-## [v5.5.7] – 2026-09-09
+## [v5.5.7] - 2026-09-09
 
 ### Added
 
 - **Full Freeworld HEVC & E-AC3 Codec Suite**: Explicitly installs `gstreamer1-plugins-bad-freeworld` (providing `libde265` and `svt-hevc`), `gstreamer1-plugins-ugly`, `gstreamer1-vaapi`, and full RPM Fusion `ffmpeg-libs`, solving VLC *"Codec not supported: hevc / eac3"* errors.
 - **AMD Hardware VA-API Acceleration**: Robust installation of `mesa-va-drivers-freeworld` across AMD GPU setups for full hardware-accelerated H.264/H.265 video decode.
 
-## [v5.5.6] – 2026-09-09
+## [v5.5.6] - 2026-09-09
 
 ### Added
 
@@ -126,7 +126,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 - **ProtonPlus Flatpak**: Removed `com.vysp3r.ProtonPlus` from `setup_flatpaks()`. Heroic Games Launcher includes a native, built-in Wine & Proton Manager (supporting Wine-GE, GE-Proton, CachyOS Proton, DXVK, and VKD3D directly with zero extra dependencies), rendering external compatibility managers redundant.
 
-## [v5.5.5] – 2026-09-07
+## [v5.5.5] - 2026-09-07
 
 ### Added
 
@@ -137,7 +137,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 - **Usage Documentation**: Simplified `README.md` Usage to focus on interactive execution (`./setup.sh`), dry-run preview (`./setup.sh --dry-run`), and forced re-runs (`./setup.sh --force`), removing cumbersome manual CLI profile flags in favor of the interactive menu.
 
-## [v5.5.0] – 2026-09-07
+## [v5.5.0] - 2026-09-07
 
 ### Added
 
@@ -173,7 +173,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v5.4.0] – 2026-09-01
+## [v5.4.0] - 2026-09-01
 
 ### Added
 
@@ -205,7 +205,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v5.3.0] – 2026-08-30
+## [v5.3.0] - 2026-08-30
 
 ### Added
 
@@ -230,7 +230,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v5.2.0] – 2026-08-18
+## [v5.2.0] - 2026-08-18
 
 ### Changed
 
@@ -252,7 +252,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v5.1.0] – 2026-08-17
+## [v5.1.0] - 2026-08-17
 
 ### Changed
 
@@ -276,7 +276,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v5.0.3] – 2026-08-16
+## [v5.0.3] - 2026-08-16
 
 ### Changed
 
@@ -285,7 +285,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v5.0.2] – 2026-08-15
+## [v5.0.2] - 2026-08-15
 
 ### Improved
 
@@ -302,11 +302,11 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v5.0.1] – 2026-08-14
+## [v5.0.1] - 2026-08-14
 
 ### Fixed
 
-- Progress counter no longer counts failed or skipped steps as completed — `show_summary` now reports completed/failed/skipped separately instead of one number
+- Progress counter no longer counts failed or skipped steps as completed - `show_summary` now reports completed/failed/skipped separately instead of one number
 - `MangoHud.conf` and `.bashrc` are now backed up before being modified, matching what `restore_backups()` already expected to find
 - `setup_copr` and the Antigravity install no longer swallow failures silently (`A && B || true` replaced with explicit warnings on failure)
 - Antigravity CLI install in dev tools was targeting a nonexistent npm package and failing silently every time; now installs via Google's official installer (`curl -fsSL https://antigravity.google/cli/install.sh | bash`, binary `agy`)
@@ -317,7 +317,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ### Changed
 
-- Antigravity repo file still uses `gpgcheck=0` — this matches Google's own official Fedora/RHEL install instructions, which don't currently publish a signing key for the RPM repo (their APT instructions do). Rather than leave that undisclosed, the script now warns about it explicitly when the step runs.
+- Antigravity repo file still uses `gpgcheck=0` - this matches Google's own official Fedora/RHEL install instructions, which don't currently publish a signing key for the RPM repo (their APT instructions do). Rather than leave that undisclosed, the script now warns about it explicitly when the step runs.
 
 ### Docs
 
@@ -325,7 +325,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v5.0.0] – 2026-08-14
+## [v5.0.0] - 2026-08-14
 
 ### Added
 
@@ -358,7 +358,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v4.0.0] – 2026-01-21
+## [v4.0.0] - 2026-01-21
 
 ### Added
 
@@ -385,7 +385,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v3.0.0] – 2026-01-17
+## [v3.0.0] - 2026-01-17
 
 ### Added
 
@@ -412,7 +412,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v2.0.2] – 2026-01-16
+## [v2.0.2] - 2026-01-16
 
 ### Added
 
@@ -420,7 +420,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v2.0.1] – 2026-01-16
+## [v2.0.1] - 2026-01-16
 
 ### Fixed
 
@@ -428,7 +428,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v2.0.0] – 2026-01-16
+## [v2.0.0] - 2026-01-16
 
 ### Added
 
@@ -451,7 +451,7 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 
 ---
 
-## [v1.0.0] – Initial Release
+## [v1.0.0] - Initial Release
 
 ### Added
 

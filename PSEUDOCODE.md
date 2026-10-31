@@ -2,7 +2,8 @@
 
 This document provides a **complete visual flowchart and logic breakdown** of the Fedora 44 Post-Install Setup Script (`setup.sh`).
 
-> 💡 **Looking for a friendly, non-technical walkthrough instead?**  
+> [!TIP]
+> **Looking for a friendly, non-technical walkthrough instead?**  
 > Check out **[HOW_IT_WORKS.md](HOW_IT_WORKS.md)** for the plain-English story, "Before vs After" transformation, peace-of-mind safety rules, and beginner FAQ!
 
 ---
@@ -12,35 +13,35 @@ This document provides a **complete visual flowchart and logic breakdown** of th
 1. [Master Lifecycle Flowchart](#1-master-lifecycle-flowchart)
 2. [Profile Selection & Routing Decision Tree](#2-profile-selection--routing-decision-tree)
 3. [Subsystem Flowcharts (Step-by-Step)](#3-subsystem-flowcharts-step-by-step)
-   - [Step 1: DNF5 & Repository Setup (`setup_dnf`)](#step-1-dnf--repository-setup-setup_dnf)
-   - [Step 2: DNS Resolvers (`setup_dns`)](#step-2-dns-configuration-setup_dns)
-   - [Step 3: Core CLI Utilities (`setup_cli_core`)](#step-3-power-optimization--tlp-setup_power)
-   - [Step 4: Shell, Starship & Modern Terminal (`setup_shell`)](#step-6-zsh-shell-starship--terminal-setup_shell)
-   - [Step 5: System, Microsoft & Nerd Fonts (`setup_fonts`)](#step-5-system-fonts--nerd-fonts-setup_fonts)
-   - [Step 6: Multimedia Codecs & Dynamic PipeWire Audio (`setup_multimedia`)](#step-7-browser-codecs--bluetooth-hd-audio-setup_browser_multimedia)
-   - [Step 7: GNOME Desktop Polish & GSConnect (`setup_gnome`)](#step-9-gnome-desktop-polish--gsconnect-setup_gnome)
-   - [Step 8: Desktop Applications & Productivity (`setup_desktop_apps`)](#step-10-essential-packages--gaming-setup_packages)
-   - [Step 9: Power Policies & High-Performance ZRAM (`setup_power`)](#step-3-power-optimization--tlp-setup_power)
-   - [Step 10: Modular Development Toolchains (`setup_dev`)](#step-11-developer-ecosystem--postgresql-18-setup_dev)
-   - [Step 11: Code Editor Suite (`setup_editor`)](#step-12-code-editor-suite--polyglot-runner-setup_editor)
-   - [Step 12: Docker Container Engine (`setup_docker`)](#step-14-docker-container-engine-setup_docker)
-   - [Step 13: KVM/QEMU Hardware Virtualization (`setup_kvm`)](#step-15-kvmqemu-hardware-virtualization-setup_kvm)
-   - [Step 14: Gaming Stack & Heroic (`setup_gaming`)](#step-10-essential-packages--gaming-setup_packages)
-   - [Step 15: Creator & Streaming Suite (`setup_creator`)](#step-10-essential-packages--gaming-setup_packages)
+   - [Step 1: DNF5 & Repository Setup (`setup_dnf`)](#step-1-dnf5--repository-setup-setup_dnf)
+   - [Step 2: DNS Configuration (`setup_dns`)](#step-2-dns-configuration-setup_dns)
+   - [Step 3: Core CLI Utilities (`setup_cli_core`)](#step-3-core-cli-utilities-setup_cli_core)
+   - [Step 4: Shell, Starship & Modern Terminal (`setup_shell`)](#step-4-shell-starship--modern-terminal-setup_shell)
+   - [Step 5: System, Microsoft & Nerd Fonts (`setup_fonts`)](#step-5-system-microsoft--nerd-fonts-setup_fonts)
+   - [Step 6: Multimedia Codecs & Dynamic PipeWire Audio (`setup_multimedia`)](#step-6-multimedia-codecs--dynamic-pipewire-audio-setup_multimedia)
+   - [Step 7: GNOME Desktop Polish & GSConnect (`setup_gnome`)](#step-7-gnome-desktop-polish--gsconnect-setup_gnome)
+   - [Step 8: Desktop Applications & Productivity (`setup_desktop_apps`)](#step-8-desktop-applications--productivity-setup_desktop_apps)
+   - [Step 9: Power Policies & High-Performance ZRAM (`setup_power`)](#step-9-power-policies--high-performance-zram-setup_power)
+   - [Step 10: Modular Development Toolchains (`setup_dev`)](#step-10-modular-development-toolchains-setup_dev)
+   - [Step 11: Code Editor Suite & Polyglot Runner (`setup_editor`)](#step-11-code-editor-suite--polyglot-runner-setup_editor)
+   - [Step 12: Docker Container Engine (`setup_docker`)](#step-12-docker-container-engine-setup_docker)
+   - [Step 13: KVM/QEMU Hardware Virtualization (`setup_kvm`)](#step-13-kvmqemu-hardware-virtualization-setup_kvm)
+   - [Step 14: Gaming Stack & Heroic (`setup_gaming`)](#step-14-gaming-stack--heroic-setup_gaming)
+   - [Step 15: Creator & Streaming Suite (`setup_creator`)](#step-15-creator--streaming-suite-setup_creator)
    - [Step 16: Pre-Driver Kernel Gate (`setup_pre_driver_reboot`)](#step-16-pre-driver-kernel-gate-setup_pre_driver_reboot)
-   - [Step 17: Multi-Vendor GPU Drivers & Secure Boot MOK (`setup_drivers`)](#step-17-gpu-driver-detection--secure-boot-mok-setup_drivers)
-   - [Summary & Health Check (`show_summary`)](#step-18-summary--service-health-check-show_summary)
+   - [Step 17: Multi-Vendor GPU Drivers & Secure Boot MOK (`setup_drivers`)](#step-17-multi-vendor-gpu-drivers--secure-boot-mok-setup_drivers)
+   - [Summary & Health Check (`show_summary`)](#summary--health-check-show_summary)
 4. [Idempotency, State & Rollback Flowchart](#4-idempotency-state--rollback-flowchart)
 
 ---
 
 ## 1. Master Lifecycle Flowchart
 
-The high-level execution pipeline from CLI invocation to system readiness:
+The high-level execution pipeline from CLI invocation (or curl pipe) to system readiness:
 
 ```mermaid
 flowchart TD
-    Start(["Launch ./setup.sh [OPTIONS]"]) --> ParseArgs["Parse CLI Flags<br/>(--dry-run, --profile, --force, --help)"]
+    Start(["Launch ./setup.sh [OPTIONS] or curl | bash"]) --> ParseArgs["Parse CLI Flags<br/>(--dry-run, --profile, --dev-type, --yes, --force, --help)"]
     ParseArgs --> TrapSetup["Register Signal Traps<br/>(SIGINT, SIGTERM, EXIT -> cleanup)"]
     TrapSetup --> CheckDryRun{"Is Dry-Run Mode?"}
     
@@ -61,7 +62,7 @@ flowchart TD
         NetCheck -- No --> ExitNetFail(["Error: No Internet Connection -> Exit 1"])
         NetCheck -- Yes --> DiskCheck
         
-        DiskCheck{"Free Disk Space ≥ 20GB?"}
+        DiskCheck{"Free Disk Space >= 20GB?"}
         DiskCheck -- No --> LowDiskPrompt{"Low Disk Space Warning.<br/>Continue anyway? [y/N]"}
         LowDiskPrompt -- No --> ExitDiskFail(["Error: Aborting -> Exit 1"])
         LowDiskPrompt -- Yes --> FilterSteps
@@ -69,7 +70,7 @@ flowchart TD
     end
 
     subgraph StepOrchestration ["Phase 2: Profile Filtering & Step Loop"]
-        FilterSteps["Filter Step Sequence for Profile<br/>(minimal | dev | gaming | workstation | creator | full)"]
+        FilterSteps["Filter Step Sequence for Profile<br/>(minimal | workstation | dev | gaming | creator | full)"]
         FilterSteps --> InitState["Initialize State Tracking File<br/>(~/.config/fedora-setup/state.txt)"]
         InitState --> LoopNext{"More steps in profile?"}
         
@@ -111,12 +112,12 @@ flowchart TD
     SwitchProfile -- workstation --> P_Work["workstation Profile<br/>(11 Steps: Minimal + Fonts, Codecs, GNOME, Desktop Apps, Power, Pre-Driver Reboot, Drivers)"]
     SwitchProfile -- dev --> P_Dev["dev Profile<br/>(15 Steps: Workstation + Dev Stack, Editor, Docker, KVM)"]
     SwitchProfile -- gaming --> P_Gaming["gaming Profile<br/>(12 Steps: Workstation + Gaming Stack with Steam/MangoHud/Heroic)"]
-    SwitchProfile -- creator --> P_Creator["creator Profile<br/>(12 Steps: Workstation + Creator Suite with OBS/V4L2/GStreamer)"]
+    SwitchProfile -- creator --> P_Creator["creator Profile<br/>(12 Steps: Workstation + Creator Suite with OBS/V4L2/wf-recorder)"]
     SwitchProfile -- full --> P_Full["full Profile (Default)<br/>(All 17 Steps: Superset of Workstation + Dev + Gaming + Creator)"]
 
-    P_Min --> CoreOnly["Target: Minimalist server, container host, or lean terminal desktop"]
-    P_Work --> WorkOnly["Target: Clean, daily productive desktop without gaming or virtualization overhead"]
-    P_Dev --> DevOnly["Target: Software engineers across systems, web, android, or ai genres"]
+    P_Min --> MinOnly["Target: Minimalist headless/cloud systems or lean workstations"]
+    P_Work --> WorkOnly["Target: Daily office and general desktop productivity"]
+    P_Dev --> DevOnly["Target: Systems, Web, Android, and AI developers"]
     P_Gaming --> GameOnly["Target: Linux gamers, Discord users, multimedia consumers"]
     P_Creator --> CreatorOnly["Target: Streamers, video editors, audio engineers, Linux desktop creators"]
     P_Full --> FullOnly["Target: Power users wanting complete workstation, dev, and gaming suite"]
@@ -126,7 +127,7 @@ flowchart TD
 
 ## 3. Subsystem Flowcharts (Step-by-Step)
 
-### Step 1: DNF & Repository Setup (`setup_dnf`)
+### Step 1: DNF5 & Repository Setup (`setup_dnf`)
 
 ```mermaid
 flowchart TD
@@ -140,9 +141,13 @@ flowchart TD
     
     DetectVer["Detect Fedora Version via %fedora RPM macro (Default: 44)"]
     DetectVer --> InstallRPMFusion["Install RPM Fusion Free & Nonfree Release RPMs<br/>(dnf install --setopt=best=True)"]
-    InstallRPMFusion --> AddFlathub["Add Flathub Remote Repository<br/>(flatpak remote-add --if-not-exists flathub)"]
-    AddFlathub --> DNFUpdate["Execute atomic metadata refresh & update:<br/>dnf update -y --refresh --setopt=best=True"]
-    DNFUpdate --> EndDNF(["Mark 'setup_dnf' completed in state.txt"])
+    InstallRPMFusion --> EnableOpenH264["Enable fedora-cisco-openh264 repository"]
+    EnableOpenH264 --> AddFlathub["Add Flathub Remote Repository<br/>(flatpak remote-add --if-not-exists flathub)"]
+    AddFlathub --> DNFUpdate["Execute atomic metadata refresh & update:<br/>dnf upgrade -y --refresh --setopt=best=True"]
+    DNFUpdate --> PromptFeedback{"Configure sudo password feedback (asterisks)? [y/N]"}
+    
+    PromptFeedback -- Yes --> WriteFeedback["Create /etc/sudoers.d/pwfeedback<br/>(Defaults pwfeedback, mode 0440)"] --> EndDNF
+    PromptFeedback -- No --> EndDNF(["Mark 'setup_dnf' completed in state.txt"])
 ```
 
 ---
@@ -173,63 +178,28 @@ flowchart TD
 
 ---
 
-### Step 3: Power Optimization & TLP (`setup_power`)
+### Step 3: Core CLI Utilities (`setup_cli_core`)
 
 ```mermaid
 flowchart TD
-    StartPower(["Start setup_power()"]) --> WarnTLP["Display warning: TLP vs GNOME Power Profiles Daemon"]
-    WarnTLP --> PromptTLP{"Use TLP instead of GNOME power profiles? [y/N]"}
-    
-    PromptTLP -- No --> KeepPPD["Keep default power-profiles-daemon (No changes made)"] --> EndPower(["Mark completed"])
-    
-    PromptTLP -- Yes --> InstallTLP["Install TLP packages:<br/>sudo dnf install -y tlp tlp-rdw"]
-    InstallTLP --> MaskPPD["Enable tlp.service & Mask power-profiles-daemon.service<br/>(Prevents D-Bus power governor conflicts)"]
-    MaskPPD --> DeployUnit["Create /etc/systemd/system/tlp-autostart.service<br/>(Forces TLP apply after multi-user.target boot)"]
-    DeployUnit --> ReloadStart["systemctl daemon-reload && systemctl enable tlp-autostart<br/>sudo tlp start"]
-    ReloadStart --> EndPower
+    StartCLI(["Start setup_cli_core()"]) --> InstallCLIPkgs["Install Core CLI Package Suite:<br/>fastfetch, bat, eza, fd-find, ripgrep, fzf, zoxide,<br/>wget, curl, btop, duf, plocate, tree, compsize,<br/>unzip, unrar, p7zip, jq, vim, wl-clipboard, xclip, git, android-tools"]
+    InstallCLIPkgs --> VerifyCLI["dnf install -y --skip-unavailable"]
+    VerifyCLI --> EndCLI(["Mark completed in state.txt"])
 ```
 
 ---
 
-### Step 4: No-Sleep & Greeter Policies (`setup_nosleep`)
-
-```mermaid
-flowchart TD
-    StartNoSleep(["Start setup_nosleep()"]) --> GreeterDconf["Configure GDM Login Greeter Profile:<br/>Write /etc/dconf/profile/gdm (user-db, system-db:gdm)"]
-    GreeterDconf --> WriteGDMKeyfile["Write /etc/dconf/db/gdm.d/01-power:<br/>sleep-inactive-ac-timeout=0<br/>sleep-inactive-ac-type='nothing'<br/>sleep-inactive-battery-timeout=0<br/>sleep-inactive-battery-type='nothing'"]
-    WriteGDMKeyfile --> UpdateDconf["Execute 'sudo dconf update'"]
-    UpdateDconf --> UserSessionGsettings["Configure Active User Session via gsettings:<br/>org.gnome.settings-daemon.plugins.power sleep-inactive-ac-timeout 0<br/>org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'"]
-    UserSessionGsettings --> EndNoSleep(["Mark completed"])
-```
-
----
-
-### Step 5: System Fonts & Nerd Fonts (`setup_fonts`)
-
-```mermaid
-flowchart TD
-    StartFonts(["Start setup_fonts()"]) --> InstallBaseFonts["Install system fonts via DNF:<br/>mscore-fonts, dejavu, liberation, google-noto, google-carlito, fontconfig"]
-    InstallBaseFonts --> DownloadMSCoreRPM["Download msttcore-fonts-installer RPM & install without digest check"]
-    DownloadMSCoreRPM --> DownloadFiraCode["Download FiraCode Nerd Font zip from GitHub releases<br/>(ryanoasis/nerd-fonts via github_download helper)"]
-    DownloadFiraCode --> ExtractFont["Unzip fonts to ~/.local/share/fonts/ && rm /tmp/FiraCode.zip"]
-    ExtractFont --> UpdateFontCache["Rebuild font cache: fc-cache -fv"]
-    UpdateFontCache --> SetGNOMEFont["Configure Default Monospace Fonts:<br/>GNOME desktop -> 'FiraCode Nerd Font 11'<br/>Ptyxis terminal -> 'FiraCode Nerd Font 12'"]
-    SetGNOMEFont --> EndFonts(["Mark completed"])
-```
-
----
-
-### Step 6: ZSH Shell, Starship & Terminal (`setup_shell`)
+### Step 4: Shell, Starship & Modern Terminal (`setup_shell`)
 
 ```mermaid
 flowchart TD
     StartShell(["Start setup_shell()"]) --> InstallShellPkgs["Install ZSH, Fish, git, curl, fontconfig"]
-    InstallShellPkgs --> ClonePlugins["Clone ZSH Plugins:<br/>zsh-autosuggestions, zsh-syntax-highlighting"]
+    InstallShellPkgs --> ClonePlugins["Clone ZSH Plugins (v0.7.1 & 0.8.0 pinned tags):<br/>zsh-autosuggestions, zsh-syntax-highlighting"]
     ClonePlugins --> CheckShellProfile{"Profile category?"}
     
     CheckShellProfile -->|"dev or full"| ShellMenuPrompt["Interactive Default Shell Menu:<br/>1. Fish (Recommended)<br/>2. ZSH<br/>3. Bash<br/>4. Skip (current shell)"]
     ShellMenuPrompt --> DevEnvPrompt["Interactive Menu:<br/>Developer exports & aliases for chosen shell?<br/>1. Full developer environment<br/>2. Clean standard aliases only"]
-    DevEnvPrompt --> StarshipPrompt["Interactive Option:<br/>Install and configure Starship prompt? [Y/n]<br/>(Displays speed, git, and cross-shell benefits)"] --> DeployConfigs
+    DevEnvPrompt --> StarshipPrompt["Interactive Option:<br/>Install and configure Starship prompt? [Y/n]"] --> DeployConfigs
     CheckShellProfile -->|"minimal, workstation, gaming, creator"| StdAliasesOnly["Skip shell menu, dev exports & Starship<br/>Prepare clean standard aliases (clear, ls, cat, less)"] --> DeployConfigs
 
     DeployConfigs["Deploy ~/.zshrc, ~/.bashrc, and ~/.config/fish/config.fish<br/>Deploy ~/.config/starship.toml if Starship enabled"] --> CheckTermProfile{"Is dev or full profile?"}
@@ -239,104 +209,118 @@ flowchart TD
     
     TerminalPrompt -- No --> EndShell
     TerminalPrompt -- Yes --> ChooseTerminal["Choose Terminal Emulator:<br/>1. Ghostty (Recommended)<br/>2. Kitty<br/>3. Alacritty"]
-    ChooseTerminal --> InstallAndDeployTerm["Install package via DNF / Copr<br/>Deploy embedded self-contained Tokyo Night config"] --> EndShell
+    ChooseTerminal --> InstallAndDeployTerm["Install package via DNF / Copr<br/>Ghostty: deploy clean tab ergonomics to ~/.config/ghostty/config.ghostty<br/>Kitty/Alacritty: deploy Tokyo Night styling"] --> EndShell
 ```
 
 ---
 
-### Step 7: Browser, Codecs & Bluetooth HD Audio (`setup_browser_multimedia`)
+### Step 5: System, Microsoft & Nerd Fonts (`setup_fonts`)
 
 ```mermaid
 flowchart TD
-    StartMedia(["Start setup_browser_multimedia()"]) --> AddBraveRepo["Add official Brave Browser RPM repo file"]
-    AddBraveRepo --> InstallBrave["Install brave-browser and mozilla-openh264"]
-    InstallBrave --> SwapFFmpeg["Atomic FFmpeg Swap:<br/>dnf swap -y ffmpeg-free ffmpeg --allowerasing"]
-    SwapFFmpeg --> GroupUpgrade["Upgrade multimedia groups:<br/>dnf group upgrade -y multimedia sound-and-video"]
-    GroupUpgrade --> WriteAudioConfig["Deploy System-Wide Audio Optimization:<br/>/etc/wireplumber/wireplumber.conf.d/50-bluez.conf<br/>/etc/pipewire/pipewire.conf.d/99-clock-rates.conf<br/>(LDAC/AAC/SBC-XQ + Dynamic 44.1k-192k bit-perfect rates)"]
-    WriteAudioConfig --> RestartWirePlumber["Restart active user audio services"]
+    StartFonts(["Start setup_fonts()"]) --> InstallBaseFonts["Install system fonts via DNF:<br/>dejavu, liberation, google-noto, google-carlito, google-caladea, fontconfig"]
+    InstallBaseFonts --> DownloadMSCoreRPM["Download msttcore-fonts-installer RPM<br/>Verify SHA256 checksum & install"]
+    DownloadMSCoreRPM --> ExtendedMSPrompt{"Install extended Microsoft Office fonts (Cambria, Aptos, Segoe UI)? [Y/n]"}
+    
+    ExtendedMSPrompt -- Yes --> CabExtract["Extract Cambria from PowerPointViewer.exe via cabextract<br/>Download Aptos font family to ~/.local/share/fonts/ms-fonts/"] --> DownloadFiraCode
+    ExtendedMSPrompt -- No --> DownloadFiraCode
+    
+    DownloadFiraCode["Download FiraCode Nerd Font zip from GitHub releases<br/>(ryanoasis/nerd-fonts via github_download helper)"]
+    DownloadFiraCode --> ExtractFont["Unzip fonts to ~/.local/share/fonts/ && rm /tmp/FiraCode.zip"]
+    ExtractFont --> UpdateFontCache["Rebuild font cache: fc-cache -fv"]
+    UpdateFontCache --> SetGNOMEFont["Configure Default Monospace Fonts:<br/>GNOME desktop -> 'FiraCode Nerd Font 11'<br/>Ptyxis terminal -> 'FiraCode Nerd Font 12'"]
+    SetGNOMEFont --> EndFonts(["Mark completed"])
+```
+
+---
+
+### Step 6: Multimedia Codecs & Dynamic PipeWire Audio (`setup_multimedia`)
+
+```mermaid
+flowchart TD
+    StartMedia(["Start setup_multimedia()"]) --> SwapFFmpeg["Atomic FFmpeg Swap:<br/>dnf swap -y ffmpeg-free ffmpeg --allowerasing"]
+    SwapFFmpeg --> InstallFreeworld["Install freeworld codecs:<br/>gstreamer1-plugins-bad-freeworld, gstreamer1-plugins-ugly, mozilla-openh264"]
+    InstallFreeworld --> GroupInstall["Install multimedia group without weak dependencies:<br/>dnf group install -y --with-optional multimedia --setopt=install_weak_deps=False"]
+    GroupInstall --> WriteAudioConfig["Deploy System-Wide Audio Optimization:<br/>/etc/wireplumber/wireplumber.conf.d/50-bluez.conf<br/>(LDAC, AAC, aptX-HD, SBC-XQ Hi-Fi codecs)"]
+    WriteAudioConfig --> DisableGDM_BT["Disable Bluetooth in GDM greeter:<br/>/var/lib/gdm/.config/wireplumber/.../disable-bluetooth.conf"]
+    DisableGDM_BT --> WritePipeWireClock["Configure PipeWire dynamic sample rates:<br/>/etc/pipewire/pipewire.conf.d/99-clock-rates.conf (44.1k to 192k)"]
+    WritePipeWireClock --> RestartWirePlumber["Restart active user audio services (pipewire & wireplumber)"]
     RestartWirePlumber --> EndMedia(["Mark completed"])
 ```
 
 ---
 
-### Step 8: COPR Packaging Isolation (`setup_copr`)
+### Step 7: GNOME Desktop Polish & GSConnect (`setup_gnome`)
 
 ```mermaid
 flowchart TD
-    StartCopr(["Start setup_copr() (full profile only)"]) --> LoopCoprs["Iterate through curated COPR tool list"]
-    
-    LoopCoprs --> PromptScrcpy{"Scrcpy - Android Screen Mirroring (zeno/scrcpy):<br/>Install? [Y/n]"}
-    PromptScrcpy -- Yes --> EnableScrcpy["Enable Copr repo 'zeno/scrcpy' & install scrcpy"] --> PromptYazi
-    PromptScrcpy -- No --> PromptYazi
-    
-    PromptYazi{"Yazi - Terminal File Manager with Previews (lihaohong/yazi):<br/>Install? [Y/n]"}
-    PromptYazi -- Yes --> EnableYazi["Enable Copr repo 'lihaohong/yazi' & install yazi, 7zip, resvg, etc."] --> EndCopr(["Mark completed"])
-    PromptYazi -- No --> EndCopr
-```
-
----
-
-### Step 9: GNOME Desktop Polish & GSConnect (`setup_gnome`)
-
-```mermaid
-flowchart TD
-    StartGNOME(["Start setup_gnome()"]) --> InstallGNOMETools["Install gnome-tweaks & gnome-shell-extension-gsconnect"]
+    StartGNOME(["Start setup_gnome()"]) --> InstallGNOMETools["Install gnome-tweaks, gsconnect, appindicator"]
     InstallGNOMETools --> CheckFirewall{"Is firewalld active?"}
     
-    CheckFirewall -- Yes --> OpenKDEConnect["Open firewall service for GSConnect / KDE Connect:<br/>firewall-cmd --permanent --add-service=kdeconnect && reload"] --> DeployGTKCSS
-    CheckFirewall -- No --> DeployGTKCSS
+    CheckFirewall -- Yes --> OpenKDEConnect["Open firewall service for GSConnect / KDE Connect:<br/>firewall-cmd --permanent --add-service=kdeconnect && reload"] --> TitlebarPrompt
+    CheckFirewall -- No --> TitlebarPrompt
     
-    DeployGTKCSS["Deploy Transparent Titlebar & Headerbar CSS:<br/>Write ~/.config/gtk-3.0/gtk.css & ~/.config/gtk-4.0/gtk.css"]
-    DeployGTKCSS --> EndGNOME(["Mark completed"])
+    TitlebarPrompt{"Apply transparent GTK3/GTK4 titlebar CSS? [Y/n]"}
+    TitlebarPrompt -- Yes --> DeployGTKCSS["Deploy Transparent Titlebar & Headerbar CSS:<br/>Write ~/.config/gtk-3.0/gtk.css & ~/.config/gtk-4.0/gtk.css"] --> SetMutter
+    TitlebarPrompt -- No --> SetMutter
+    
+    SetMutter["Set GNOME Mutter check-alive-timeout to 0 (Prevents 'App Not Responding' false alarms)"]
+    SetMutter --> EndGNOME(["Mark completed"])
 ```
 
 ---
 
-### Step 10: Essential Packages & Gaming (`setup_packages`)
+### Step 8: Desktop Applications & Productivity (`setup_desktop_apps`)
 
 ```mermaid
 flowchart TD
-    StartPkgs(["Start setup_packages()"]) --> BuildPkgList["Build core essential package list<br/>(Compilers, Fastfetch, archivers, VLC, Neovim, android-tools, etc.)"]
+    StartApps(["Start setup_desktop_apps()"]) --> AddBraveRepo["Add official Brave Browser RPM repo file"]
+    AddBraveRepo --> InstallDesktopPkgs["Install desktop productivity packages via DNF:<br/>brave-browser, vlc, qbittorrent, telegram-desktop, timeshift, gparted, ntfs-3g, wmctrl"]
+    InstallDesktopPkgs --> InstallFlatpaks["Install sandboxed desktop Flatpaks from Flathub:<br/>- org.localsend.localsend_app (LocalSend)<br/>- com.mattjakeman.ExtensionManager (Extension Manager)"]
+    InstallFlatpaks --> PromptYazi{"Install Yazi file manager via Copr? [Y/n]"}
     
-    BuildPkgList --> CheckGamingProfile{"Is gaming profile?"}
-    CheckGamingProfile -- Yes --> AddGamingPkgs["Add steam, mangohud to install list"] --> CheckCreatorProfile
-    CheckGamingProfile -- No --> CheckCreatorProfile
+    PromptYazi -- Yes --> InstallYazi["Enable lihaohong/yazi Copr & install yazi with image preview tools"] --> PromptVesktop
+    PromptYazi -- No --> PromptVesktop
     
-    CheckCreatorProfile{"Is creator profile?"}
-    CheckCreatorProfile -- Yes --> AddCreatorPkgs["Add obs-studio, v4l-utils, gtk4-devel, libadwaita-devel, gstreamer1-devel"] --> InstallAllPkgs
-    CheckCreatorProfile -- No --> InstallAllPkgs
-    
-    InstallAllPkgs["Install all packages via DNF (--skip-unavailable)"] --> UnlockSteamH264{"Gaming profile active?"}
-    
-    UnlockSteamH264 -- Yes --> UnlockH264["Execute Steam H.264 codec unlock (steam://unlockh264/)"]
-    UnlockH264 --> DeployMangoHudConf["Deploy ~/.config/MangoHud/MangoHud.conf<br/>(32px scaled HUD, GPU/CPU temps, FPS, frame timing, 3-col table)"] --> PromptHeroic{"Heroic Games Launcher (Epic, GOG, Sideloaded):<br/>Install? [Y/n]"}
-    PromptHeroic -- Yes --> InstallHeroic["Install Heroic Flatpak from Flathub (com.heroicgameslauncher.hgl),<br/>pre-create Prefixes, pre-seed config with disableUMU=true"] --> PromptVesktop
-    PromptHeroic -- No --> PromptVesktop
-    UnlockSteamH264 -- No --> PromptVesktop
-    
-    PromptVesktop{"Vesktop (Discord Client with Wayland Screen Audio):<br/>Install? [Y/n]"}
-    PromptVesktop -- Yes --> InstallVesktop["Download Vesktop RPM from GitHub Releases & install via DNF"] --> PromptStirling
+    PromptVesktop{"Install Vesktop (Wayland Discord with screen audio)? [Y/n]"}
+    PromptVesktop -- Yes --> InstallVesktop["Download Vesktop RPM from GitHub Releases via github_download & install via DNF"] --> PromptStirling
     PromptVesktop -- No --> PromptStirling
     
-    PromptStirling{"Stirling-PDF (Offline Desktop PDF Suite):<br/>Install? [Y/n]"}
-    PromptStirling -- Yes --> InstallStirling["Download Stirling-PDF RPM & install via DNF"] --> CheckNVBroadcast
-    PromptStirling -- No --> CheckNVBroadcast
-    
-    CheckNVBroadcast{"Creator profile AND NVIDIA GPU present?"}
-    CheckNVBroadcast -- Yes --> PromptNVBroadcast{"NVIDIA Broadcast for Linux (AI Noise & Video FX):<br/>Install? [Y/n]"}
-    PromptNVBroadcast -- Yes --> InstallNVB["Git clone (depth 1) & run install.sh --runtime cuda"] --> EndPkgs(["Mark completed"])
-    PromptNVBroadcast -- No --> EndPkgs
-    CheckNVBroadcast -- No --> EndPkgs
+    PromptStirling{"Install Stirling-PDF (Offline Desktop PDF Suite)? [y/N]"}
+    PromptStirling -- Yes --> InstallStirling["Download Stirling-PDF RPM & install via DNF"] --> EndApps(["Mark completed"])
+    PromptStirling -- No --> EndApps
 ```
 
 ---
 
-### Step 11: Developer Ecosystem & PostgreSQL 18 (`setup_dev`)
+### Step 9: Power Policies & High-Performance ZRAM (`setup_power`)
 
 ```mermaid
 flowchart TD
-    StartDev(["Start setup_dev()"]) --> SelectGenres["Evaluate dev genres: setup_dev_genres<br/>(systems, web, android, ai)"]
-    SelectGenres --> BuildPkgs["Build dev_pkgs list:<br/>Base: meson, ninja, automake, gdb, valgrind, strace, git-lfs, python3-devel<br/>Systems: gcc, clang, llvm, make, cmake<br/>Web: nodejs, npm<br/>Android: java-latest-openjdk, maven<br/>AI: python3-pip, virtualenv, wheel, ruff<br/>Full/Personal: dpkg-dev, copr-cli, osc, python3-keyring, libX11-devel, alsa-lib-devel"]
+    StartPower(["Start setup_power()"]) --> CheckChassis{"Is Laptop Chassis?"}
+    
+    CheckChassis -- Yes --> PromptTLP{"Modern laptops perform best with Fedora native power-profiles-daemon.<br/>Replace with TLP anyway? [y/N]"}
+    PromptTLP -- Yes --> InstallTLP["Install tlp, mask power-profiles-daemon, enable tlp.service"] --> PromptNoSleep
+    PromptTLP -- No --> KeepPPD["Keep native power-profiles-daemon"] --> PromptNoSleep
+    CheckChassis -- No --> LogDesktop["Desktop chassis detected: Skip TLP"] --> PromptNoSleep
+    
+    PromptNoSleep{"Disable auto-suspend when plugged into AC power? [Y/n]"}
+    PromptNoSleep -- Yes --> ConfigNoSleep["Configure AC no-sleep in /etc/dconf/db/gdm.d/01-power<br/>and user session gsettings (Preserves battery sleep safety)"] --> PromptZRAM
+    PromptNoSleep -- No --> PromptZRAM
+    
+    PromptZRAM{"Apply high-performance ZRAM tuning? [Y/n]"}
+    PromptZRAM -- Yes --> DeployZRAM["Deploy drop-in /etc/systemd/zram-generator.conf.d/10-zram.conf:<br/>zram-size = ram<br/>compression-algorithm = zstd<br/><br/>Deploy kernel sysctl /etc/sysctl.d/99-zram.conf:<br/>vm.swappiness = 180<br/>vm.watermark_boost_factor = 0<br/>vm.watermark_scale_factor = 125<br/>vm.page-cluster = 0<br/><br/>Remove legacy monolithic /etc/systemd/zram-generator.conf (with backup)<br/>sysctl --system && restart systemd-zram-setup@zram0"] --> EndPower(["Mark completed"])
+    PromptZRAM -- No --> EndPower
+```
+
+---
+
+### Step 10: Modular Development Toolchains (`setup_dev`)
+
+```mermaid
+flowchart TD
+    StartDev(["Start setup_dev()"]) --> SelectGenres["Evaluate dev genres: --dev-type or interactive<br/>(systems, web, android, ai, all)"]
+    SelectGenres --> BuildPkgs["Build dev_pkgs list:<br/>Base: meson, ninja, automake, gdb, valgrind, strace, git-lfs, python3-devel<br/>Systems: gcc, clang, llvm, make, cmake<br/>Web: nodejs, npm<br/>Android: java-latest-openjdk, maven<br/>AI: python3-pip, virtualenv, wheel, ruff, uv"]
     BuildPkgs --> InstallDevPkgs["Execute: dnf install -y --skip-unavailable dev_pkgs"]
     
     InstallDevPkgs --> CheckSystemsGenre{"Has 'systems' genre?"}
@@ -344,49 +328,49 @@ flowchart TD
     RustPrompt -- Yes --> InstallRust["Install rust, cargo, rustup, clippy, rust-analyzer"] --> CcachePrompt
     RustPrompt -- No --> CcachePrompt
     
-    CcachePrompt{"Install and configure ccache (50GB compressed)? [Y/n]<br/>(Disclaimer: GCC/Clang object cache)"}
+    CcachePrompt{"Install and configure ccache (50GB compressed)? [Y/n]"}
     CcachePrompt -- Yes --> InstallCcache["Install ccache & configure 50GB limit with compression"] --> CheckAndroidGenre
     CcachePrompt -- No --> CheckAndroidGenre
     CheckSystemsGenre -- No --> CheckAndroidGenre
     
     CheckAndroidGenre{"Has 'android' genre?"}
     CheckAndroidGenre -- Yes --> AndroidStudioPrompt{"Install Android Studio (via Flathub)? [Y/n]"}
-    AndroidStudioPrompt -- Yes --> InstallAndroidStudio["flatpak install flathub com.google.AndroidStudio"] --> CheckAIGenre
-    AndroidStudioPrompt -- No --> CheckAIGenre
+    AndroidStudioPrompt -- Yes --> InstallAndroidStudio["flatpak install flathub com.google.AndroidStudio"] --> ScrcpyPrompt
+    AndroidStudioPrompt -- No --> ScrcpyPrompt
+    ScrcpyPrompt{"Install Scrcpy low-latency screen mirror via Copr? [Y/n]"}
+    ScrcpyPrompt -- Yes --> InstallScrcpy["Enable zeno/scrcpy Copr & install scrcpy"] --> CheckAIGenre
+    ScrcpyPrompt -- No --> CheckAIGenre
     CheckAndroidGenre -- No --> CheckAIGenre
     
     CheckAIGenre{"Has 'ai' genre?"}
-    CheckAIGenre -- Yes --> CheckNvidiaGPU{"NVIDIA GPU detected via lspci?"}
-    CheckNvidiaGPU -- Yes --> CudaPrompt{"Install NVIDIA CUDA development libraries? [Y/n]"}
+    CheckAIGenre -- Yes --> CheckCompute{"Probe GPU for Compute:"}
+    CheckCompute -- NVIDIA --> CudaPrompt{"Install NVIDIA CUDA development libraries? [Y/n]"}
     CudaPrompt -- Yes --> InstallCuda["dnf install xorg-x11-drv-nvidia-cuda-devel"] --> CheckWebGenre
     CudaPrompt -- No --> CheckWebGenre
-    CheckNvidiaGPU -- No --> CheckWebGenre
+    CheckCompute -- AMD --> ROCmPrompt{"Install AMD ROCm OpenCL / HIP? [Y/n]"}
+    ROCmPrompt -- Yes --> InstallROCm["dnf install rocm-opencl rocm-hip"] --> CheckWebGenre
+    ROCmPrompt -- No --> CheckWebGenre
+    CheckCompute -- Intel --> IntelComputePrompt{"Install Intel Compute Runtime (oneAPI / Level Zero)? [Y/n]"}
+    IntelComputePrompt -- Yes --> InstallIntelCompute["dnf install intel-compute-runtime intel-opencl level-zero"] --> CheckWebGenre
+    IntelComputePrompt -- No --> CheckWebGenre
     CheckAIGenre -- No --> CheckWebGenre
     
     CheckWebGenre{"Has 'web' genre?"}
-    CheckWebGenre -- Yes --> EnableCorepack["Enable Node.js Corepack (yarn/pnpm)"] --> PythonSymlinks
-    CheckWebGenre -- No --> PythonSymlinks
+    CheckWebGenre -- Yes --> EnableCorepack["Enable Node.js Corepack (yarn/pnpm)"] --> PythonSymlink
+    CheckWebGenre -- No --> PythonSymlink
     
-    PythonSymlinks["Create Python symlinks in ~/.local/bin/python"] --> GitDefaults
-    GitDefaults["Configure Git global defaults:<br/>core.pager=cat, push.autoSetupRemote=true, pull.rebase=true, diff.colorMoved=zebra"] --> CheckPGProfile{"Is full profile?"}
+    PythonSymlink["Create ~/.local/bin/python symlink"] --> GitWorkflowPrompt{"Configure Git workflow defaults (autoSetupRemote, pull.rebase, diff.colorMoved)? [y/N]"}
+    GitWorkflowPrompt -- Yes --> BackupAndSetGit["Backup ~/.gitconfig<br/>git config --global push.autoSetupRemote true<br/>git config --global pull.rebase true<br/>git config --global diff.colorMoved zebra"] --> PGPrompt
+    GitWorkflowPrompt -- No --> PGPrompt
     
-    CheckPGProfile -- Yes --> PGPrompt{"Install PostgreSQL 18 Server & pgAdmin 4? [y/N]"}
-    PGPrompt -- Yes --> InstallPG18
-    PGPrompt -- No --> EndDev(["Mark completed"])
-    CheckPGProfile -- No --> EndDev
-    
-    InstallPG18["Install PostgreSQL 18 Server from official PGDG repository"] --> InitPG18{"Is /var/lib/pgsql/18/data initialized?"}
-    InitPG18 -- No --> RunInitDB["Run: /usr/pgsql-18/bin/postgresql-18-setup initdb"] --> EnablePGService
-    InitPG18 -- Yes --> EnablePGService
-    
-    EnablePGService["systemctl enable --now postgresql-18<br/>Export PATH in /etc/profile.d/pgsql18.sh"]
-    EnablePGService --> InstallPGAdmin["Install pgAdmin 4 Desktop GUI from official repo"]
-    InstallPGAdmin --> EndDev
+    PGPrompt{"Install and initialize PostgreSQL Server? [y/N]"}
+    PGPrompt -- Yes --> InstallPG["Architecture-aware install (PGDG repo for x86_64, Fedora native for others)<br/>Initialize DB & enable postgresql service"] --> EndDev(["Mark completed"])
+    PGPrompt -- No --> EndDev
 ```
 
 ---
 
-### Step 12: Code Editor Suite & Polyglot Runner (`setup_editor`)
+### Step 11: Code Editor Suite & Polyglot Runner (`setup_editor`)
 
 ```mermaid
 flowchart TD
@@ -395,7 +379,7 @@ flowchart TD
     EditorMenu -- 1: Zed --> InstallZed["Install Zed via official installer script"]
     InstallZed --> DeployZedSettings["Deploy ~/.config/zed/settings.json<br/>(Catppuccin Mocha, FiraCode font, autosave)"]
     DeployZedSettings --> DeployZedKeymap["Deploy ~/.config/zed/keymap.json<br/>(F5 / Ctrl+Alt+N to run current file)"]
-    DeployZedKeymap --> DeployZedRunner["Deploy polyglot ~/.local/bin/zed-run:<br/>Auto-detects Python, Rust, C, C++, Go, JS, TS, Bash;<br/>Traps Ctrl+C to drop into interactive terminal"] --> EndEditor(["Mark completed"])
+    DeployZedKeymap --> DeployZedRunner["Deploy polyglot ~/.local/bin/zed-run:<br/>Auto-detects Python, Rust, C, C++, Go, JS, TS, Bash"] --> EndEditor(["Mark completed"])
     
     EditorMenu -- 2: Codium --> AddCodiumRepo["Import official GPG key & add VSCodium repo"]
     AddCodiumRepo --> InstallCodium["Install codium & deploy settings.json"] --> EndEditor
@@ -411,17 +395,7 @@ flowchart TD
 
 ---
 
-### Step 13: Flatpak Applications (`setup_flatpaks`)
-
-```mermaid
-flowchart TD
-    StartFlatpaks(["Start setup_flatpaks()"]) --> InstallApps["Install sandboxed desktop Flatpaks from Flathub:<br/>- org.localsend.localsend_app (LocalSend)<br/>- com.mattjakeman.ExtensionManager (Extension Manager)"]
-    InstallApps --> EndFlatpaks(["Mark completed"])
-```
-
----
-
-### Step 14: Docker Container Engine (`setup_docker`)
+### Step 12: Docker Container Engine (`setup_docker`)
 
 ```mermaid
 flowchart TD
@@ -430,13 +404,13 @@ flowchart TD
     IgnoreNM --> IgnoreFirewall["Configure Firewalld to preserve container NAT rules:<br/>Set IgnoreInterfaces=docker0 in /etc/firewalld/firewalld.conf"]
     IgnoreFirewall --> AddDockerGroup["Add current user to 'docker' group<br/>(sudo usermod -aG docker $USER)"]
     AddDockerGroup --> StartDockerService["systemctl enable containerd.service<br/>systemctl reset-failed docker (if failed)<br/>systemctl enable --now docker"]
-    StartDockerService --> InstallDockerCompose["Download Docker Compose v2 CLI plugin from GitHub releases<br/>Install to ~/.docker/cli-plugins/docker-compose"]
+    StartDockerService --> InstallDockerCompose["Architecture-aware compose plugin:<br/>Download docker-compose CLI plugin from GitHub releases<br/>Install to ~/.docker/cli-plugins/docker-compose"]
     InstallDockerCompose --> EndDocker(["Mark completed"])
 ```
 
 ---
 
-### Step 15: KVM/QEMU Hardware Virtualization (`setup_kvm`)
+### Step 13: KVM/QEMU Hardware Virtualization (`setup_kvm`)
 
 ```mermaid
 flowchart TD
@@ -463,6 +437,36 @@ flowchart TD
 
 ---
 
+### Step 14: Gaming Stack & Heroic (`setup_gaming`)
+
+```mermaid
+flowchart TD
+    StartGaming(["Start setup_gaming()"]) --> InstallGamePkgs["Install gaming packages via DNF:<br/>steam, mangohud, gamemode, vulkan-tools"]
+    InstallGamePkgs --> UnlockSteamH264["Unlock Steam H.264 video codec decoding:<br/>steam-devices & mozilla-openh264"]
+    UnlockSteamH264 --> DeployMangoHudConf["Deploy ~/.config/MangoHud/MangoHud.conf<br/>(GPU/CPU temps, core clocks, FPS, frame timing, 3-column table, 24px font)"]
+    DeployMangoHudConf --> PromptHeroic{"Install Heroic Games Launcher (Epic, GOG, Amazon) via Flathub? [Y/n]"}
+    
+    PromptHeroic -- Yes --> InstallHeroic["Install com.heroicgameslauncher.hgl Flatpak<br/>Pre-create ~/.var/app/.../Prefixes directory"] --> EndGaming(["Mark completed"])
+    PromptHeroic -- No --> EndGaming
+```
+
+---
+
+### Step 15: Creator & Streaming Suite (`setup_creator`)
+
+```mermaid
+flowchart TD
+    StartCreator(["Start setup_creator()"]) --> InstallCreatorPkgs["Install creator packages via DNF:<br/>obs-studio, akmod-v4l2loopback, v4l2loopback, v4l-utils, wf-recorder, pulseaudio-utils, gstreamer1-devel"]
+    InstallCreatorPkgs --> CheckNVGPU{"NVIDIA GPU detected?"}
+    
+    CheckNVGPU -- Yes --> PromptNVBroadcast{"Install NVIDIA Broadcast for Linux (AI noise removal & virtual camera)? [y/N]"}
+    PromptNVBroadcast -- Yes --> InstallNVB["Clone Hkshoonya/nvidia-broadcast-linux into ~/.local/share/nvidia-broadcast-linux<br/>Execute ./install.sh --runtime cuda"] --> EndCreator(["Mark completed"])
+    PromptNVBroadcast -- No --> EndCreator
+    CheckNVGPU -- No --> EndCreator
+```
+
+---
+
 ### Step 16: Pre-Driver Kernel Gate (`setup_pre_driver_reboot`)
 
 ```mermaid
@@ -471,7 +475,7 @@ flowchart TD
     QueryRunningKernel --> QueryInstalledKernel["Get newest installed kernel RPM version:<br/>rpm -q --last kernel-core kernel"]
     QueryInstalledKernel --> CompareKernels{"Running Kernel == Installed Kernel?"}
     
-    CompareKernels -- Yes --> MatchLog["Log 'Running kernel matches installed kernel — no reboot needed'"] --> EndGate(["Mark completed"])
+    CompareKernels -- Yes --> MatchLog["Log 'Running kernel matches installed kernel - no reboot needed'"] --> EndGate(["Mark completed"])
     
     CompareKernels -- No --> WarnMismatch["Log Warning: Kernel mismatch detected!<br/>Building out-of-tree GPU drivers (akmods) would target wrong headers."]
     WarnMismatch --> PromptReboot{"Reboot now to boot into latest kernel? [Y/n]"}
@@ -482,21 +486,14 @@ flowchart TD
 
 ---
 
-### Step 17: GPU Driver Detection & Secure Boot MOK (`setup_drivers`)
+### Step 17: Multi-Vendor GPU Drivers & Secure Boot MOK (`setup_drivers`)
 
 ```mermaid
 flowchart TD
-    StartDrivers(["Start setup_drivers()"]) --> CheckMinProfile{"Is profile 'minimal'?"}
-    
-    CheckMinProfile -- Yes --> PromptMinDrivers{"Configure GPU drivers? [y/N]"}
-    PromptMinDrivers -- No --> SkipMinDrivers["Log 'Skipping GPU driver setup'"] --> EndDrivers(["Mark completed"])
-    PromptMinDrivers -- Yes --> ProbeHardware
-    CheckMinProfile -- No --> ProbeHardware
-    
-    ProbeHardware["Probe Hardware Subsystem:<br/>- Chassis: hostnamectl chassis<br/>- GPUs: lspci | grep -Ei 'VGA|3D|Display' (NVIDIA, AMD, Intel)"]
+    StartDrivers(["Start setup_drivers()"]) --> ProbeHardware["Hardware Globals Probed at Startup:<br/>- Chassis: hostnamectl chassis (IS_LAPTOP)<br/>- GPUs: lspci (HAS_NVIDIA, HAS_AMD, HAS_INTEL)"]
     
     ProbeHardware --> CheckIntel{"Intel GPU present?"}
-    CheckIntel -- Yes --> InstallIntel["Install intel-media-driver (Broadwell Gen8+ VA-API decode)"] --> CheckAMD
+    CheckIntel -- Yes --> InstallIntel["Install intel-media-driver and libva-intel-driver"] --> CheckAMD
     CheckIntel -- No --> CheckAMD
     
     CheckAMD{"AMD GPU present?"}
@@ -504,32 +501,34 @@ flowchart TD
     CheckAMD -- No --> CheckNVIDIA
     
     CheckNVIDIA{"NVIDIA GPU present?"}
-    CheckNVIDIA -- Yes --> InstallNVIDIA["Install NVIDIA Driver Stack:<br/>akmod-nvidia, akmods, kernel-devel-matched, xorg-x11-drv-nvidia-kmodsrc,<br/>xorg-x11-drv-nvidia-cuda, libva-nvidia-driver, akmod-v4l2loopback, mokutil"]
+    CheckNVIDIA -- Yes --> InstallNVIDIA["Install NVIDIA Driver Stack:<br/>akmod-nvidia, akmods, kernel-devel-matched, xorg-x11-drv-nvidia-cuda, libva-nvidia-driver, mokutil"]
     InstallNVIDIA --> BuildModules["Force module compilation: sudo akmods --force"]
-    BuildModules --> CheckOptimus{"Is Laptop Chassis AND Hybrid GPU present?"}
-    CheckOptimus -- Yes --> ConfigVulkan["Configure /etc/environment.d/10-vulkan-hybrid.conf:<br/>Set VK_LOADER_DRIVERS_SELECT to *radeon* or *intel*<br/>to prevent dGPU wake latency in GTK4 apps"] --> SecureBootGuide
+    BuildModules --> CheckOptimus{"Is Laptop Chassis AND Hybrid GPU present (AMD/Intel + NVIDIA)?"}
+    
+    CheckOptimus -- Yes --> PromptOptimus{"Hybrid Optimus detected.<br/>External display warning: setting iGPU priority saves battery but may affect dGPU-wired monitors.<br/>Set iGPU as primary Vulkan device? [Y/n]"}
+    PromptOptimus -- Yes --> ConfigVulkan["Write /etc/environment.d/10-vulkan-hybrid.conf:<br/>VK_LOADER_DRIVERS_SELECT=*radeon* or *intel*"] --> SecureBootGuide
+    PromptOptimus -- No --> LogOptimusSkip["Preserve default Vulkan device discovery"] --> SecureBootGuide
     CheckOptimus -- No --> SecureBootGuide
     
-    SecureBootGuide["Display Comprehensive Secure Boot & MOK Guide:<br/>1. Key generation (kmodgenca -a)<br/>2. Key import (mokutil --import public_key.der)<br/>3. Blue MOK Manager enrollment walkthrough on reboot"] --> EndDrivers
-    
-    CheckNVIDIA -- No --> LogNoNvidia["Log 'No NVIDIA GPU found'"] --> EndDrivers
+    SecureBootGuide["Display Comprehensive Secure Boot & MOK Guide:<br/>1. Key generation (kmodgenca -a)<br/>2. Key import (mokutil --import public_key.der)<br/>3. Blue MOK Manager enrollment walkthrough on reboot"] --> EndDrivers(["Mark completed"])
+    CheckNVIDIA -- No --> EndDrivers
 ```
 
 ---
 
-### Step 18: Summary & Service Health Check (`show_summary`)
+### Summary & Health Check (`show_summary`)
 
 ```mermaid
 flowchart TD
     StartSummary(["Start show_summary()"]) --> CalcTime["Calculate total execution duration (minutes & seconds)"]
     CalcTime --> PrintTallies["Display summary banner:<br/>- Completed steps tally<br/>- Failed steps tally<br/>- Skipped steps tally"]
-    PrintTallies --> CheckServices["Audit System Service Status:<br/>- TLP (systemctl is-active tlp)<br/>- Docker (systemctl is-active docker)<br/>- NVIDIA Driver (nvidia-smi check)<br/>- ZSH Default Shell (comparison with $SHELL)"]
+    PrintTallies --> CheckServices["Audit System Service Status:<br/>- TLP (systemctl is-active tlp)<br/>- Docker (systemctl is-active docker)<br/>- NVIDIA Driver (nvidia-smi check)<br/>- Active Login Shell (from /etc/passwd)"]
     CheckServices --> VideoTestPrompt{"Verify hardware video acceleration? [y/N]"}
     
     VideoTestPrompt -- Yes --> RunVideoTests["Query FFmpeg H.264 encoders<br/>Query VA-API profiles via vainfo"] --> PrintNextSteps
     VideoTestPrompt -- No --> PrintNextSteps
     
-    PrintNextSteps["Display Actionable Next Steps:<br/>1. Reboot system (applies Docker/libvirt groups & kernel drivers)<br/>2. Open new terminal (ZSH + Starship prompt)<br/>3. Review detailed log in /tmp/fedora-setup-*.log"]
+    PrintNextSteps["Display Actionable Next Steps:<br/>1. Reboot system (applies Docker/libvirt groups & kernel drivers)<br/>2. Open new terminal (Fish/ZSH + Starship prompt)<br/>3. Review detailed log in /tmp/fedora-setup-*.log"]
     PrintNextSteps --> EndSummary(["System Ready! 🚀"])
 ```
 
@@ -542,7 +541,7 @@ How `setup.sh` handles step resumption, failure recovery, and backup restoration
 ```mermaid
 flowchart TD
     subgraph StateResumption ["Resumption & Interruption Lifecycle"]
-        Launch["User runs ./setup.sh"] --> ReadStateFile["Read ~/.config/fedora-setup/state.txt"]
+        Launch["User runs ./setup.sh or curl | bash"] --> ReadStateFile["Read ~/.config/fedora-setup/state.txt"]
         ReadStateFile --> StepEvaluator{"For each step in active profile"}
         
         StepEvaluator --> StepInState{"Step function name<br/>present in state.txt?"}
@@ -563,7 +562,7 @@ flowchart TD
         FoundBackups -->|"No"| LogNoBackup["Log 'No backups found' -> Exit 1"]
         FoundBackups -->|"Yes"| ConfirmRestore{"Restore all files from this timestamp? [y/N]"}
         
-        ConfirmRestore -->|"Yes"| RestoreFiles["Restore original files:<br/>- ~/.zshrc<br/>- ~/.bashrc<br/>- /etc/dnf/dnf.conf<br/>- ~/.config/MangoHud/MangoHud.conf<br/>- ~/.config/starship.toml<br/>- ~/.config/ghostty/config.ghostty<br/>- ~/.config/ghostty/gtk.css<br/>- ~/.config/kitty/kitty.conf<br/>- ~/.config/alacritty/alacritty.toml"]
+        ConfirmRestore -->|"Yes"| RestoreFiles["Restore original files from timestamped backup:<br/>- ~/.zshrc<br/>- ~/.bashrc<br/>- ~/.gitconfig<br/>- /etc/dnf/dnf.conf<br/>- /etc/systemd/zram-generator.conf<br/>- ~/.config/MangoHud/MangoHud.conf<br/>- ~/.config/starship.toml<br/>- ~/.config/ghostty/config.ghostty<br/>- ~/.config/kitty/kitty.conf<br/>- ~/.config/alacritty/alacritty.toml"]
         RestoreFiles --> WipeState["Delete ~/.config/fedora-setup/state.txt<br/>(Resets state so future runs re-evaluate cleanly)"]
         WipeState --> ExitRestore(["Exit 0 (System restored to original clean state)"])
         ConfirmRestore -->|"No"| CancelRestore(["Cancel restore"])
