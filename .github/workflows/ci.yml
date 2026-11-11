@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install ShellCheck
-        run: sudo apt-get update && sudo apt-get install -y shellcheck
+        run: command -v shellcheck >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y shellcheck)
 
       - name: Run ShellCheck
         run: make lint
