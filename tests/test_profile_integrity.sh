@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/setup.sh"
+SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src"
 FAILED=0
 PASSED=0
 
@@ -51,7 +52,7 @@ get_profile_steps() {
         init_state() { :; }
         confirm() { return 1; }
 
-        code=\$(sed -n '/local steps=(/,/TOTAL_STEPS=/p' \"$SCRIPT_PATH\")
+        code=\$(sed -n '/local steps=(/,/TOTAL_STEPS=/p' \"$SRC_DIR/99_main.sh\")
         code=\$(echo \"\$code\" | sed 's/local -A /declare -g -A /g; s/local /declare -g /g')
         PROFILE=\"$target_profile\"
         eval \"\$code\"

@@ -149,22 +149,19 @@ GNOME Tweaks, Extension Manager, extension recommendations.
 
 ## Development & Testing
 
-Modular source files live under `src/`. The standalone `setup.sh` executable is generated deterministically by `build.sh`:
+Modular source files live under `src/`. The root `setup.sh` is a lean 45-line entrypoint that sources `src/` modules when cloned locally, or self-bootstraps via GitHub archive when executed remotely over `curl`:
 
 ```bash
-# Assemble setup.sh from src/ modules
-make build
-
-# Verify setup.sh is strictly synchronized with src/
-make build-check
-
 # Run ShellCheck across all scripts
 make lint
 
-# Run all automated test suites
+# Run all 7 automated test suites
 make test
 
-# Or run complete validation pipeline (build check, lint, tests)
+# Assemble standalone distribution bundle in dist/ (optional)
+make build
+
+# Or run complete validation pipeline (lint + test)
 make check
 ```
 

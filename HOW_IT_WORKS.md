@@ -90,9 +90,9 @@ Before modifying system or user dotfiles, `backup_file()` creates timestamped ba
 
 ---
 
-## 6. Source Modularization & Build Pipeline
+## 6. Source Modularization & Self-Bootstrapping Architecture
 
-Development source files are modularized under `src/` to prevent monolithic merge conflicts while preserving single-file zero-dependency distribution:
+Source code is modularized under `src/` to eliminate monolithic code sprawl while providing zero-duplicate clean maintenance:
 
 ```
 src/
@@ -105,6 +105,7 @@ src/
 └── 99_main.sh         # Installation summary, orchestrator loop, trap runner
 ```
 
-- **Distribution Artifact (`setup.sh`)**: The compiled executable in the repository root is generated deterministically by `./build.sh`. This ensures direct compatibility with `curl -fsSL ... | bash` installations and existing integration test runners.
-- **Verification Gate (`./build.sh --check`)**: CI and `make check` run `./build.sh --check` to ensure `setup.sh` is strictly in sync with source modules in `src/`.
-- **Atomic Assembly**: `build.sh` writes the concatenated artifact to a temporary file before atomically moving it into place, preventing incomplete writes.
+- **Dual-Mode Orchestrator (`setup.sh`)**: The root entrypoint is a lean 45-line self-bootstrapping script:
+  1. **Local Mode (Cloned Repository)**: Directly sources runtime and step modules from `./src/` with zero overhead.
+  2. **Remote Bootstrap Mode (`curl | bash`)**: When piped from `curl` (where `./src/` does not exist locally), it automatically fetches the lightweight repository archive from GitHub into a temporary sandbox in `/tmp`, executes the suite with all supplied CLI arguments, and cleans up on exit.
+- **Optional Release Bundler (`build.sh`)**: Developers and CI can assemble the modular hierarchy into a standalone bundle in `dist/setup.sh` via `make build`.

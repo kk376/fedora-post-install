@@ -156,16 +156,16 @@ fi
 echo "--- Suite 4: Synchronization Check (--check) ---"
 
 check_code=0
-check_out=$("$BUILD_SCRIPT" --check 2>&1) || check_code=$?
+check_out=$("$BUILD_SCRIPT" --check -o "$test_out" 2>&1) || check_code=$?
 if [[ $check_code -eq 0 ]] && echo "$check_out" | grep -q "synchronized"; then
-    pass "--check succeeds for synchronized setup.sh"
+    pass "--check succeeds for synchronized target bundle"
 else
-    fail "--check failed on synchronized setup.sh" "Exit code: $check_code, output: $check_out"
+    fail "--check failed on synchronized bundle" "Exit code: $check_code, output: $check_out"
 fi
 
 # Test desynchronization detection
 desync_target="${TEST_SANDBOX}/desync_setup.sh"
-cp "$SETUP_SCRIPT" "$desync_target"
+cp "$test_out" "$desync_target"
 echo "# Desync comment" >> "$desync_target"
 
 desync_code=0
@@ -193,10 +193,34 @@ echo "--- Suite 5: Standard Output Mode (--stdout) ---"
 stdout_target="${TEST_SANDBOX}/stdout_setup.sh"
 "$BUILD_SCRIPT" --stdout > "$stdout_target"
 
-if cmp -s "$stdout_target" "$SETUP_SCRIPT"; then
-    pass "--stdout emits byte-for-byte identical content to setup.sh"
+if cmp -s "$stdout_target" "$test_out"; then
+    pass "--stdout emits byte-for-byte identical content to assembled bundle"
 else
-    fail "--stdout content differs from setup.sh"
+    fail "--stdout content differs from assembled bundle"
+fi
+
+# ==============================================================================
+# Suite 6: Remote Bootstrap Execution Fallback
+# ==============================================================================
+echo "--- Suite 6: Remote Bootstrap Execution Fallback ---"
+
+remote_sandbox="${TEST_SANDBOX}/remote_test"
+mkdir -p "$remote_sandbox/bin"
+cp "$SETUP_SCRIPT" "$remote_sandbox/remote_setup.sh"
+
+# Mock curl and tar in remote sandbox to simulate pipe/download execution
+cat << 'MOCK_REMOTE' > "$remote_sandbox/bin/curl"
+#!/bin/bash
+exit 0
+MOCK_REMOTE
+chmod +x "$remote_sandbox/bin/curl"
+
+# Verify remote setup.sh identifies missing src/ and attempts remote fetch
+bootstrap_out=$(PATH="$remote_sandbox/bin:$PATH" bash "$remote_sandbox/remote_setup.sh" --help 2>&1 || true)
+if echo "$bootstrap_out" | grep -q "Fetching fedora-post-install from GitHub"; then
+    pass "setup.sh self-bootstraps from GitHub when executed remotely without local src/"
+else
+    fail "setup.sh failed to trigger remote bootstrap when local src/ is missing"
 fi
 
 echo "========================================================"

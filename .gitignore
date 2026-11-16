@@ -6,6 +6,7 @@
 # Packages & build artifacts
 *.rpm
 squashfs-root/
+dist/
 
 # Test artifacts & local configurations
 .test_env/

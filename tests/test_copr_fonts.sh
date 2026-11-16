@@ -15,6 +15,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETUP_SCRIPT="${SCRIPT_DIR}/setup.sh"
+SRC_DIR="${SCRIPT_DIR}/src"
 
 TOTAL=0
 PASSED=0
@@ -60,29 +61,28 @@ echo ""
 echo -e "${BLUE}=== Suite 1: COPR Configuration Audit ===${NC}"
 
 # Check scrcpy COPR in setup_dev
-if grep -A 10 "setup_dev()" "$SETUP_SCRIPT" | grep -q 'copr enable -y zeno/scrcpy' || \
-   grep -q 'copr enable -y zeno/scrcpy' "$SETUP_SCRIPT"; then
+if grep -q 'copr enable -y zeno/scrcpy' "$SRC_DIR/steps/10_dev.sh"; then
     pass "setup.sh enables zeno/scrcpy COPR repository for Android tooling"
 else
     fail "setup.sh missing zeno/scrcpy COPR repository"
 fi
 
 # Check yazi COPR in setup_desktop_apps
-if grep -q 'copr enable -y lihaohong/yazi' "$SETUP_SCRIPT"; then
+if grep -q 'copr enable -y lihaohong/yazi' "$SRC_DIR/steps/08_desktop_apps.sh"; then
     pass "setup.sh enables lihaohong/yazi COPR repository for Yazi file manager"
 else
     fail "setup.sh missing lihaohong/yazi COPR repository"
 fi
 
 # Check Ghostty COPR in setup_terminal
-if grep -q 'copr enable -y scottames/ghostty' "$SETUP_SCRIPT"; then
+if grep -q 'copr enable -y scottames/ghostty' "$SRC_DIR/steps/04_shell.sh"; then
     pass "setup.sh enables scottames/ghostty COPR repository for Ghostty terminal"
 else
     fail "setup.sh missing scottames/ghostty COPR repository"
 fi
 
 # Verify yazi preview dependencies in setup_desktop_apps
-yazi_install_line=$(grep -A 5 'copr enable -y lihaohong/yazi' "$SETUP_SCRIPT" | grep 'dnf install')
+yazi_install_line=$(grep -A 5 'copr enable -y lihaohong/yazi' "$SRC_DIR/steps/08_desktop_apps.sh" | grep 'dnf install')
 required_yazi_deps=("yazi" "file" "poppler-utils" "resvg" "ImageMagick")
 for dep in "${required_yazi_deps[@]}"; do
     assert_contains "Yazi dependency '$dep' present in install list" "$dep" "$yazi_install_line"
@@ -106,7 +106,7 @@ assert_contains "Full profile dry-run logs Scrcpy install" "sudo dnf install -y 
 echo ""
 echo -e "${BLUE}=== Suite 3: setup_fonts Static Package Audit ===${NC}"
 
-fonts_func_code=$(sed -n '/^setup_fonts() {/,/^}/p' "$SETUP_SCRIPT")
+fonts_func_code=$(cat "$SRC_DIR/steps/05_fonts.sh")
 
 # 1. DejaVu fonts
 assert_contains "setup_fonts installs dejavu-sans-fonts" "dejavu-sans-fonts" "$fonts_func_code"
@@ -244,7 +244,7 @@ echo -e "${BLUE}=== Suite 5: Profile Inclusions for Fonts ===${NC}"
 
 # Parse PROFILE_STEPS from setup.sh
 declare -A PROFILE_STEPS
-eval "$(sed -n '/local base_minimal=/,/PROFILE_STEPS\[full\]=/p' "$SETUP_SCRIPT" | sed 's/local -A /declare -g -A /; s/local /declare -g /')"
+eval "$(sed -n '/local base_minimal=/,/PROFILE_STEPS\[full\]=/p' "$SRC_DIR/99_main.sh" | sed 's/local -A /declare -g -A /; s/local /declare -g /')"
 
 # setup_fonts must be in all graphical profiles
 for prof in workstation dev gaming creator; do
@@ -263,7 +263,7 @@ else
 fi
 
 # Full profile check
-steps_definitions=$(sed -n '/local steps=(/,/)/p' "$SETUP_SCRIPT")
+steps_definitions=$(sed -n '/local steps=(/,/)/p' "$SRC_DIR/99_main.sh")
 if [[ "$steps_definitions" == *"\"setup_fonts:System & Nerd Fonts\""* ]]; then
     pass "Full profile master registry includes setup_fonts"
 else

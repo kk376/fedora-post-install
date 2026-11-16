@@ -9,7 +9,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$SCRIPT_DIR"
 SRC_DIR="$ROOT_DIR/src"
-DEFAULT_OUTPUT="$ROOT_DIR/setup.sh"
+DEFAULT_OUTPUT="$ROOT_DIR/dist/setup.sh"
 OUTPUT_FILE="$DEFAULT_OUTPUT"
 
 CHECK_MODE=false
@@ -112,6 +112,7 @@ done
 
 # Create a temporary file for assembly in the output directory
 OUT_DIR="$(dirname "$OUTPUT_FILE")"
+mkdir -p "$OUT_DIR"
 TMP_BUNDLE=$(mktemp "${OUT_DIR}/.bundle.tmp.XXXXXX")
 trap 'rm -f "$TMP_BUNDLE"' EXIT
 

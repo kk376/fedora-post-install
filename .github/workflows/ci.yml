@@ -28,8 +28,8 @@ jobs:
       - name: Run ShellCheck
         run: make lint
 
-      - name: Verify build artifact synchronization
-        run: make build-check
+      - name: Verify build assembly
+        run: make build
 
   test:
     name: Test Suite
@@ -55,8 +55,8 @@ jobs:
       - name: Run ShellCheck
         run: make lint
 
-      - name: Verify build artifact synchronization
-        run: make build-check
+      - name: Verify build assembly
+        run: make build
 
       - name: Run test suite
         run: make test
