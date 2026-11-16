@@ -23,7 +23,7 @@ The orchestrator (`main()`) manages pre-flight checks, hardware discovery, profi
                              ▼
              ┌───────────────┴───────────────┐
              │ Step Runner (Subshell Loop)   │
-             │   ( set -eo pipefail; $fn )   │
+             │  ( set -euo pipefail; $fn )   │
              └───────────────┬───────────────┘
                              │
               ┌──────────────┴──────────────┐
@@ -101,11 +101,26 @@ src/
 ├── 02_helpers.sh      # Hardware detection, downloaders, backup/restore
 ├── 03_profiles.sh     # State tracking, profile selection, preflight diagnostics
 ├── steps/
-│   ├── 01_dnf.sh .. 17_drivers.sh  # Isolated post-install step routines
+│   ├── 01_dnf.sh .. 17_drivers.sh  # 18 domain step modules (including 07b_debloat.sh)
 └── 99_main.sh         # Installation summary, orchestrator loop, trap runner
 ```
 
-- **Dual-Mode Orchestrator (`setup.sh`)**: The root entrypoint is a lean 45-line self-bootstrapping script:
+- **Dual-Mode Orchestrator (`setup.sh`)**: The root entrypoint is a lean ~50-line self-bootstrapping script:
   1. **Local Mode (Cloned Repository)**: Directly sources runtime and step modules from `./src/` with zero overhead.
   2. **Remote Bootstrap Mode (`curl | bash`)**: When piped from `curl` (where `./src/` does not exist locally), it automatically fetches the lightweight repository archive from GitHub into a temporary sandbox in `/tmp`, executes the suite with all supplied CLI arguments, and cleans up on exit.
 - **Optional Release Bundler (`build.sh`)**: Developers and CI can assemble the modular hierarchy into a standalone bundle in `dist/setup.sh` via `make build`.
+
+---
+
+## 7. Debloat Subsystem & Safety Model
+
+`setup_debloat()` provides a structured 4-tier model designed to declutter standard Fedora Workstation installations without compromising desktop stability or unattended safety:
+
+- **Tier 1 (Safe Service Suppression)**: Disables idle network listeners and hardware pollers without impacting core system functions:
+  - `rygel`: UPnP media sharing server. Disabled globally (`systemctl --global disable rygel.service`) and for the current user session (`systemctl --user disable --now rygel.service`).
+  - `cups-browsed`: Remote CUPS printer discovery daemon (mitigating network exposure and CVE-2024-47176 while preserving local printing).
+  - `ModemManager`: Polling daemon conditionally disabled only when no WWAN/cellular modem hardware is detected in `/sys/class/wwan*`.
+- **Tier 2 (Desktop Clutter & Office Applications)**: Interactively offers optional removal of heavy pre-installed applications (`libreoffice*`, ~500MB) and unused stock utilities (`gnome-maps`, `gnome-weather`, `gnome-contacts`, `gnome-clocks`, `gnome-characters`, `gnome-logs`, `baobab`, `simple-scan`, `yelp`, `gnome-tour`). Defaults to `N` to prevent unintended removals.
+- **Tier 3 (Extreme RAM Optimization)**: Opt-in removal of `gnome-software` and `PackageKit` background daemons. Reclaims 200–400MB of idle memory for developers and gamers who manage packages via `dnf`, `flatpak`, and Extension Manager. Defaults to `N`.
+- **Tier 4 (DNF Weak Dependencies)**: Configures `install_weak_deps=False` in `/etc/dnf/dnf.conf` to prevent the automatic installation of non-essential recommended packages during future DNF transactions. Default: `Y`.
+- **Unattended Safety Guarantee**: When executed in unattended mode (`--yes` / `-y`), destructive options (Tiers 2 & 3) automatically evaluate to `N`, ensuring headless installations remain fully functional and non-destructive.

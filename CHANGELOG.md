@@ -18,7 +18,15 @@ Follows semantic versioning: MAJOR.MINOR.PATCH
 - **Mesa Vulkan Video Acceleration**: Added `mesa-vulkan-drivers-freeworld` swap on AMD hardware to enable hardware-accelerated Vulkan Video decoding and encoding.
 - **NVIDIA Power Daemon Integration**: Installed `xorg-x11-drv-nvidia-power` and enabled `nvidia-suspend.service`, `nvidia-hibernate.service`, and `nvidia-resume.service` to prevent suspend/resume black screen freezes.
 - **Comprehensive D3cold Hybrid Graphics Profile**: Deployed complete 4-variable environment configuration (`VK_LOADER_DRIVERS_SELECT`, `LIBVA_DRIVER_NAME`, `VDPAU_DRIVER`, `__GLX_VENDOR_LIBRARY_NAME`) to allow discrete NVIDIA GPUs to enter true D3cold low-power sleep on laptops.
-- **Modular Architecture & Self-Bootstrapper**: Decomposed the monolithic script into 23 cohesive modules under `src/`, with a 43-line self-bootstrapping `setup.sh` runner and automated build bundler (`build.sh`).
+- **Modular Architecture & Self-Bootstrapper**: Decomposed the monolithic script into 23 cohesive modules under `src/`, with a lean self-bootstrapping `setup.sh` runner and automated build bundler (`build.sh`).
+- **Runtime Safety & Execution Hardening**:
+  - Added non-root invocation guard (`$EUID -eq 0` check with `ALLOW_ROOT` bypass for container CI) to prevent user `$HOME` and privilege corruption.
+  - Decoupled step subshell execution from AND-OR lists (`||`), restoring Bash `errexit` (`set -euo pipefail`) so intermediate command failures abort the step reliably.
+  - Prevented temporary directory leaks during `curl | bash` execution by ensuring the parent shell EXIT cleanup trap runs upon child exit.
+  - Added `visudo -c -f` syntax validation for sudoers modifications (`pwfeedback`) with automated rollback.
+  - Hardened DRM uevent fallback parsing to inspect PCI vendor IDs (`10de:`, `1002:`, `8086:`) and driver names (`nouveau`, `nvidia`, `i915`, `xe`, `amdgpu`, `radeon`).
+  - Standardized ZRAM generator drop-in to `99-zram.conf` to guarantee override precedence over package defaults.
+  - Hardened systemd-resolved DoT with `Domains=~.`, `DNSOverTLS=opportunistic` (preventing captive portal lockouts), and `DNSSEC=no` (matching upstream Fedora defaults).
 
 ### Changed
 

@@ -93,8 +93,8 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 ## Requirements
 
 - **Architecture:** `x86_64` or `aarch64` (AMD, Intel, NVIDIA).
-- **OS:** Fedora 44 Workstation
-- **Desktop:** GNOME
+- **OS:** Fedora Workstation (44, 45, or newer)
+- **Desktop:** GNOME (Wayland)
 - **Disk:** At least 20GB free (varies by profile)
 - **Tested on:** Intel, AMD, and NVIDIA systems, both desktop and laptop
 
@@ -102,6 +102,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 
 ## Warnings
 
+- Non-root execution: Run as your standard user account; the script invokes `sudo` internally as needed.
 - Some steps require a reboot (GPU drivers, Docker group, Secure Boot, KVM)
 - NVIDIA users: read the Secure Boot prompts carefully; follow the MOK enrollment steps when prompted and complete key enrollment on reboot
 - Default shell change (interactive choice for Fish, ZSH, or Bash in Dev and Full profiles) requires a logout/login
@@ -111,29 +112,37 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 
 ## What Gets Installed
 
-### Core
+### Core & System
 
-DNF optimization (parallel downloads, fastest mirror, version pinning), RPM Fusion, Flathub, optional DNS override (Cloudflare or Google), disable auto-sleep (GDM system dconf keyfile + user session), system fonts and FiraCode Nerd Font.
+DNF5 optimization (parallel downloads, fast mirror tuning, defaultyes), RPM Fusion (Free & Nonfree), Flathub, system-wide encrypted DNS-over-TLS (DoT via systemd-resolved: Cloudflare, Quad9, or Google with opportunistic fallback), system & Microsoft typography (Adwaita Sans/Mono, Noto variable fonts, COLRv1 color emoji, Aptos, Segoe UI, FiraCode Nerd Font), and optional sudo password asterisk feedback with `visudo` syntax verification.
+
+### Debloat Engine
+
+Interactive 4-tier model:
+- **Tier 1 (Safe Service Suppression)**: Disables idle background daemons (`rygel` UPnP media sharing, `cups-browsed` remote scanner to mitigate CVE-2024-47176; `ModemManager` conditionally on non-cellular devices).
+- **Tier 2 (Desktop Clutter)**: Optional uninstallation of heavy office suites (`libreoffice*`) and unneeded stock GNOME utilities (`gnome-maps`, `gnome-weather`, `gnome-contacts`, `gnome-tour`, `baobab`, `simple-scan`, `yelp`).
+- **Tier 3 (Extreme RAM Optimization)**: Opt-in removal of `gnome-software` and `PackageKit` background daemons to reclaim 200–400MB idle RAM.
+- **Tier 4 (DNF Weak Dependencies)**: Prevents weak dependency creep on future package transactions via `install_weak_deps=False`.
 
 ### Shell
 
 Fish (recommended default) and ZSH, syntax highlighting, autosuggestions, clean modern aliases (clear, ls, cat, less). Developer and full profiles feature interactive login shell selection (Fish, ZSH, Bash), an interactive prompt for Starship cross-shell prompt installation with feature disclaimer, and a dedicated menu for developer environment exports and Git aliases. All other profiles receive clean standard aliases without Starship or developer environment exports. Developer and full profiles also include interactive modern GPU terminal selection (Ghostty recommended, Kitty, or Alacritty) with self-contained Tokyo Night configuration.
 
-### Power
+### Power & Memory
 
-TLP (optional, warns about GNOME power profiles conflict), tuned virtual-host profile for KVM.
+High-performance ZRAM dynamic scaling (`min(ram / 2, 32768)` with zstd compression in `99-zram.conf`), kernel sysctl memory tuning (`vm.swappiness = 180`, `watermark_scale_factor = 125`), and automatic masking of conflicting `tuned-ppd` / `power-profiles-daemon` services.
 
-### Multimedia & Browsers
+### Multimedia & Audio
 
-Brave Browser, FFmpeg freeworld, VA-API / NVENC support, OpenH264.
+Brave Browser, full FFmpeg freeworld codec swap, VA-API hardware acceleration, OpenH264, WirePlumber 0.5 Bluetooth HD audio (LDAC, aptX HD, AAC, SBC-XQ), and GDM Bluetooth headset hijacking prevention.
 
 ### GPU Drivers
 
-Intel media driver, AMD freeworld VA/VDPAU, NVIDIA proprietary (akmods, Secure Boot key enrollment with guided walkthrough).
+Multi-vendor hardware acceleration: Intel media drivers (iHD/VA-API), AMD Mesa Freeworld VA-API and Vulkan Video acceleration, NVIDIA proprietary drivers (`akmods`, CUDA, VA-API bridge, `xorg-x11-drv-nvidia-power`, and `nvidia-suspend`/`hibernate`/`resume` systemd daemons), guided Secure Boot MOK enrollment, and opt-in 4-variable hybrid GPU sleep profile (D3cold) for dual-GPU Optimus laptops.
 
 ### Dev Tools
 
-GCC, Clang, LLVM, ccache (interactive disclaimer prompt for 10GB compressed cache in systems genre), Java, Node.js, Python, Ruff linter/formatter, PostgreSQL 18, Docker + Docker Compose, Corepack, Code Editor selection (Zed, VS Codium, Antigravity IDE, or VS Code), Rust (optional), Git LFS & git-filter-repo, Android tools, debuggers, build systems.
+GCC, Clang, LLVM, ccache (10GB compressed cache in systems genre), Java OpenJDK, Node.js + Corepack (pnpm/yarn), Python 3 + uv + Ruff, official native Fedora PostgreSQL server, Docker + Docker Compose, Code Editor selection (Zed, VS Codium, Antigravity IDE, or VS Code), Rust (`rustup`), Git LFS & git-filter-repo, Android tools, Scrcpy, and GPU compute stacks (CUDA, ROCm HIP, Intel Level Zero).
 
 ### Gaming
 
@@ -141,17 +150,17 @@ Steam (with H.264 unlock), MangoHud (auto-configured with 32px HUD scaling, alph
 
 ### Virtualization
 
-KVM/QEMU, libvirt with socket activation, virt-manager, VirtIO drivers for Windows VMs, firewall and storage pool setup.
+KVM/QEMU, modular libvirt with on-demand socket activation (`virtqemud`, `virtnetworkd`, `virtstoraged`), virt-manager, VirtIO drivers for Windows VMs, firewall and storage pool setup.
 
 ### GNOME
 
-GNOME Tweaks, Extension Manager, extension recommendations.
+GNOME Tweaks, Extension Manager, GSConnect firewall rules, transparent headerbar CSS, Mutter check-alive-timeout optimization, weekday and seconds clock display, and extension validation toggle.
 
 ---
 
 ## Development & Testing
 
-Modular source files live under `src/`. The root `setup.sh` is a lean 45-line entrypoint that sources `src/` modules when cloned locally, or self-bootstraps via GitHub archive when executed remotely over `curl`:
+Modular source files live under `src/`. The root `setup.sh` is a lean ~50-line entrypoint that sources `src/` modules when cloned locally, or self-bootstraps via GitHub archive when executed remotely over `curl`:
 
 ```bash
 # Run ShellCheck across all scripts
