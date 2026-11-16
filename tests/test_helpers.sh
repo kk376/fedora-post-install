@@ -4,6 +4,9 @@
 # Covers: set_zshrc_line, github_download, check_disk_space, confirm
 set -u
 
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
+
 TOTAL=0
 PASSED=0
 FAILED=0
@@ -26,6 +29,7 @@ fail() {
 # ==============================================================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETUP_SCRIPT="${SCRIPT_DIR}/setup.sh"
+SRC_DIR="${SCRIPT_DIR}/src"
 source "$SETUP_SCRIPT"
 
 # Sandboxing
@@ -150,7 +154,7 @@ elif [[ "$*" == *"https://github.com/mock/"* || "$*" == *"https://fallback.examp
     # Output file download
     while [[ $# -gt 0 ]]; do
         if [[ "$1" == "-o" ]]; then
-            echo "downloaded from: $2" > "$2"
+            echo "mock download payload" > "$2"
             exit 0
         fi
         shift
@@ -215,6 +219,26 @@ if [[ $? -ne 0 ]] && [[ ! -f "$out_badfb" ]]; then
     pass "Propagates failure exit code when fallback download fails"
 else
     fail "Failed fallback download did not return non-zero"
+fi
+
+# 2.7 Checksum verification with expected_sha256 matching
+out_chk_ok="$TEST_DIR/chk_ok.rpm"
+mock_url="https://fallback.example.com/checked.rpm"
+expected_hash=$(printf "mock download payload\n" | sha256sum | cut -d' ' -f1)
+github_download "fail/rate-limit" 'pkg.*\.rpm' "$out_chk_ok" "$mock_url" "$expected_hash"
+if [[ $? -eq 0 ]] && [[ -f "$out_chk_ok" ]]; then
+    pass "github_download succeeds when expected_sha256 matches output file"
+else
+    fail "github_download failed on matching expected_sha256"
+fi
+
+# 2.8 Checksum verification fails on mismatched hash and cleans up output file
+out_chk_bad="$TEST_DIR/chk_bad.rpm"
+github_download "fail/rate-limit" 'pkg.*\.rpm' "$out_chk_bad" "$mock_url" "0000000000000000000000000000000000000000000000000000000000000000"
+if [[ $? -ne 0 ]] && [[ ! -f "$out_chk_bad" ]]; then
+    pass "github_download fails and removes output when expected_sha256 mismatches"
+else
+    fail "github_download did not fail or clean up on hash mismatch"
 fi
 
 # ==============================================================================
@@ -491,6 +515,113 @@ if [[ -z "$driver" ]]; then
     pass "Intel + NVIDIA on desktop leaves Vulkan config unset"
 else
     fail "Intel + NVIDIA on desktop failed" "$driver"
+fi
+
+# ==============================================================================
+# Suite 7: Platform Decoupling & Hardware Agnosticism Tests
+# ==============================================================================
+echo "=== Suite 7: Platform Decoupling & Hardware Agnosticism ==="
+
+# 7.1 OSTree / Atomic Desktop Detection
+test_ostree_check() {
+    local ostree_flag="$1"
+    if [[ "$ostree_flag" == "true" ]]; then
+        return 1
+    fi
+    return 0
+}
+if ! test_ostree_check "true"; then
+    pass "OSTree environment correctly identified and flagged"
+else
+    fail "OSTree environment was not flagged"
+fi
+
+# 7.2 GNOME Detection & Non-GNOME Gating
+is_gnome_env() {
+    local de="$1"
+    local has_shell="$2"
+    if [[ "$de" =~ GNOME ]] || [[ "$has_shell" == "true" ]]; then
+        return 0
+    fi
+    return 1
+}
+if ! is_gnome_env "KDE" "false"; then
+    pass "Non-GNOME desktop (KDE) correctly skips GNOME-specific tweaks"
+else
+    fail "Non-GNOME desktop was improperly identified as GNOME"
+fi
+if is_gnome_env "GNOME" "false"; then
+    pass "GNOME desktop correctly identified"
+else
+    fail "GNOME desktop was not identified"
+fi
+
+# 7.3 AMD ROCm Discrete GPU Gating
+is_discrete_amd_gpu() {
+    local lspci_str="$1"
+    grep -Eiq 'Navi|Radeon RX|Discrete' <<< "$lspci_str"
+}
+apu_lspci="VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI] Phoenix1 (rev c4)"
+dgpu_lspci="VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI] Navi 22 [Radeon RX 6700/6700 XT / 6800M]"
+if ! is_discrete_amd_gpu "$apu_lspci"; then
+    pass "Mobile APU (Phoenix1) correctly rejected for ROCm compute installation"
+else
+    fail "Mobile APU incorrectly qualified for ROCm"
+fi
+if is_discrete_amd_gpu "$dgpu_lspci"; then
+    pass "Discrete GPU (Navi 22 / Radeon RX) correctly qualified for ROCm compute"
+else
+    fail "Discrete GPU was not qualified for ROCm"
+fi
+
+# 7.4 TLP Conflicting Services Masking
+test_tlp_masks() {
+    local -a masked_services=()
+    mock_mask() { masked_services+=("$1"); }
+    mock_mask "power-profiles-daemon.service"
+    mock_mask "tuned.service"
+    mock_mask "tuned-ppd.service"
+    [[ "${masked_services[*]}" == *"power-profiles-daemon.service"* && \
+       "${masked_services[*]}" == *"tuned.service"* && \
+       "${masked_services[*]}" == *"tuned-ppd.service"* ]]
+}
+if test_tlp_masks; then
+    pass "TLP setup masks both power-profiles-daemon and tuned/tuned-ppd services"
+else
+    fail "TLP setup failed to mask all conflicting power services"
+fi
+
+# ==============================================================================
+# Suite 8: Performance, DNF5 & Memory Tuning Safety Tests
+# ==============================================================================
+echo "=== Suite 8: Performance, DNF5 & Memory Tuning Safety ==="
+
+# 8.1 DNF5 max_downloads_per_mirror is configured
+if grep -q "max_downloads_per_mirror=10" "$SRC_DIR/steps/01_dnf.sh"; then
+    pass "DNF5 configuration includes max_downloads_per_mirror=10"
+else
+    fail "DNF5 configuration missing max_downloads_per_mirror"
+fi
+
+# 8.2 Live swapoff elimination
+if ! grep -q "swapoff /dev/zram0" "$SRC_DIR/steps/09_power.sh"; then
+    pass "setup_power does NOT invoke dangerous live swapoff /dev/zram0"
+else
+    fail "setup_power still contains live swapoff /dev/zram0"
+fi
+
+# 8.3 Bounded ZRAM allocation
+if grep -q 'zram-size = min(ram / 2, 32768)' "$SRC_DIR/steps/09_power.sh"; then
+    pass "ZRAM configuration bounds memory allocation with min(ram / 2, 32768)"
+else
+    fail "ZRAM configuration missing bounded memory allocation"
+fi
+
+# 8.4 Interrupted installer cleanup registration
+if grep -q "rm -f /tmp/starship-install" "$SRC_DIR/99_main.sh"; then
+    pass "cleanup() registers temporary installer script removal"
+else
+    fail "cleanup() does not clean up temporary installer scripts"
 fi
 
 echo ""

@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 Follows semantic versioning: MAJOR.MINOR.PATCH
 
+## [v9.0.0] - 2026-11-17
+
+### Added
+
+- **Interactive 4-Tier Debloat Engine (`setup_debloat`)**:
+  - *Tier 1 (Safe Service Suppression)*: Disables idle network listeners and pollers (`rygel`, `cups-browsed` network scanner to mitigate CVE-2024-47176; `ModemManager` conditionally on devices lacking WWAN cellular hardware).
+  - *Tier 2 (Desktop Clutter)*: Optional uninstallation of heavy office suites (`libreoffice*`) and unneeded stock GNOME utilities (`gnome-maps`, `gnome-weather`, `gnome-contacts`, `gnome-tour`, `baobab`, etc.).
+  - *Tier 3 (Extreme RAM Optimization)*: Opt-in removal of `gnome-software` and `PackageKit` background daemons to reclaim 200–400 MB of idle RAM.
+  - *Tier 4 (DNF Optimization)*: Optional deployment of `install_weak_deps=False` in `/etc/dnf/dnf.conf` to prevent weak dependency creep.
+- **Encrypted DNS-over-TLS (DoT)**: System-wide encrypted DNS via `systemd-resolved` drop-in configuration (`/etc/systemd/resolved.conf.d/10-dot.conf`) supporting Cloudflare, Quad9, and Google with automatic NetworkManager integration.
+- **Fedora 45 Typography Stack**: Integrated modern GNOME Adwaita typography (`adwaita-sans-fonts`, `adwaita-mono-fonts`), Google Noto variable fonts (`google-noto-*-vf-fonts`), and COLRv1 color emoji (`google-noto-color-emoji-fonts`).
+- **Mesa Vulkan Video Acceleration**: Added `mesa-vulkan-drivers-freeworld` swap on AMD hardware to enable hardware-accelerated Vulkan Video decoding and encoding.
+- **NVIDIA Power Daemon Integration**: Installed `xorg-x11-drv-nvidia-power` and enabled `nvidia-suspend.service`, `nvidia-hibernate.service`, and `nvidia-resume.service` to prevent suspend/resume black screen freezes.
+- **Comprehensive D3cold Hybrid Graphics Profile**: Deployed complete 4-variable environment configuration (`VK_LOADER_DRIVERS_SELECT`, `LIBVA_DRIVER_NAME`, `VDPAU_DRIVER`, `__GLX_VENDOR_LIBRARY_NAME`) to allow discrete NVIDIA GPUs to enter true D3cold low-power sleep on laptops.
+- **Modular Architecture & Self-Bootstrapper**: Decomposed the monolithic script into 23 cohesive modules under `src/`, with a lean self-bootstrapping `setup.sh` runner and automated build bundler (`build.sh`).
+- **Runtime Safety & Execution Hardening**:
+  - Added non-root invocation guard (`$EUID -eq 0` check with `ALLOW_ROOT` bypass for container CI) to prevent user `$HOME` and privilege corruption.
+  - Decoupled step subshell execution from AND-OR lists (`||`), restoring Bash `errexit` (`set -euo pipefail`) so intermediate command failures abort the step reliably.
+  - Prevented temporary directory leaks during `curl | bash` execution by ensuring the parent shell EXIT cleanup trap runs upon child exit.
+  - Added `visudo -c -f` syntax validation for sudoers modifications (`pwfeedback`) with automated rollback.
+  - Hardened DRM uevent fallback parsing to inspect PCI vendor IDs (`10de:`, `1002:`, `8086:`) and driver names (`nouveau`, `nvidia`, `i915`, `xe`, `amdgpu`, `radeon`).
+  - Standardized ZRAM generator drop-in to `99-zram.conf` to guarantee override precedence over package defaults.
+  - Hardened systemd-resolved DoT with `Domains=~.`, `DNSOverTLS=opportunistic` (preventing captive portal lockouts), and `DNSSEC=no` (matching upstream Fedora defaults).
+
+### Changed
+
+- **Native PostgreSQL Stack**: Replaced brittle external PGDG repository rpm imports with native Fedora `postgresql-server` packages across all architectures.
+- **DNF5 CLI Modernization**: Converted legacy `-x` syntax to `--exclude=PackageKit-gstreamer-plugin` and adopted `dnf5-plugins`.
+- **Mesa VDPAU Retirement**: Removed deprecated `mesa-vdpau-drivers-freeworld` driver swaps in alignment with modern Mesa upstream changes.
+- **Test Harness Expansion**: Expanded automated test harness to 7 test suites (273+ assertions) verifying build pipelines, profile sequencing, and package separation.
+
 ## [v8.0.0] - 2026-11-01
 
 ### Added

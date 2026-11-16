@@ -5,6 +5,8 @@
 # ==============================================================================
 
 # ANSI Color Codes
+# Allow test harnesses to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'

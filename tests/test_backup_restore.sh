@@ -7,6 +7,9 @@
 
 set -euo pipefail
 
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 SETUP_SCRIPT="$REPO_DIR/setup.sh"
@@ -568,6 +571,100 @@ test_restore_backups_hierarchical_manifest() {
     fi
 }
 
+# ==============================================================================
+# Test 12: Directory Traversal Attacks in .manifest are Blocked
+# ==============================================================================
+test_restore_backups_traversal_blocked() {
+    info_test "Test 12: Directory traversal attempts in .manifest are blocked"
+    local sandbox="$TEST_TMP_DIR/test12"
+    mkdir -p "$sandbox/home/.config/fedora-setup" "$sandbox/victim"
+
+    export HOME="$sandbox/home"
+    export DRY_RUN=false
+    export STATE_FILE="$HOME/.config/fedora-setup/state.txt"
+    echo "step_1" > "$STATE_FILE"
+
+    local backup_dir="$HOME/.config/fedora-setup-backups/20260817_200000"
+    local orig_path="$sandbox/home/../victim/target.txt"
+    local backup_payload="$backup_dir/${orig_path#/}"
+    mkdir -p "$(dirname "$backup_payload")"
+    echo "# MALICIOUS PAYLOAD" > "$backup_payload"
+    # Inject traversal path targeting victim directory
+    echo "$orig_path" > "$backup_dir/.manifest"
+
+    setup_extracted_functions
+    confirm() { return 0; }
+
+    restore_backups
+
+    if [[ -f "$sandbox/victim/target.txt" ]]; then
+        fail "Test 12" "Directory traversal succeeded in writing to victim target"
+    else
+        pass "restore_backups safely blocked path traversal attempt in .manifest"
+    fi
+}
+
+# ==============================================================================
+# Test 13: Untrusted /etc Target in .manifest is Blocked
+# ==============================================================================
+test_restore_backups_untrusted_etc_blocked() {
+    info_test "Test 13: Untrusted /etc target in .manifest is blocked"
+    local sandbox="$TEST_TMP_DIR/test13"
+    mkdir -p "$sandbox/home/.config/fedora-setup"
+
+    export HOME="$sandbox/home"
+    export DRY_RUN=false
+    export STATE_FILE="$HOME/.config/fedora-setup/state.txt"
+    echo "step_1" > "$STATE_FILE"
+
+    local backup_dir="$HOME/.config/fedora-setup-backups/20260817_210000"
+    mkdir -p "$backup_dir/etc/sudoers.d"
+    echo "# BAD SUDOERS" > "$backup_dir/etc/sudoers.d/evil"
+    echo "/etc/sudoers.d/evil" > "$backup_dir/.manifest"
+
+    setup_extracted_functions
+    local sudo_called=false
+    run_sudo() {
+        sudo_called=true
+        return 0
+    }
+    confirm() { return 0; }
+
+    restore_backups
+
+    if $sudo_called; then
+        fail "Test 13" "run_sudo was called for untrusted /etc/sudoers.d/evil"
+    else
+        pass "restore_backups safely blocked untrusted system configuration path"
+    fi
+}
+
+# ==============================================================================
+# Test 14: Secure Permissions (0700) on BACKUP_DIR
+# ==============================================================================
+test_backup_dir_permissions() {
+    info_test "Test 14: Secure permissions (0700) on BACKUP_DIR"
+    local sandbox="$TEST_TMP_DIR/test14"
+    mkdir -p "$sandbox/home"
+    local dummy="$sandbox/home/dummy.conf"
+    echo "content" > "$dummy"
+
+    export HOME="$sandbox/home"
+    export DRY_RUN=false
+    export BACKUP_DIR="$HOME/.config/fedora-setup-backups/20260817_220000"
+
+    setup_extracted_functions
+    backup_file "$dummy"
+
+    local perms
+    perms=$(stat -c "%a" "$BACKUP_DIR" 2>/dev/null || stat -f "%Lp" "$BACKUP_DIR" 2>/dev/null || true)
+    if [[ "$perms" == "700" ]]; then
+        pass "backup_file sets 0700 permissions on BACKUP_DIR"
+    else
+        fail "Test 14" "Expected permissions 700 on BACKUP_DIR, got: $perms"
+    fi
+}
+
 # Run all test suites
 echo "========================================================"
 echo "Running Backup & Restore Subsystem Test Suite"
@@ -585,6 +682,9 @@ test_restore_system_file
 test_unknown_backup_files_ignored
 test_backup_directory_handling
 test_restore_backups_hierarchical_manifest
+test_restore_backups_traversal_blocked
+test_restore_backups_untrusted_etc_blocked
+test_backup_dir_permissions
 
 echo "========================================================"
 echo "Test Results: $TESTS_PASSED passed, $TESTS_FAILED failed"

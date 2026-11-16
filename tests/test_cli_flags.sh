@@ -3,6 +3,9 @@
 
 set -u
 
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETUP_SCRIPT="${SCRIPT_DIR}/setup.sh"
 
@@ -57,7 +60,7 @@ echo "------------------------------------------------------------"
 # 1. Help flags
 run_test "Help long flag (--help)" 0 "Usage: .*setup\.sh \[OPTIONS\]" --help
 run_test "Help short flag (-h)" 0 "Usage: .*setup\.sh \[OPTIONS\]" -h
-run_test "Help flag displays version" 0 "Fedora 44 Post-Install Setup Script v[0-9]+\.[0-9]+\.[0-9]+" --help
+run_test "Help flag displays version" 0 "Fedora Post-Install Setup Script v[0-9]+\.[0-9]+\.[0-9]+" --help
 run_test "Help precedes subsequent flags" 0 "Usage: .*setup\.sh \[OPTIONS\]" -h --invalid
 
 # 2. Dry-run flags
@@ -77,43 +80,43 @@ run_test "Profile minimal step count (= syntax)" 0 "of 4" --profile=minimal -n
 run_test "Profile minimal (space syntax)" 0 "Profile: minimal" --profile minimal -n
 run_test "Profile minimal step count (space syntax)" 0 "of 4" --profile minimal -n
 
-# Dev profile (15 steps)
+# Dev profile (16 steps)
 run_test "Profile dev (= syntax)" 0 "Profile: dev" --profile=dev -n
-run_test "Profile dev step count (= syntax)" 0 "of 15" --profile=dev -n
+run_test "Profile dev step count (= syntax)" 0 "of 16" --profile=dev -n
 run_test "Profile dev (space syntax)" 0 "Profile: dev" --profile dev -n
-run_test "Profile dev step count (space syntax)" 0 "of 15" --profile dev -n
+run_test "Profile dev step count (space syntax)" 0 "of 16" --profile dev -n
 
-# Gaming profile (12 steps)
+# Gaming profile (13 steps)
 run_test "Profile gaming (= syntax)" 0 "Profile: gaming" --profile=gaming -n
-run_test "Profile gaming step count (= syntax)" 0 "of 12" --profile=gaming -n
+run_test "Profile gaming step count (= syntax)" 0 "of 13" --profile=gaming -n
 run_test "Profile gaming (space syntax)" 0 "Profile: gaming" --profile gaming -n
-run_test "Profile gaming step count (space syntax)" 0 "of 12" --profile gaming -n
+run_test "Profile gaming step count (space syntax)" 0 "of 13" --profile gaming -n
 
-# Workstation profile (11 steps)
+# Workstation profile (12 steps)
 run_test "Profile workstation (= syntax)" 0 "Profile: workstation" --profile=workstation -n
-run_test "Profile workstation step count (= syntax)" 0 "of 11" --profile=workstation -n
+run_test "Profile workstation step count (= syntax)" 0 "of 12" --profile=workstation -n
 run_test "Profile workstation (space syntax)" 0 "Profile: workstation" --profile workstation -n
-run_test "Profile workstation step count (space syntax)" 0 "of 11" --profile workstation -n
+run_test "Profile workstation step count (space syntax)" 0 "of 12" --profile workstation -n
 
-# Creator profile (12 steps)
+# Creator profile (13 steps)
 run_test "Profile creator (= syntax)" 0 "Profile: creator" --profile=creator -n
-run_test "Profile creator step count (= syntax)" 0 "of 12" --profile=creator -n
+run_test "Profile creator step count (= syntax)" 0 "of 13" --profile=creator -n
 run_test "Profile creator (space syntax)" 0 "Profile: creator" --profile creator -n
-run_test "Profile creator step count (space syntax)" 0 "of 12" --profile creator -n
+run_test "Profile creator step count (space syntax)" 0 "of 13" --profile creator -n
 
-# Full profile (17 steps)
+# Full profile (18 steps)
 run_test "Profile full (= syntax)" 0 "Profile: full" --profile=full -n
-run_test "Profile full step count (= syntax)" 0 "of 17" --profile=full -n
+run_test "Profile full step count (= syntax)" 0 "of 18" --profile=full -n
 run_test "Profile full (space syntax)" 0 "Profile: full" --profile full -n
-run_test "Profile full step count (space syntax)" 0 "of 17" --profile full -n
+run_test "Profile full step count (space syntax)" 0 "of 18" --profile full -n
 
 # Personal profile (rejected as invalid/detached)
 run_test "Profile personal rejected (= syntax)" 1 "Unknown profile: personal" --profile=personal -n
 run_test "Profile personal rejected (space syntax)" 1 "Unknown profile: personal" --profile personal -n
 
 # Default profile (when no profile flag passed)
-run_test "Default profile is full" 0 "Profile: full" -n
-run_test "Default profile step count" 0 "of 17" -n
+run_test "Default profile is workstation" 0 "Profile: workstation" -n
+run_test "Default profile step count" 0 "of 12" -n
 
 # 5. Dev-type flags
 run_test "Dev-type systems flag (= syntax)" 0 "DRY-RUN MODE" --profile=dev --dev-type=systems -n
@@ -143,6 +146,19 @@ run_test "Combo: --profile workstation -n --force" 0 "Profile: workstation" --pr
 run_test "Combo: -n --profile=dev -f" 0 "Profile: dev" -n --profile=dev -f
 run_test "Combo: --profile=full -f -n" 0 "Profile: full" --profile=full -f -n
 run_test "Combo: --dry-run -h (help exit)" 0 "Usage: .*setup\.sh \[OPTIONS\]" --dry-run -h
+
+# 8. Non-root guard validation (when run inside root/container environment)
+if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+    TOTAL=$((TOTAL + 1))
+    guard_output=$(ALLOW_ROOT=false bash "$SETUP_SCRIPT" --dry-run 2>&1 || true)
+    if echo "$guard_output" | grep -q "Do not run this script as root or with sudo"; then
+        echo -e "[${GREEN}PASS${NC}] Root invocation guard rejects execution when ALLOW_ROOT=false"
+        PASSED=$((PASSED + 1))
+    else
+        echo -e "[${RED}FAIL${NC}] Root invocation guard failed to reject root execution"
+        FAILED=$((FAILED + 1))
+    fi
+fi
 
 echo "------------------------------------------------------------"
 echo "Results: $PASSED / $TOTAL passed, $FAILED failed."

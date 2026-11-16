@@ -8,8 +8,12 @@
 
 set -u
 
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETUP_SCRIPT="${SCRIPT_DIR}/setup.sh"
+SRC_DIR="${SCRIPT_DIR}/src"
 
 PASSED=0
 FAILED=0
@@ -46,30 +50,30 @@ echo ""
 echo -e "${BLUE}--- Suite 1: Static Code Analysis ---${NC}"
 
 # 1.1 eza in DNF packages in setup_cli_core
-if grep -A 10 "setup_cli_core()" "$SETUP_SCRIPT" | grep -q "eza"; then
+if grep -q "eza" "$SRC_DIR/steps/03_cli_core.sh"; then
     pass "eza is present in setup_cli_core() DNF package list"
 else
     fail "eza is NOT present in setup_cli_core() DNF package list"
 fi
 
 # 1.2 eza NOT in COPR repositories
-if grep -i "copr" "$SETUP_SCRIPT" | grep -q "eza"; then
+if grep -i "copr" "$SRC_DIR/steps/03_cli_core.sh" | grep -q "eza"; then
     fail "eza found in COPR repositories (should be standard DNF package)"
 else
     pass "eza is NOT present in COPR repositories"
 fi
 
 # 1.3 COPR entries contain scrcpy and yazi
-if grep -q "zeno/scrcpy" "$SETUP_SCRIPT" && \
-   grep -q "lihaohong/yazi" "$SETUP_SCRIPT"; then
+if grep -q "zeno/scrcpy" "$SRC_DIR/steps/10_dev.sh" && \
+   grep -q "lihaohong/yazi" "$SRC_DIR/steps/08_desktop_apps.sh"; then
     pass "setup.sh contains expected COPR entries (scrcpy, yazi)"
 else
     fail "setup.sh missing expected COPR repositories"
 fi
 
 # 1.4 Steam and MangoHud domain step isolation
-if grep -A 10 "setup_gaming()" "$SETUP_SCRIPT" | grep -qE "steam|mangohud|gamemode" && \
-   grep -A 10 "setup_creator()" "$SETUP_SCRIPT" | grep -q "akmod-v4l2loopback"; then
+if grep -qE "steam|mangohud|gamemode" "$SRC_DIR/steps/14_gaming.sh" && \
+   grep -q "akmod-v4l2loopback" "$SRC_DIR/steps/15_creator.sh"; then
     pass "Domain packages (gaming: steam/mangohud, creator: akmod-v4l2loopback) are isolated to dedicated steps"
 else
     fail "Domain packages missing proper step isolation"
@@ -105,7 +109,7 @@ get_steps_for_profile() {
             fi
         done
         echo "${filtered_steps[*]}"
-    ' _ "$target_profile" "$SETUP_SCRIPT"
+    ' _ "$target_profile" "$SRC_DIR/99_main.sh"
 }
 
 minimal_steps=$(get_steps_for_profile "minimal")
@@ -165,6 +169,9 @@ run_mock_setup_packages() {
 
     bash -c '
         set -u
+
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
         PROFILE="$1"
         sandbox="$2"
         setup_script="$3"
@@ -203,14 +210,20 @@ run_mock_setup_packages() {
             elif [[ "$1" == "dnf" && ( "$2" == "remove" || "$2" == "config-manager" || "$2" == "copr" ) ]]; then
                 return 0
             fi
-            "$@"
+            return 0
         }
 
         run() {
-            "$@"
+            if [[ "$1" == "flatpak" ]]; then
+                "$@"
+            fi
+            return 0
         }
 
         # Mock flatpak & steam & xdg-open & sleep
+        backup_file() { return 0; }
+        rustup-init() { return 0; }
+        rustup() { return 0; }
         flatpak() {
             if [[ "$1" == "install" && "$*" == *"com.heroicgameslauncher.hgl"* ]]; then
                 touch "$sandbox/.heroic_installed"
@@ -261,19 +274,24 @@ run_mock_setup_packages() {
             return 0
         }
         sleep() { command sleep 0.05; }
+        mkdir -p "$sandbox/.cargo/bin"
+        cat << 'RUST_MOCK' > "$sandbox/.cargo/bin/rustup"
+#!/bin/bash
+exit 0
+RUST_MOCK
+        chmod +x "$sandbox/.cargo/bin/rustup"
 
         SYS_ARCH="$(uname -m)"
         DEV_TYPE="all"
 
-        # Extract profile helpers and domain step definitions from setup.sh
-        eval "$(sed -n "/is_gaming_profile() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/is_creator_profile() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/is_dev_profile() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/setup_cli_core() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/setup_desktop_apps() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/setup_gaming() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/setup_creator() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/setup_dev() {/,/^}/p" "$setup_script")"
+        # Load profile helpers and domain step definitions from src/
+        src_dir="$3"
+        source "$src_dir/03_profiles.sh"
+        source "$src_dir/steps/03_cli_core.sh"
+        source "$src_dir/steps/08_desktop_apps.sh"
+        source "$src_dir/steps/14_gaming.sh"
+        source "$src_dir/steps/15_creator.sh"
+        source "$src_dir/steps/10_dev.sh"
 
         # Execute domain steps according to profile
         setup_cli_core
@@ -299,7 +317,7 @@ run_mock_setup_packages() {
         echo "VESKTOP_INSTALLED:$([[ -f "$sandbox/.vesktop_installed" ]] && echo true || echo false)"
         echo "HEROIC_INSTALLED:$([[ -f "$sandbox/.heroic_installed" ]] && echo true || echo false)"
         echo "HEROIC_PREFIX_CREATED:$([[ -d "$sandbox/Games/Heroic/Prefixes/shared" ]] && echo true || echo false)"
-    ' _ "$target_profile" "$sandbox" "$SETUP_SCRIPT"
+    ' _ "$target_profile" "$sandbox" "$SRC_DIR"
 
     rm -rf "$sandbox"
 }
@@ -493,6 +511,9 @@ run_mock_setup_copr() {
 
     bash -c '
         set -u
+
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
         sandbox="$1"
         setup_script="$2"
         DRY_RUN=false
@@ -506,6 +527,7 @@ run_mock_setup_copr() {
         confirm() { return 0; }
         prompt_input() { echo "${2:-}"; }
         github_download() { touch "$3"; return 0; }
+        backup_file() { return 0; }
         HAS_NVIDIA=false
         HAS_AMD=false
         HAS_INTEL=false
@@ -528,9 +550,10 @@ run_mock_setup_copr() {
             return 0
         }
 
-        # Extract domain functions with COPR from setup.sh
-        eval "$(sed -n "/setup_desktop_apps() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/setup_dev() {/,/^}/p" "$setup_script")"
+        # Load domain functions with COPR from src/
+        src_dir="$2"
+        source "$src_dir/steps/08_desktop_apps.sh"
+        source "$src_dir/steps/10_dev.sh"
 
         SYS_ARCH="$(uname -m)"
         DEV_TYPE="android"
@@ -544,7 +567,7 @@ run_mock_setup_copr() {
         echo -n "COPR_PKGS:"
         [[ -f "$sandbox/.copr_pkgs" ]] && cat "$sandbox/.copr_pkgs"
         echo ""
-    ' _ "$sandbox" "$SETUP_SCRIPT"
+    ' _ "$sandbox" "$SRC_DIR"
 
     rm -rf "$sandbox"
 }
@@ -583,6 +606,9 @@ test_mangohud_content() {
 
     bash -c '
         set -u
+
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
         PROFILE="gaming"
         DRY_RUN=false
         sandbox="$1"
@@ -601,6 +627,7 @@ test_mangohud_content() {
         confirm() { return 0; }
         run_sudo() { return 0; }
         run() { return 0; }
+        backup_file() { return 0; }
         flatpak() { return 1; }
         steam() { return 0; }
         mangohud() { return 0; }
@@ -610,13 +637,14 @@ test_mangohud_content() {
         git() { return 0; }
         lspci() { return 0; }
         github_download() { touch "$3"; return 0; }
+        backup_file() { return 0; }
         sleep() { return 0; }
 
-        eval "$(sed -n "/is_gaming_profile() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/is_creator_profile() {/,/^}/p" "$setup_script")"
-        eval "$(sed -n "/setup_gaming() {/,/^}/p" "$setup_script")"
+        src_dir="$2"
+        source "$src_dir/03_profiles.sh"
+        source "$src_dir/steps/14_gaming.sh"
         setup_gaming
-    ' _ "$sandbox" "$SETUP_SCRIPT"
+    ' _ "$sandbox" "$SRC_DIR"
 
     local conf_file="$sandbox/.config/MangoHud/MangoHud.conf"
     if [[ -f "$conf_file" ]]; then
@@ -693,21 +721,21 @@ echo ""
 echo -e "${BLUE}--- Suite 8: GPU Terminal Emulator Selection & Configuration ---${NC}"
 
 # 8.1: Test setup_packages does NOT unconditionally include kitty, ghostty, or alacritty
-if grep -A 10 "setup_packages()" "$SETUP_SCRIPT" | grep -w "pkgs_to_install" | grep -qE "kitty|ghostty|alacritty"; then
-    fail "Terminal emulator found in unconditional setup_packages() list"
+if grep -qE "kitty|ghostty|alacritty" "$SRC_DIR/steps/03_cli_core.sh"; then
+    fail "Terminal emulator found in unconditional setup_cli_core list"
 else
-    pass "Terminal emulators are NOT unconditionally included in setup_packages() DNF list"
+    pass "Terminal emulators are NOT unconditionally included in setup_cli_core DNF list"
 fi
 
 # 8.2: Test setup_shell gates setup_terminal strictly on is_dev_profile
-if grep -A 3 "Terminal emulator configuration" "$SETUP_SCRIPT" | grep -q "is_dev_profile"; then
+if grep -A 3 "Terminal emulator configuration" "$SRC_DIR/steps/04_shell.sh" | grep -q "is_dev_profile"; then
     pass "setup_shell gates setup_terminal strictly on is_dev_profile"
 else
     fail "setup_shell does not gate setup_terminal on is_dev_profile"
 fi
 
 # 8.3: Test setup_terminal prompts user for modern terminal emulator with Ghostty recommended
-if grep -q 'Prompt user for Terminal Emulator selection: \[1\] Ghostty (Recommended), \[2\] Kitty, \[3\] Alacritty' "$SETUP_SCRIPT"; then
+if grep -q 'Prompt user for Terminal Emulator selection: \[1\] Ghostty (Recommended), \[2\] Kitty, \[3\] Alacritty' "$SRC_DIR/steps/04_shell.sh"; then
     pass "setup_terminal prompts user with Ghostty (Recommended), Kitty, and Alacritty options"
 else
     fail "setup_terminal missing expected multi-choice terminal prompt"
@@ -738,7 +766,7 @@ echo ""
 echo -e "${BLUE}--- Suite 9: AOSP/Multilib Removal & dpkg-dev Profile Isolation ---${NC}"
 
 # 9.1: Verify android-tools is included in setup_cli_core for phone connectivity/debugging
-pkgs_to_install_array=$(sed -n '/setup_cli_core()/,/^}/p' "$SETUP_SCRIPT" | sed -n '/local cli_pkgs=(/,/)/p')
+pkgs_to_install_array=$(cat "$SRC_DIR/steps/03_cli_core.sh")
 if echo "$pkgs_to_install_array" | grep -q "android-tools"; then
     pass "android-tools is included in setup_cli_core() for Android device connectivity"
 else
@@ -747,7 +775,7 @@ fi
 
 # 9.2: Verify AOSP build packages removed from setup_dev
 for aosp_pkg in "schedtool" "lzop" "pngcrush" "squashfs-tools" "gperf" "sdl12-compat-devel"; do
-    if grep -A 15 "setup_dev()" "$SETUP_SCRIPT" | grep -w "dev_pkgs" | grep -q "$aosp_pkg"; then
+    if grep -A 15 "dev_pkgs=" "$SRC_DIR/steps/10_dev.sh" | grep -w "dev_pkgs" | grep -q "$aosp_pkg"; then
         fail "AOSP package '$aosp_pkg' unexpectedly present in setup_dev()"
     else
         pass "AOSP package '$aosp_pkg' is excluded from setup_dev()"
@@ -756,7 +784,7 @@ done
 
 # 9.3: Verify 32-bit multilib packages removed from setup_dev
 for multilib_pkg in "glibc-devel.i686" "libstdc++-devel.i686" "zlib-ng-compat-devel.i686" "libX11-devel.i686" "readline-devel.i686" "ncurses-devel.i686"; do
-    if grep -A 15 "setup_dev()" "$SETUP_SCRIPT" | grep -q "$multilib_pkg"; then
+    if grep -A 15 "dev_pkgs=" "$SRC_DIR/steps/10_dev.sh" | grep -q "$multilib_pkg"; then
         fail "Multilib package '$multilib_pkg' unexpectedly present in setup_dev()"
     else
         pass "Multilib package '$multilib_pkg' is excluded from setup_dev()"
@@ -764,7 +792,7 @@ for multilib_pkg in "glibc-devel.i686" "libstdc++-devel.i686" "zlib-ng-compat-de
 done
 
 # 9.4: Verify full profile only dev packages (dpkg-dev, copr-cli, osc, python3-keyring, GUI/audio development libraries)
-dev_pkgs_array=$(sed -n '/setup_dev()/,/^}/p' "$SETUP_SCRIPT" | sed -n '/local dev_pkgs=(/,/)/p')
+dev_pkgs_array=$(sed -n '/local dev_pkgs=(/,/)/p' "$SRC_DIR/steps/10_dev.sh")
 for full_only_pkg in "dpkg-dev" "copr-cli" "osc" "python3-keyring" "libX11-devel" "libxkbcommon-x11-devel" "libxcb-devel" "fontconfig-devel" "alsa-lib-devel"; do
     if echo "$dev_pkgs_array" | grep -q "$full_only_pkg"; then
         fail "$full_only_pkg is unconditionally present in dev_pkgs"
@@ -772,7 +800,7 @@ for full_only_pkg in "dpkg-dev" "copr-cli" "osc" "python3-keyring" "libX11-devel
         pass "$full_only_pkg is not in unconditional dev_pkgs array"
     fi
 
-    if grep -A 15 '\[\[ "\$PROFILE" == "full" \]\]' "$SETUP_SCRIPT" | grep -q "$full_only_pkg"; then
+    if grep -A 15 '\[\[ "$PROFILE" == "full" \]\]' "$SRC_DIR/steps/10_dev.sh" | grep -q "$full_only_pkg"; then
         pass "$full_only_pkg is strictly gated on PROFILE=full"
     else
         fail "$full_only_pkg is missing full profile gate in setup_dev"
@@ -786,14 +814,14 @@ echo ""
 echo -e "${BLUE}--- Suite 10: Profile Cleanliness & Decoupling ---${NC}"
 
 # 10.1: Verify setup_packages does not contain personal profile gate
-if ! sed -n '/setup_packages()/,/^}/p' "$SETUP_SCRIPT" | grep -q '\[\[ "$PROFILE" == "personal" \]\]'; then
+if ! grep -q '\[\[ "$PROFILE" == "personal" \]\]' "$SRC_DIR/steps/03_cli_core.sh"; then
     pass "setup_packages() contains no personal profile gate"
 else
     fail "setup_packages() still contains personal profile gate"
 fi
 
 # 10.2: Verify setup_packages does not contain cliamp
-setup_pkg_body=$(sed -n '/setup_packages()/,/^}/p' "$SETUP_SCRIPT")
+setup_pkg_body=$(cat "$SRC_DIR/steps/03_cli_core.sh" "$SRC_DIR/steps/08_desktop_apps.sh")
 if ! echo "$setup_pkg_body" | grep -q "cliamp"; then
     pass "setup_packages() excludes cliamp"
 else
@@ -815,14 +843,14 @@ else
 fi
 
 # 10.5: Verify setup_copr does not contain kkfetch
-if ! sed -n '/setup_copr()/,/^}/p' "$SETUP_SCRIPT" | grep -q "kkfetch"; then
+if ! grep -q "kkfetch" "$SRC_DIR/steps/08_desktop_apps.sh"; then
     pass "setup_copr() excludes kkfetch"
 else
     fail "setup_copr() unexpectedly contains kkfetch"
 fi
 
 # 10.6: Verify setup_shell does not contain kkfetch
-if ! sed -n '/setup_shell()/,/^}/p' "$SETUP_SCRIPT" | grep -q "kkfetch"; then
+if ! grep -q "kkfetch" "$SRC_DIR/steps/04_shell.sh"; then
     pass "setup_shell() excludes kkfetch"
 else
     fail "setup_shell() unexpectedly contains kkfetch"
@@ -835,14 +863,14 @@ echo ""
 echo -e "${BLUE}--- Suite 11: Shell Selection & Environment Isolation ---${NC}"
 
 # 11.1: Verify setup_shell gates interactive shell selection to dev and full profiles
-if grep -B 5 -A 5 'Default Interactive Shell:' "$SETUP_SCRIPT" | grep -q 'PROFILE" == "dev" || "$PROFILE" == "full"'; then
+if grep -B 5 -A 5 'Default Interactive Shell:' "$SRC_DIR/steps/04_shell.sh" | grep -q 'PROFILE" == "dev" || "$PROFILE" == "full"'; then
     pass "setup_shell gates interactive shell menu strictly to dev and full profiles"
 else
     fail "setup_shell does not gate interactive shell menu to dev and full profiles"
 fi
 
 # 11.2: Verify setup_shell gates dev exports/aliases menu to dev and full profiles
-if grep -A 5 'Developer Environment & Aliases Configuration' "$SETUP_SCRIPT" | grep -q 'dev_env_choice'; then
+if grep -A 5 'Developer Environment & Aliases Configuration' "$SRC_DIR/steps/04_shell.sh" | grep -q 'dev_env_choice'; then
     pass "setup_shell presents developer environment and aliases configuration menu"
 else
     fail "setup_shell missing developer environment menu"
@@ -868,17 +896,17 @@ else
 fi
 
 # 11.5: Verify setup_shell contains the 4 exact clean standard aliases
-if grep -q "alias clear 'printf \"\\\033\[2J\\\033\[3J\\\033\[H\"'" "$SETUP_SCRIPT" && \
-   grep -q "alias ls 'eza --group-directories-first --classify --icons --git'" "$SETUP_SCRIPT" && \
-   grep -q "alias cat 'bat --paging=never --style=plain'" "$SETUP_SCRIPT" && \
-   grep -q "alias less 'bat --paging=always --pager=\"less -R\"'" "$SETUP_SCRIPT"; then
+if grep -q "alias clear 'printf \"\\\033\[2J\\\033\[3J\\\033\[H\"'" "$SRC_DIR/steps/04_shell.sh" && \
+   grep -q "alias ls 'eza --group-directories-first --classify --icons --git'" "$SRC_DIR/steps/04_shell.sh" && \
+   grep -q "alias cat 'bat --paging=never --style=plain'" "$SRC_DIR/steps/04_shell.sh" && \
+   grep -q "alias less 'bat --paging=always --pager=\"less -R\"'" "$SRC_DIR/steps/04_shell.sh"; then
     pass "setup_shell defines exact clean standard aliases (clear, ls, cat, less)"
 else
     fail "setup_shell missing expected clean standard aliases"
 fi
 
 # 11.6: Verify setup_shell gates Starship confirmation prompt strictly to dev and full profiles
-if grep -B 5 -A 5 'Starship Cross-Shell Prompt:' "$SETUP_SCRIPT" | grep -q 'PROFILE" == "dev" || "$PROFILE" == "full"'; then
+if grep -B 5 -A 5 'Starship Cross-Shell Prompt:' "$SRC_DIR/steps/04_shell.sh" | grep -q 'PROFILE" == "dev" || "$PROFILE" == "full"'; then
     pass "setup_shell gates Starship prompt strictly to dev and full profiles"
 else
     fail "setup_shell does not gate Starship prompt to dev and full profiles"
@@ -907,7 +935,7 @@ echo ""
 echo -e "${BLUE}--- Suite 12: ccache Compiler Cache Configuration & Genre Gating ---${NC}"
 
 # 12.1: Verify setup_dev gates ccache prompt on has_dev_genre "systems"
-if grep -B 10 -A 10 'ccache (Fast C/C++ Compiler Cache):' "$SETUP_SCRIPT" | grep -q 'has_dev_genre "systems"'; then
+if grep -B 10 -A 10 'ccache (Fast C/C++ Compiler Cache):' "$SRC_DIR/steps/10_dev.sh" | grep -q 'has_dev_genre "systems"'; then
     pass "setup_dev gates ccache prompt strictly on systems dev genre"
 else
     fail "setup_dev does not gate ccache prompt on systems dev genre"
@@ -916,7 +944,7 @@ fi
 # 12.2: Verify dry-run dev profile (all genres) prompts for ccache and installs/configures it
 if echo "$dry_dev_output" | grep -q "Prompt: Install and configure ccache" && \
    echo "$dry_dev_output" | grep -q "sudo dnf install -y --skip-unavailable ccache" && \
-   echo "$dry_dev_output" | grep -q "Configure ccache: 50GB max size, compression enabled"; then
+   echo "$dry_dev_output" | grep -q "Configure ccache: 10GB max size, compression enabled"; then
     pass "Dry-run dev profile prompts for ccache and logs installation & configuration"
 else
     fail "Dry-run dev profile missing ccache prompt or configuration logs"
