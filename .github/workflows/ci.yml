@@ -62,4 +62,4 @@ jobs:
         run: make test
 
       - name: Validate dry run
-        run: bash setup.sh --dry-run --profile minimal
+        run: ALLOW_ROOT=true bash setup.sh --dry-run --profile minimal

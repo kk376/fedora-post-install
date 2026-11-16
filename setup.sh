@@ -7,7 +7,7 @@
 # ==============================================================================
 
 # Non-root invocation guard: prevent running entire orchestrator with sudo/root
-if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+if [[ ${EUID:-$(id -u)} -eq 0 && "${ALLOW_ROOT:-false}" != "true" ]]; then
     echo -e "\033[0;31m[ERROR]\033[0m Do not run this script as root or with sudo." >&2
     echo -e "The script invokes sudo internally for privileged operations." >&2
     exit 1
