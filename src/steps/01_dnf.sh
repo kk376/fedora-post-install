@@ -21,8 +21,11 @@ EOF
 
     log "Enabling RPM Fusion (Free & Nonfree) and Flathub..."
     local fedora_ver
-    fedora_ver=$(rpm -E %fedora 2>/dev/null || echo "44")
-    [[ -z "$fedora_ver" || "$fedora_ver" == "%fedora" ]] && fedora_ver="44"
+    fedora_ver=$(rpm -E %fedora 2>/dev/null || echo "")
+    if [[ -z "$fedora_ver" || "$fedora_ver" == "%fedora" ]]; then
+        fedora_ver=$(. /etc/os-release 2>/dev/null && echo "$VERSION_ID" || echo "45")
+    fi
+    fedora_ver="${fedora_ver:-45}"
 
     run_sudo dnf install -y --setopt=best=True \
         "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${fedora_ver}.noarch.rpm" \
@@ -40,7 +43,12 @@ EOF
 Defaults pwfeedback
 EOF
             run_sudo chmod 0440 /etc/sudoers.d/pwfeedback
-            success "Sudo password feedback configured (/etc/sudoers.d/pwfeedback)"
+            if ! run_sudo visudo -c -f /etc/sudoers.d/pwfeedback >/dev/null 2>&1; then
+                run_sudo rm -f /etc/sudoers.d/pwfeedback
+                warn "Failed to validate sudoers syntax; removed /etc/sudoers.d/pwfeedback"
+            else
+                success "Sudo password feedback configured (/etc/sudoers.d/pwfeedback)"
+            fi
         else
             dry "Configure sudo pwfeedback in /etc/sudoers.d/pwfeedback"
         fi

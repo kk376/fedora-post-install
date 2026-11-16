@@ -19,7 +19,8 @@ setup_debloat() {
     info "Disables rygel (UPnP media sharing) and cups-browsed (remote printer broadcasting)."
     info "Note: Local CUPS printing continues to function normally."
     if confirm "Disable unnecessary background service daemons (rygel, cups-browsed)?" "Y"; then
-        run_sudo systemctl disable --now rygel.service 2>/dev/null || true
+        run_sudo systemctl --global disable rygel.service 2>/dev/null || true
+        systemctl --user disable --now rygel.service 2>/dev/null || true
         run_sudo systemctl disable --now cups-browsed.service 2>/dev/null || true
         success "Disabled rygel and cups-browsed background daemons"
     fi

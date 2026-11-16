@@ -142,10 +142,13 @@ main() {
         echo ""
         echo -e "${BLUE}Step: $name${NC}"
         local step_status=0
+        set +e
         (
-            set -eo pipefail
+            set -euo pipefail
             "$func"
-        ) || step_status=$?
+        )
+        step_status=$?
+        set -e
 
         if [[ $step_status -eq 100 ]]; then
             info "Reboot initiated by step '$name'. Exiting setup."

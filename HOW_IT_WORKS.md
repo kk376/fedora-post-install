@@ -36,7 +36,7 @@ The orchestrator (`main()`) manages pre-flight checks, hardware discovery, profi
        Continue to Next Step         Halt Script Cleanly
 ```
 
-- **Subshell Isolation**: Each step executes in a separate subshell `( set -eo pipefail; "$func" )`. A failure inside a step is trapped without crashing the parent orchestrator loop.
+- **Subshell Isolation**: Each step executes in a decoupled subshell `( set -euo pipefail; "$func" )` with explicit status capture. A failure inside a step is trapped without crashing the parent orchestrator loop.
 - **Reboot Interception**: If a newly installed kernel requires a reboot before compiling out-of-tree drivers, `setup_pre_driver_reboot()` exits with status `100`. The orchestrator intercepts code `100`, marks progress, and terminates execution so the system can restart into the target kernel.
 - **Background Sudo Keep-Alive**: In interactive runs, a background daemon runs `sudo -n true` every 60 seconds tied to the script PID (`kill -0 "$$"`), preventing mid-run password timeouts during lengthy DNF operations.
 
@@ -49,11 +49,11 @@ Profiles are structured as additive layers over a verified base:
 | Profile | Step Count | Target Environment | Key Inclusions |
 | :--- | :--- | :--- | :--- |
 | `minimal` | 4 steps | Headless / Containers / Servers | DNF5 tuning, DNS resolvers, core CLI tools, shell |
-| `workstation` *(default)* | 11 steps | Standard Desktop / Laptops | Minimal + fonts, codecs, desktop apps, power, GPU drivers |
-| `dev` | 15 steps | Software Engineering | Workstation + compilers, editors, Docker, KVM/QEMU |
-| `gaming` | 12 steps | Gaming Rig | Workstation + Steam, MangoHud, GameMode, Heroic |
-| `creator` | 12 steps | Media & Streaming | Workstation + OBS Studio, v4l2loopback, wf-recorder |
-| `full` | 17 steps | Complete Workstation | Unifies all steps across all profiles |
+| `workstation` *(default)* | 12 steps | Standard Desktop / Laptops | Minimal + fonts, codecs, GNOME, debloat, desktop apps, power, GPU drivers |
+| `dev` | 16 steps | Software Engineering | Workstation + compilers, editors, Docker, KVM/QEMU |
+| `gaming` | 13 steps | Gaming Rig | Workstation + Steam, MangoHud, GameMode, Heroic |
+| `creator` | 13 steps | Media & Streaming | Workstation + OBS Studio, v4l2loopback, wf-recorder |
+| `full` | 18 steps | Complete Workstation | Unifies all steps across all profiles |
 
 Profiles can be pre-selected via CLI flag `--profile=<name>` or chosen interactively during startup.
 

@@ -126,6 +126,7 @@ assert_contains "setup_fonts installs google-noto-sans-fonts" "google-noto-sans-
 assert_contains "setup_fonts installs google-noto-serif-fonts" "google-noto-serif-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs google-noto-mono-fonts" "google-noto-mono-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs google-carlito-fonts" "google-carlito-fonts" "$fonts_func_code"
+assert_contains "setup_fonts installs google-crosextra-caladea-fonts" "google-crosextra-caladea-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs google-caladea-fonts" "google-caladea-fonts" "$fonts_func_code"
 
 # 4. Microsoft fonts

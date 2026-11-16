@@ -13,9 +13,9 @@ test:
 	@chmod +x setup.sh build.sh tests/*.sh 2>/dev/null || true
 	bash ./tests/run_tests.sh
 
-lint:
+lint: build
 	@command -v shellcheck >/dev/null 2>&1 || { echo "Error: shellcheck is not installed" >&2; exit 1; }
-	shellcheck -x -e SC2329 build.sh setup.sh tests/*.sh
+	shellcheck -x -e SC2329 build.sh setup.sh dist/setup.sh tests/*.sh
 
 check: lint test
 

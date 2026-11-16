@@ -52,7 +52,8 @@ EOF
     if confirm "Apply ZRAM memory tuning (zstd compression, swappiness 180)?" "Y"; then
         if ! $DRY_RUN; then
             run_sudo mkdir -p /etc/systemd/zram-generator.conf.d /etc/sysctl.d
-            run_sudo tee /etc/systemd/zram-generator.conf.d/10-zram.conf > /dev/null <<'ZRAM_EOF'
+            [[ -f /etc/systemd/zram-generator.conf.d/10-zram.conf ]] && run_sudo rm -f /etc/systemd/zram-generator.conf.d/10-zram.conf
+            run_sudo tee /etc/systemd/zram-generator.conf.d/99-zram.conf > /dev/null <<'ZRAM_EOF'
 [zram0]
 zram-size = min(ram / 2, 32768)
 compression-algorithm = zstd

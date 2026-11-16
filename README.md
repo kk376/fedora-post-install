@@ -71,22 +71,22 @@ cd fedora-post-install
 
 When run interactively without options, `./setup.sh` displays a menu to select your desired profile directly from the terminal:
 1. `minimal` (4 steps)
-2. `workstation` (11 steps: default)
-3. `dev` (15 steps: includes prompt for developer genres: systems, web, android, ai, or all)
-4. `gaming` (12 steps)
-5. `creator` (12 steps)
-6. `full` (17 steps)
+2. `workstation` (12 steps: default)
+3. `dev` (16 steps: includes prompt for developer genres: systems, web, android, ai, or all)
+4. `gaming` (13 steps)
+5. `creator` (13 steps)
+6. `full` (18 steps)
 
 ### Profiles
 
 | Profile       | Steps | What it installs                                                                                             |
 | ------------- | :---: | ------------------------------------------------------------------------------------------------------------ |
 | `minimal`     | 4     | DNF config, DNS, core CLI utilities, shell (Fish/Zsh/Bash) & terminal                                        |
-| `workstation` | 11    | Minimal + fonts, codecs & dynamic PipeWire audio, GNOME tweaks, desktop apps, power, GPU drivers (last)      |
-| `dev`         | 15    | Workstation + developer toolchains (`--dev-type`), Code Editor, Docker & Compose, KVM/QEMU, GPU drivers (last)|
-| `gaming`      | 12    | Workstation + Steam (H.264 unlock), MangoHud, GameMode, Heroic Games Launcher, GPU drivers (last)            |
-| `creator`     | 12    | Workstation + OBS Studio, v4l2loopback, wf-recorder, NVIDIA Broadcast, GPU drivers (last)                    |
-| `full`        | 17    | Complete power-user suite: Workstation + Dev + Gaming + Creator + GPU drivers                                |
+| `workstation` | 12    | Minimal + fonts, codecs & dynamic PipeWire audio, GNOME tweaks, debloat, desktop apps, power, GPU drivers    |
+| `dev`         | 16    | Workstation + developer toolchains (`--dev-type`), Code Editor, Docker & Compose, KVM/QEMU, GPU drivers (last)|
+| `gaming`      | 13    | Workstation + Steam (H.264 unlock), MangoHud, GameMode, Heroic Games Launcher, GPU drivers (last)            |
+| `creator`     | 13    | Workstation + OBS Studio, v4l2loopback, wf-recorder, NVIDIA Broadcast, GPU drivers (last)                    |
+| `full`        | 18    | Complete power-user suite: Workstation + Dev + Gaming + Creator + GPU drivers                                |
 
 ---
 

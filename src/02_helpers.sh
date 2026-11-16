@@ -51,9 +51,9 @@ detect_hardware() {
     if [[ -z "$gpu_info" ]] && [[ -d /sys/class/drm ]]; then
         gpu_info=$(cat /sys/class/drm/card*/device/uevent 2>/dev/null || true)
     fi
-    if grep -qi nvidia <<< "$gpu_info"; then HAS_NVIDIA=true; fi
-    if grep -Eqi 'amd|advanced micro devices|ati' <<< "$gpu_info"; then HAS_AMD=true; fi
-    if grep -qi intel <<< "$gpu_info"; then HAS_INTEL=true; fi
+    if grep -Eiq 'nvidia|10de:|DRIVER=nouveau|DRIVER=nvidia' <<< "$gpu_info"; then HAS_NVIDIA=true; fi
+    if grep -Eiq 'amd|advanced micro devices|ati|1002:|DRIVER=amdgpu|DRIVER=radeon' <<< "$gpu_info"; then HAS_AMD=true; fi
+    if grep -Eiq 'intel|8086:|DRIVER=i915|DRIVER=xe' <<< "$gpu_info"; then HAS_INTEL=true; fi
 }
 
 # Get the user's configured login shell directly from /etc/passwd (updates immediately after chsh)

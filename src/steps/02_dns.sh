@@ -58,8 +58,9 @@ setup_dns() {
 [Resolve]
 DNS=$DNS_SERVERS
 FallbackDNS=$FALLBACK_SERVERS
-DNSOverTLS=yes
-DNSSEC=allow-downgrade
+Domains=~.
+DNSOverTLS=opportunistic
+DNSSEC=no
 EOF
 
     run_sudo tee /etc/NetworkManager/conf.d/10-dns.conf > /dev/null <<EOF

@@ -10,7 +10,7 @@ setup_fonts() {
         google-noto-sans-vf-fonts google-noto-serif-vf-fonts google-noto-sans-mono-vf-fonts \
         google-noto-color-emoji-fonts \
         google-noto-sans-fonts google-noto-serif-fonts google-noto-mono-fonts \
-        google-carlito-fonts google-caladea-fonts \
+        google-carlito-fonts google-crosextra-caladea-fonts google-caladea-fonts \
         curl cabextract xorg-x11-font-utils fontconfig
 
     local msttcore_rpm="/tmp/msttcore-fonts-installer-2.6-1.noarch.rpm"

@@ -6,6 +6,13 @@
 # Repository: https://github.com/kk376/fedora-post-install
 # ==============================================================================
 
+# Non-root invocation guard: prevent running entire orchestrator with sudo/root
+if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+    echo -e "\033[0;31m[ERROR]\033[0m Do not run this script as root or with sudo." >&2
+    echo -e "The script invokes sudo internally for privileged operations." >&2
+    exit 1
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")"
 
 # Remote Execution Bootstrap:
@@ -17,7 +24,10 @@ if [[ -z "${SCRIPT_DIR}" || ! -d "${SCRIPT_DIR}/src" ]]; then
     echo -e "\033[0;34m[SETUP]\033[0m Fetching fedora-post-install from GitHub..."
     curl -fsSL "https://github.com/kk376/fedora-post-install/archive/refs/heads/main.tar.gz" \
         | tar -xz -C "$TMP_DIR" --strip-components=1
-    exec bash "$TMP_DIR/setup.sh" "$@"
+    if [[ -f "$TMP_DIR/setup.sh" ]]; then
+        bash "$TMP_DIR/setup.sh" "$@"
+        exit $?
+    fi
 fi
 
 # Local Execution: Source Core Runtime
