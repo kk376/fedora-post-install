@@ -20,8 +20,7 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 - **Profile-based**: six profiles with layered modular architecture so you only install what you actually need
 - **Dry-run mode**: preview everything without touching the system
 - **Backup and restore**: backs up config files before modifying them
-- **Plain English guide**: see [HOW_IT_WORKS.md](HOW_IT_WORKS.md) for a friendly, creative layman walkthrough and transformation guide
-- **Visual architecture**: see [PSEUDOCODE.md](PSEUDOCODE.md) for end-to-end Mermaid flowcharts and step-by-step logic specs
+- **Technical guide**: see [HOW_IT_WORKS.md](HOW_IT_WORKS.md) for execution lifecycle, profile hierarchy, and security details
 
 ---
 
@@ -70,11 +69,11 @@ cd fedora-post-install
 
 When run interactively without options, `./setup.sh` displays a menu to select your desired profile directly from the terminal:
 1. `minimal` (4 steps)
-2. `workstation` (11 steps)
+2. `workstation` (11 steps: default)
 3. `dev` (15 steps: includes prompt for developer genres: systems, web, android, ai, or all)
 4. `gaming` (12 steps)
 5. `creator` (12 steps)
-6. `full` (17 steps: default)
+6. `full` (17 steps)
 
 ### Profiles
 
@@ -202,11 +201,10 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
-## How It Works & Architecture Guides
+## Technical Architecture & Guide
 
 Want to know exactly what this script does before running it?
-- 📖 **[HOW_IT_WORKS.md](HOW_IT_WORKS.md)**: A friendly, creative, plain-English guide covering the "Before vs After" transformation, peace-of-mind safety rules, profile picker, and beginner FAQ.
-- 🗺️ **[PSEUDOCODE.md](PSEUDOCODE.md)**: Detailed visual Mermaid flowcharts, decision trees, and step-by-step logic specs for all 18 functions and disaster recovery mechanisms.
+- 📖 **[HOW_IT_WORKS.md](HOW_IT_WORKS.md)**: Technical architecture guide covering process execution, profile layering, state tracking, and disaster recovery.
 
 ## Contributing
 
