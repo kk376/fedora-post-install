@@ -150,7 +150,7 @@ elif [[ "$*" == *"https://github.com/mock/"* || "$*" == *"https://fallback.examp
     # Output file download
     while [[ $# -gt 0 ]]; do
         if [[ "$1" == "-o" ]]; then
-            echo "downloaded from: $2" > "$2"
+            echo "mock download payload" > "$2"
             exit 0
         fi
         shift
@@ -215,6 +215,26 @@ if [[ $? -ne 0 ]] && [[ ! -f "$out_badfb" ]]; then
     pass "Propagates failure exit code when fallback download fails"
 else
     fail "Failed fallback download did not return non-zero"
+fi
+
+# 2.7 Checksum verification with expected_sha256 matching
+out_chk_ok="$TEST_DIR/chk_ok.rpm"
+mock_url="https://fallback.example.com/checked.rpm"
+expected_hash=$(printf "mock download payload\n" | sha256sum | cut -d' ' -f1)
+github_download "fail/rate-limit" 'pkg.*\.rpm' "$out_chk_ok" "$mock_url" "$expected_hash"
+if [[ $? -eq 0 ]] && [[ -f "$out_chk_ok" ]]; then
+    pass "github_download succeeds when expected_sha256 matches output file"
+else
+    fail "github_download failed on matching expected_sha256"
+fi
+
+# 2.8 Checksum verification fails on mismatched hash and cleans up output file
+out_chk_bad="$TEST_DIR/chk_bad.rpm"
+github_download "fail/rate-limit" 'pkg.*\.rpm' "$out_chk_bad" "$mock_url" "0000000000000000000000000000000000000000000000000000000000000000"
+if [[ $? -ne 0 ]] && [[ ! -f "$out_chk_bad" ]]; then
+    pass "github_download fails and removes output when expected_sha256 mismatches"
+else
+    fail "github_download did not fail or clean up on hash mismatch"
 fi
 
 # ==============================================================================

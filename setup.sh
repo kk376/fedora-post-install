@@ -314,6 +314,10 @@ except Exception:
     [[ -z "$download_url" ]] && download_url="$fallback"
 
     if [[ -n "$download_url" ]]; then
+        # Prevent symlink attacks on output destination
+        if [[ -L "$output" ]]; then
+            rm -f "$output"
+        fi
         if curl -fL --max-time 120 -o "$output" "$download_url" 2>/dev/null; then
             if [[ -n "$expected_sha256" ]]; then
                 if ! verify_checksum "$output" "$expected_sha256"; then
@@ -345,6 +349,7 @@ backup_file() {
             return 0
         fi
         mkdir -p "$(dirname "$backup_path")" "$BACKUP_DIR"
+        chmod 0700 "$BACKUP_DIR" 2>/dev/null || true
         cp -p "$abs_file" "$backup_path"
         echo "$abs_file" >> "$BACKUP_DIR/.manifest"
         sort -u "$BACKUP_DIR/.manifest" -o "$BACKUP_DIR/.manifest"
@@ -370,6 +375,33 @@ restore_backups() {
     if [[ -f "$latest_backup/.manifest" ]]; then
         while IFS= read -r orig; do
             [[ -z "$orig" ]] && continue
+
+            # Security: Reject path traversal attempts
+            if [[ "$orig" == *".."* ]]; then
+                warn "Security: Path traversal attempt detected in manifest ($orig) - skipped"
+                continue
+            fi
+
+            # Security: Ensure absolute path
+            if [[ "$orig" != /* ]]; then
+                warn "Security: Non-absolute path detected in manifest ($orig) - skipped"
+                continue
+            fi
+
+            # Security: Strict allowlist for privileged system configuration files (/etc)
+            if [[ "$orig" == /etc/* ]]; then
+                case "$orig" in
+                    /etc/dnf/dnf.conf|/etc/systemd/zram-generator.conf) ;;
+                    *)
+                        warn "Security: Untrusted system configuration target ($orig) - skipped"
+                        continue
+                        ;;
+                esac
+            elif [[ "$orig" != "$HOME"/* && "$orig" != /tmp/* ]]; then
+                warn "Security: Target outside allowed user directory ($orig) - skipped"
+                continue
+            fi
+
             local rel_path="${orig#/}"
             local backup_path="$latest_backup/$rel_path"
 
@@ -394,6 +426,25 @@ restore_backups() {
             [[ "$(basename "$bfile")" == ".manifest" ]] && continue
             local rel_path="${bfile#"$latest_backup"/}"
             local orig="/$rel_path"
+
+            # Security: Reject path traversal attempts or non-absolute paths
+            if [[ "$orig" == *".."* || "$orig" != /* ]]; then
+                continue
+            fi
+
+            # Security: Strict allowlist for privileged system configuration files (/etc)
+            if [[ "$orig" == /etc/* ]]; then
+                case "$orig" in
+                    /etc/dnf/dnf.conf|/etc/systemd/zram-generator.conf) ;;
+                    *)
+                        warn "Security: Untrusted system configuration target ($orig) - skipped"
+                        continue
+                        ;;
+                esac
+            elif [[ "$orig" != "$HOME"/* && "$orig" != /tmp/* ]]; then
+                warn "Security: Target outside allowed user directory ($orig) - skipped"
+                continue
+            fi
 
             if $DRY_RUN; then
                 dry "cp $bfile $orig"
@@ -1580,6 +1631,7 @@ setup_desktop_apps() {
     if confirm "Install Vesktop (Discord client with Vencord & Wayland audio sharing)?" "Y"; then
         if ! $DRY_RUN; then
             local fallback_url="https://github.com/Vencord/Vesktop/releases/latest/download/vesktop.${SYS_ARCH}.rpm"
+            rm -f /tmp/vesktop.rpm
             if github_download "Vencord/Vesktop" "vesktop.*\.${SYS_ARCH}\.rpm" "/tmp/vesktop.rpm" "$fallback_url"; then
                 run_sudo dnf install -y /tmp/vesktop.rpm 2>/dev/null || warn "Vesktop RPM install failed"
                 rm -f /tmp/vesktop.rpm
@@ -1595,11 +1647,18 @@ setup_desktop_apps() {
     if ! command -v stirling-pdf &>/dev/null && ! rpm -q stirling-pdf &>/dev/null; then
         if confirm "Install Stirling-PDF (offline desktop PDF toolkit)?" "N"; then
             if ! $DRY_RUN; then
-                local stirling_rpm="/tmp/stirling-pdf.rpm"
-                if github_download "Stirling-Tools/Stirling-PDF" "Stirling-PDF-linux-${SYS_ARCH}\.rpm" "$stirling_rpm" \
-                    "https://files.stirlingpdf.com/linux-installer.rpm"; then
-                    run_sudo dnf install -y "$stirling_rpm" 2>/dev/null || warn "Stirling-PDF install failed"
+                if [[ "$SYS_ARCH" != "x86_64" ]]; then
+                    warn "Stirling-PDF RPM packages are exclusive to x86_64 (current arch: $SYS_ARCH)"
+                else
+                    local stirling_rpm="/tmp/stirling-pdf.rpm"
                     rm -f "$stirling_rpm"
+                    if github_download "Stirling-Tools/Stirling-PDF" "Stirling-PDF-linux-${SYS_ARCH}\.rpm" "$stirling_rpm" \
+                        "https://files.stirlingpdf.com/linux-installer.rpm"; then
+                        run_sudo dnf install -y "$stirling_rpm" 2>/dev/null || warn "Stirling-PDF install failed"
+                        rm -f "$stirling_rpm"
+                    else
+                        warn "Could not download Stirling-PDF RPM"
+                    fi
                 fi
             else
                 dry "Download and install Stirling-PDF RPM"
@@ -2363,7 +2422,7 @@ setup_pre_driver_reboot() {
             mark_step_completed "setup_pre_driver_reboot"
             step_complete "Reboot checkpoint (rebooting)"
             run_sudo systemctl reboot
-            exit 0
+            exit 100
         else
             warn "Continuing without reboot; akmods will build for the target kernel."
         fi
@@ -2584,7 +2643,10 @@ main() {
             "$func"
         ) || step_status=$?
 
-        if [[ $step_status -eq 0 ]]; then
+        if [[ $step_status -eq 100 ]]; then
+            info "Reboot initiated by step '$name'. Exiting setup."
+            exit 0
+        elif [[ $step_status -eq 0 ]]; then
             $DRY_RUN || mark_step_completed "$func"
             ((++COMPLETED_STEPS))
         else

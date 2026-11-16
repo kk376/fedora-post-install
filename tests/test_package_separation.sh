@@ -203,14 +203,20 @@ run_mock_setup_packages() {
             elif [[ "$1" == "dnf" && ( "$2" == "remove" || "$2" == "config-manager" || "$2" == "copr" ) ]]; then
                 return 0
             fi
-            "$@"
+            return 0
         }
 
         run() {
-            "$@"
+            if [[ "$1" == "flatpak" ]]; then
+                "$@"
+            fi
+            return 0
         }
 
         # Mock flatpak & steam & xdg-open & sleep
+        backup_file() { return 0; }
+        rustup-init() { return 0; }
+        rustup() { return 0; }
         flatpak() {
             if [[ "$1" == "install" && "$*" == *"com.heroicgameslauncher.hgl"* ]]; then
                 touch "$sandbox/.heroic_installed"
