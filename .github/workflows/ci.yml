@@ -28,6 +28,9 @@ jobs:
       - name: Run ShellCheck
         run: make lint
 
+      - name: Verify build artifact synchronization
+        run: make build-check
+
   test:
     name: Test Suite
     runs-on: ubuntu-latest
@@ -51,6 +54,9 @@ jobs:
 
       - name: Run ShellCheck
         run: make lint
+
+      - name: Verify build artifact synchronization
+        run: make build-check
 
       - name: Run test suite
         run: make test

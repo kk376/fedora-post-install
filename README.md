@@ -131,7 +131,7 @@ Intel media driver, AMD freeworld VA/VDPAU, NVIDIA proprietary (akmods, Secure B
 
 ### Dev Tools
 
-GCC, Clang, LLVM, ccache (interactive disclaimer prompt for 50GB compressed cache in systems genre), Java, Node.js, Python, Ruff linter/formatter, PostgreSQL 18, Docker + Docker Compose, Corepack, Code Editor selection (Zed, VS Codium, Antigravity IDE, or VS Code), Rust (optional), Git LFS & git-filter-repo, Android tools, debuggers, build systems.
+GCC, Clang, LLVM, ccache (interactive disclaimer prompt for 10GB compressed cache in systems genre), Java, Node.js, Python, Ruff linter/formatter, PostgreSQL 18, Docker + Docker Compose, Corepack, Code Editor selection (Zed, VS Codium, Antigravity IDE, or VS Code), Rust (optional), Git LFS & git-filter-repo, Android tools, debuggers, build systems.
 
 ### Gaming
 
@@ -147,13 +147,25 @@ GNOME Tweaks, Extension Manager, extension recommendations.
 
 ---
 
-## Testing
+## Development & Testing
 
-The repository includes automated test suites covering all profiles, CLI arguments, helper functions, and backup/restore workflows:
+Modular source files live under `src/`. The standalone `setup.sh` executable is generated deterministically by `build.sh`:
 
 ```bash
-# Run all test suites
-bash tests/run_tests.sh
+# Assemble setup.sh from src/ modules
+make build
+
+# Verify setup.sh is strictly synchronized with src/
+make build-check
+
+# Run ShellCheck across all scripts
+make lint
+
+# Run all automated test suites
+make test
+
+# Or run complete validation pipeline (build check, lint, tests)
+make check
 ```
 
 ---

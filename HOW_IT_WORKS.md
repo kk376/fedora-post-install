@@ -87,3 +87,24 @@ Before modifying system or user dotfiles, `backup_file()` creates timestamped ba
 - **Chassis Probing**: Differentiates Laptops, Virtual Machines (`systemd-detect-virt`), Servers, and physical Desktops.
 - **GPU Discovery**: Probes PCIe devices via `lspci` and platform DRM devices via `/sys/class/drm/` (supporting Apple Silicon Asahi and ARM SoCs).
 - **Driver Gating**: Architecture-specific binaries (`steam`, `intel-compute-runtime`) are restricted to `x86_64`, while ROCm compute runtimes require verified discrete AMD GPUs (`Navi`, `Radeon RX`, `dGPU`).
+
+---
+
+## 6. Source Modularization & Build Pipeline
+
+Development source files are modularized under `src/` to prevent monolithic merge conflicts while preserving single-file zero-dependency distribution:
+
+```
+src/
+├── 00_header.sh       # Shebang, global configs, hardware variables, colors, logging
+├── 01_cli.sh          # Argument parsing (--profile, --dry-run, --dev-type)
+├── 02_helpers.sh      # Hardware detection, downloaders, backup/restore
+├── 03_profiles.sh     # State tracking, profile selection, preflight diagnostics
+├── steps/
+│   ├── 01_dnf.sh .. 17_drivers.sh  # Isolated post-install step routines
+└── 99_main.sh         # Installation summary, orchestrator loop, trap runner
+```
+
+- **Distribution Artifact (`setup.sh`)**: The compiled executable in the repository root is generated deterministically by `./build.sh`. This ensures direct compatibility with `curl -fsSL ... | bash` installations and existing integration test runners.
+- **Verification Gate (`./build.sh --check`)**: CI and `make check` run `./build.sh --check` to ensure `setup.sh` is strictly in sync with source modules in `src/`.
+- **Atomic Assembly**: `build.sh` writes the concatenated artifact to a temporary file before atomically moving it into place, preventing incomplete writes.

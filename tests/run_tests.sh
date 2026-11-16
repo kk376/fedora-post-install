@@ -15,6 +15,7 @@ echo -e "${CYAN}========================================================${NC}"
 echo ""
 
 SUITES=(
+    "test_build_pipeline.sh:Source Modularization & Build Pipeline"
     "test_backup_restore.sh:Backup & Restore Subsystem"
     "test_cli_flags.sh:CLI Flags & Argument Parsing"
     "test_copr_fonts.sh:COPR Tools & Font Subsystem"

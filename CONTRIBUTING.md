@@ -16,10 +16,12 @@
 
 1. Fork the repo
 2. Create a feature branch
-3. Make your changes
-4. Test in a VM using `--dry-run` first, then for real on a clean Fedora install
-5. Update docs if needed
-6. Submit a PR with a clear description
+3. Make your changes in `src/` modules (never edit `setup.sh` directly)
+4. Run `make build` to assemble `setup.sh`
+5. Run `make check` to run build verification, ShellCheck, and all test suites
+6. Test in a VM using `--dry-run` first, then for real on a clean Fedora install
+7. Update docs if needed
+8. Submit a PR with a clear description
 
 ## Code Style
 
