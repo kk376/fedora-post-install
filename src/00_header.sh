@@ -1,7 +1,7 @@
 #!/bin/bash
-# Fedora 44 Post-Install Setup Script
+# Fedora Post-Install Setup Script
 # Author: Kushagra Kumar
-# Version: 8.0.0
+# Version: 9.0.0
 
 # ==============================================================================
 # Configuration & Flags
@@ -10,7 +10,7 @@
 : "${UNATTENDED:=false}"
 : "${BACKUP_DIR:=$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)}"
 : "${LOG_FILE:=/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log}"
-: "${SCRIPT_VERSION:=8.0.0}"
+: "${SCRIPT_VERSION:=9.0.0}"
 : "${PROFILE:=workstation}"
 : "${DEV_TYPE:=all}"
 PROFILE_SPECIFIED=false

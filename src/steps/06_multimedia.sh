@@ -12,7 +12,7 @@ setup_multimedia() {
         mozilla-openh264 \
         libva-utils 2>/dev/null || warn "Some multimedia packages failed to install"
 
-    run_sudo dnf group install -y --with-optional multimedia --setopt=install_weak_deps=False -x PackageKit-gstreamer-plugin 2>/dev/null || \
+    run_sudo dnf group install -y --with-optional multimedia --setopt=install_weak_deps=False --exclude=PackageKit-gstreamer-plugin 2>/dev/null || \
         warn "Multimedia group install had partial warnings (non-critical)"
 
     log "Configuring WirePlumber Bluetooth HD audio & PipeWire dynamic sample rates..."

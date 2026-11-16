@@ -69,33 +69,33 @@ get_profile_steps() {
 }
 
 echo "================================================================"
-echo "TEST SUITE: Profile Integrity & Execution Order (v7.0.0)"
+echo "TEST SUITE: Profile Integrity & Execution Order (v9.0.0)"
 echo "Target Script: $SCRIPT_PATH"
 echo "================================================================"
 
 declare -A EXPECTED_STEPS
 EXPECTED_STEPS[minimal]="setup_dnf setup_dns setup_cli_core setup_shell"
-EXPECTED_STEPS[workstation]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[dev]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_dev setup_editor setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[gaming]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_gaming setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[creator]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_creator setup_pre_driver_reboot setup_drivers"
-EXPECTED_STEPS[full]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_dev setup_editor setup_docker setup_kvm setup_gaming setup_creator setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[workstation]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_debloat setup_desktop_apps setup_power setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[dev]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_debloat setup_desktop_apps setup_power setup_dev setup_editor setup_docker setup_kvm setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[gaming]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_debloat setup_desktop_apps setup_power setup_gaming setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[creator]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_debloat setup_desktop_apps setup_power setup_creator setup_pre_driver_reboot setup_drivers"
+EXPECTED_STEPS[full]="setup_dnf setup_dns setup_cli_core setup_shell setup_fonts setup_multimedia setup_gnome setup_debloat setup_desktop_apps setup_power setup_dev setup_editor setup_docker setup_kvm setup_gaming setup_creator setup_pre_driver_reboot setup_drivers"
 
 declare -A EXPECTED_NAMES
 EXPECTED_NAMES[minimal]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal"
-EXPECTED_NAMES[workstation]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, Desktop Applications, Power & Sleep Management, Pre-Driver Kernel Checkpoint, GPU Drivers"
-EXPECTED_NAMES[dev]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, Desktop Applications, Power & Sleep Management, Development Toolchains, Code Editor, Docker & Compose, KVM/QEMU Virtualization, Pre-Driver Kernel Checkpoint, GPU Drivers"
-EXPECTED_NAMES[gaming]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, Desktop Applications, Power & Sleep Management, Gaming Stack, Pre-Driver Kernel Checkpoint, GPU Drivers"
-EXPECTED_NAMES[creator]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, Desktop Applications, Power & Sleep Management, Creator & Streaming Suite, Pre-Driver Kernel Checkpoint, GPU Drivers"
-EXPECTED_NAMES[full]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, Desktop Applications, Power & Sleep Management, Development Toolchains, Code Editor, Docker & Compose, KVM/QEMU Virtualization, Gaming Stack, Creator & Streaming Suite, Pre-Driver Kernel Checkpoint, GPU Drivers"
+EXPECTED_NAMES[workstation]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, System & GNOME Debloat, Desktop Applications, Power & Sleep Management, Pre-Driver Kernel Checkpoint, GPU Drivers"
+EXPECTED_NAMES[dev]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, System & GNOME Debloat, Desktop Applications, Power & Sleep Management, Development Toolchains, Code Editor, Docker & Compose, KVM/QEMU Virtualization, Pre-Driver Kernel Checkpoint, GPU Drivers"
+EXPECTED_NAMES[gaming]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, System & GNOME Debloat, Desktop Applications, Power & Sleep Management, Gaming Stack, Pre-Driver Kernel Checkpoint, GPU Drivers"
+EXPECTED_NAMES[creator]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, System & GNOME Debloat, Desktop Applications, Power & Sleep Management, Creator & Streaming Suite, Pre-Driver Kernel Checkpoint, GPU Drivers"
+EXPECTED_NAMES[full]="DNF5 & Repositories, DNS Resolvers, Core CLI Utilities, Shell & Terminal, System & Nerd Fonts, Multimedia & Audio Codecs, GNOME Desktop & Extensions, System & GNOME Debloat, Desktop Applications, Power & Sleep Management, Development Toolchains, Code Editor, Docker & Compose, KVM/QEMU Virtualization, Gaming Stack, Creator & Streaming Suite, Pre-Driver Kernel Checkpoint, GPU Drivers"
 
 declare -A EXPECTED_COUNTS
 EXPECTED_COUNTS[minimal]=4
-EXPECTED_COUNTS[workstation]=11
-EXPECTED_COUNTS[dev]=15
-EXPECTED_COUNTS[gaming]=12
-EXPECTED_COUNTS[creator]=12
-EXPECTED_COUNTS[full]=17
+EXPECTED_COUNTS[workstation]=12
+EXPECTED_COUNTS[dev]=16
+EXPECTED_COUNTS[gaming]=13
+EXPECTED_COUNTS[creator]=13
+EXPECTED_COUNTS[full]=18
 
 ALL_PROFILES=("minimal" "workstation" "dev" "gaming" "creator" "full")
 

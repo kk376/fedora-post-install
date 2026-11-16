@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2016,SC2088
 # ==============================================================================
-# Test Suite: COPR & Fonts Subsystem (v7.0.0)
+# Test Suite: COPR & Fonts Subsystem (v9.0.0)
 # Covers:
 #   1. COPR repository mappings (scrcpy in setup_dev, yazi in setup_desktop_apps)
 #   2. COPR preview dependencies and enable safety
@@ -50,7 +50,7 @@ assert_contains() {
 }
 
 echo "================================================================"
-echo "TEST SUITE: COPR & Fonts Subsystem Audit (v7.0.0)"
+echo "TEST SUITE: COPR & Fonts Subsystem Audit (v9.0.0)"
 echo "Target: $SETUP_SCRIPT"
 echo "================================================================"
 
@@ -118,7 +118,10 @@ assert_contains "setup_fonts installs liberation-sans-fonts" "liberation-sans-fo
 assert_contains "setup_fonts installs liberation-serif-fonts" "liberation-serif-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs liberation-mono-fonts" "liberation-mono-fonts" "$fonts_func_code"
 
-# 3. Google Noto fonts & metric-compatible MS substitutes
+# 3. Google Noto & Adwaita fonts, color emoji, and metric-compatible MS substitutes
+assert_contains "setup_fonts installs adwaita-sans-fonts" "adwaita-sans-fonts" "$fonts_func_code"
+assert_contains "setup_fonts installs adwaita-mono-fonts" "adwaita-mono-fonts" "$fonts_func_code"
+assert_contains "setup_fonts installs google-noto-color-emoji-fonts" "google-noto-color-emoji-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs google-noto-sans-fonts" "google-noto-sans-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs google-noto-serif-fonts" "google-noto-serif-fonts" "$fonts_func_code"
 assert_contains "setup_fonts installs google-noto-mono-fonts" "google-noto-mono-fonts" "$fonts_func_code"

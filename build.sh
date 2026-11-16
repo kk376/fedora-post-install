@@ -38,6 +38,7 @@ MODULES=(
     "steps/05_fonts.sh"
     "steps/06_multimedia.sh"
     "steps/07_gnome.sh"
+    "steps/07b_debloat.sh"
     "steps/08_desktop_apps.sh"
     "steps/09_power.sh"
     "steps/10_dev.sh"

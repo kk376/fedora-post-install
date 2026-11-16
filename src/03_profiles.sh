@@ -37,11 +37,11 @@ select_profile_menu() {
     echo -e "${GREEN}         Select Setup Profile           ${NC}"
     echo -e "${GREEN}========================================${NC}"
     echo "  1) minimal     - DNF, DNS, core CLI utilities, shell & terminal (4 steps)"
-    echo "  2) workstation - Minimal + fonts, codecs, GNOME, desktop apps, power, drivers [default] (11 steps)"
-    echo "  3) dev         - Workstation + dev toolchains, editors, Docker, KVM/QEMU (15 steps)"
-    echo "  4) gaming      - Workstation + Steam, Heroic, MangoHud, GameMode (12 steps)"
-    echo "  5) creator     - Workstation + OBS Studio, v4l2loopback, wf-recorder, NV Broadcast (12 steps)"
-    echo "  6) full        - Complete suite: Workstation + Dev + Gaming + Creator (17 steps)"
+    echo "  2) workstation - Minimal + fonts, codecs, GNOME, debloat, desktop apps, power, drivers [default] (12 steps)"
+    echo "  3) dev         - Workstation + dev toolchains, editors, Docker, KVM/QEMU (16 steps)"
+    echo "  4) gaming      - Workstation + Steam, Heroic, MangoHud, GameMode (13 steps)"
+    echo "  5) creator     - Workstation + OBS Studio, v4l2loopback, wf-recorder, NV Broadcast (13 steps)"
+    echo "  6) full        - Complete suite: Workstation + Dev + Gaming + Creator (18 steps)"
     echo ""
 
     local choice

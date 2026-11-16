@@ -1,8 +1,8 @@
-# Fedora 44 Post-Install Setup Script
+# Fedora Post-Install Setup Script
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An interactive post-installation script for Fedora 44 Workstation (GNOME).
+An interactive, hardware-aware post-installation script for Fedora Workstation (GNOME).
 
 Built from years of actual Fedora usage, covering the things I find myself setting up on every fresh install: driver detection, multimedia codecs, dev tools, gaming, shell customization, Docker, and virtualization.
 
@@ -24,13 +24,15 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ---
 
-## What's New in v8.0.0
+## What's New in v9.0.0
 
-- **Curl-Ready One-Liner Execution**: Full support for interactive execution via `bash -c "$(curl -fsSL ...)"` and `curl -fsSL ... | bash` with automatic `/dev/tty` fallback handling.
-- **Systemd Drop-In ZRAM & Memory Tuning**: Migrated to `/etc/systemd/zram-generator.conf.d/10-zram.conf`, removed the arbitrary 16GB RAM cap in favor of dynamic full-RAM allocation (`zram-size = ram`), and applied high-performance zstd kernel sysctl parameters (`swappiness = 180`, `watermark_scale_factor = 125`, `watermark_boost_factor = 0`).
-- **Zero-Trust Security & Git Protection**: Removed silent `core.pager cat` clobbering, gated git workflow settings behind explicit confirmation with automated backups of `~/.gitconfig`, and made sudo asterisk feedback opt-in.
-- **Hardware-Agnostic Multi-Monitor Safety**: Added external display safety checks and confirmation prompts to hybrid Vulkan priority configuration, protecting laptops with display outputs wired directly to discrete GPUs.
-- **Ghostty Tab Alignment & Filesystem Hygiene**: Corrected Ghostty configuration path to `config.ghostty` enforcing tab layout defaults, and moved third-party clones into `~/.local/share/`.
+- **Modular Architecture & Self-Bootstrapper**: Decomposed into 23 cohesive source modules under `src/` driven by a clean 43-line self-bootstrapping runner with zero duplicate git bloat.
+- **Interactive 4-Tier Debloat Engine (`setup_debloat`)**: Interactively suppresses unnecessary background daemons (`rygel`, `cups-browsed`, `ModemManager`), removes desktop clutter and heavy office suites, reclaims 200–400MB idle RAM (`gnome-software`/`PackageKit`), and prevents DNF weak dependency creep.
+- **Encrypted DNS-over-TLS (DoT)**: System-wide encrypted DNS resolution via `systemd-resolved` drop-ins with SNI hostname verification across Cloudflare, Quad9, and Google.
+- **Fedora 45 Modernization**: Integrated GNOME Adwaita typography (`adwaita-sans-fonts`, `adwaita-mono-fonts`), variable Noto fonts, and COLRv1 color emoji.
+- **Mesa Vulkan Video & NVIDIA Power Daemons**: Added `mesa-vulkan-drivers-freeworld` swap for hardware Vulkan Video acceleration, and enabled `nvidia-suspend`/`hibernate`/`resume` units for rock-solid power management.
+- **D3cold Hybrid GPU Sleep**: Full 4-variable environment profile enabling discrete NVIDIA GPUs to enter true low-power sleep on laptops.
+- **Native Fedora PostgreSQL**: Switched from brittle external PGDG yum repositories to official native Fedora packages.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full history.
 

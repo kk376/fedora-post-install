@@ -91,6 +91,7 @@ EXPECTED_MODULES=(
     "src/steps/05_fonts.sh"
     "src/steps/06_multimedia.sh"
     "src/steps/07_gnome.sh"
+    "src/steps/07b_debloat.sh"
     "src/steps/08_desktop_apps.sh"
     "src/steps/09_power.sh"
     "src/steps/10_dev.sh"
@@ -114,7 +115,7 @@ for mod in "${EXPECTED_MODULES[@]}"; do
 done
 
 if $all_modules_ok; then
-    pass "All 22 modular source files exist and are non-empty"
+    pass "All 23 modular source files exist and are non-empty"
 fi
 
 # ==============================================================================

@@ -64,7 +64,10 @@ GTK_CSS
 
     if command -v gsettings &>/dev/null && ! $DRY_RUN; then
         gsettings set org.gnome.mutter check-alive-timeout 0 2>/dev/null || true
-        success "GNOME Mutter check-alive-timeout set to 0"
+        gsettings set org.gnome.desktop.interface clock-show-weekday true 2>/dev/null || true
+        gsettings set org.gnome.desktop.interface clock-show-seconds true 2>/dev/null || true
+        gsettings set org.gnome.shell disable-extension-version-validation true 2>/dev/null || true
+        success "GNOME Mutter and interface preferences applied"
     fi
 
     step_complete "GNOME desktop configured"

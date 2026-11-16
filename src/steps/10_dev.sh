@@ -162,26 +162,14 @@ setup_dev() {
         fi
     fi
 
-    # Architecture-Aware PostgreSQL Server
+    # PostgreSQL Server
     if confirm "Install and initialize PostgreSQL Server?" "N"; then
         if ! $DRY_RUN; then
-            if [[ "$SYS_ARCH" == "x86_64" ]]; then
-                local fedora_ver
-                fedora_ver=$(rpm -E %fedora 2>/dev/null || echo "44")
-                local pgdg_rpm="https://download.postgresql.org/pub/repos/yum/reporpms/F-${fedora_ver}-${SYS_ARCH}/pgdg-fedora-repo-latest.noarch.rpm"
-                rpm -q pgdg-fedora-repo &>/dev/null || run_sudo dnf install -y --skip-unavailable "$pgdg_rpm"
-                if run_sudo dnf install -y postgresql18-server postgresql18; then
-                    [[ -f "/var/lib/pgsql/18/data/PG_VERSION" ]] || run_sudo /usr/pgsql-18/bin/postgresql-18-setup initdb
-                    run_sudo systemctl enable --now postgresql-18
-                    success "PostgreSQL 18 (PGDG) initialized and running"
-                fi
-            else
-                info "Architecture is $SYS_ARCH: Installing PostgreSQL from standard Fedora repositories..."
-                if run_sudo dnf install -y postgresql-server postgresql; then
-                    run_sudo postgresql-setup --initdb 2>/dev/null || true
-                    run_sudo systemctl enable --now postgresql
-                    success "PostgreSQL initialized and running"
-                fi
+            log "Installing PostgreSQL from official Fedora repositories..."
+            if run_sudo dnf install -y postgresql-server postgresql; then
+                run_sudo postgresql-setup --initdb 2>/dev/null || true
+                run_sudo systemctl enable --now postgresql
+                success "PostgreSQL initialized and running"
             fi
         else
             dry "Install and initialize PostgreSQL Server"

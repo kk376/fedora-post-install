@@ -46,7 +46,7 @@ parse_args() {
                 ;;
             --help|-h)
                 cat <<EOF
-Fedora 44 Post-Install Setup Script v${SCRIPT_VERSION}
+Fedora Post-Install Setup Script v${SCRIPT_VERSION}
 
 Usage: $0 [OPTIONS]
 
@@ -55,7 +55,7 @@ Options:
   --yes, -y             Unattended mode (auto-accept safe defaults)
   --profile=PROFILE     Choose setup profile (interactive menu if omitted):
                           minimal     - DNF, DNS, core CLI utilities, shell & terminal
-                          workstation - Minimal + fonts, codecs, GNOME, desktop apps, power, drivers (default)
+                          workstation - Minimal + fonts, codecs, GNOME, debloat, desktop apps, power, drivers (default)
                           dev         - Workstation + dev toolchains, editors, Docker, KVM/QEMU
                           gaming      - Workstation + Steam, Heroic, MangoHud, GameMode
                           creator     - Workstation + OBS Studio, v4l2loopback, wf-recorder, NV Broadcast

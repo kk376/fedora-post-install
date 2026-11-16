@@ -3,10 +3,15 @@
 # ==============================================================================
 setup_fonts() {
     log "Installing system, Microsoft & Nerd fonts..."
-    run_sudo dnf install -y --skip-unavailable unzip dejavu-sans-fonts dejavu-serif-fonts \
-        dejavu-sans-mono-fonts liberation-sans-fonts liberation-serif-fonts liberation-mono-fonts \
-        google-noto-sans-fonts google-noto-serif-fonts google-noto-mono-fonts google-carlito-fonts \
-        google-caladea-fonts curl cabextract xorg-x11-font-utils fontconfig
+    run_sudo dnf install -y --skip-unavailable unzip \
+        dejavu-sans-fonts dejavu-serif-fonts dejavu-sans-mono-fonts \
+        liberation-sans-fonts liberation-serif-fonts liberation-mono-fonts \
+        adwaita-sans-fonts adwaita-mono-fonts \
+        google-noto-sans-vf-fonts google-noto-serif-vf-fonts google-noto-sans-mono-vf-fonts \
+        google-noto-color-emoji-fonts \
+        google-noto-sans-fonts google-noto-serif-fonts google-noto-mono-fonts \
+        google-carlito-fonts google-caladea-fonts \
+        curl cabextract xorg-x11-font-utils fontconfig
 
     local msttcore_rpm="/tmp/msttcore-fonts-installer-2.6-1.noarch.rpm"
     local msttcore_hash="55d7f3a86533225634ff3ea2384b4356d9665a29cc7eeacff16602a1714afbb4"

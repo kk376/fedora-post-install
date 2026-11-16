@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# Fedora 44 Post-Install Setup Script
+# Fedora Post-Install Setup Script
 # Author: Kushagra Kumar
-# Version: 8.0.0
+# Version: 9.0.0
 # Repository: https://github.com/kk376/fedora-post-install
 # ==============================================================================
 

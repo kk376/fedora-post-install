@@ -4,7 +4,7 @@
 setup_desktop_apps() {
     log "Installing Brave Browser & desktop productivity applications..."
 
-    run_sudo dnf install -y dnf-plugins-core
+    run_sudo dnf install -y --skip-unavailable dnf5-plugins dnf-plugins-core 2>/dev/null || true
     run_sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo --overwrite 2>/dev/null || warn "Failed to add Brave repository"
     run_sudo dnf install -y --skip-unavailable \
         brave-browser vlc qbittorrent telegram-desktop timeshift gparted ntfs-3g wmctrl

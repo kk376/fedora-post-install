@@ -47,7 +47,7 @@ main() {
     fi
 
     echo -e "${GREEN}========================================${NC}"
-    echo -e "${GREEN}   Fedora 44 Post-Install Setup v${SCRIPT_VERSION}${NC}"
+    echo -e "${GREEN}   Fedora Post-Install Setup v${SCRIPT_VERSION}${NC}"
     echo -e "${GREEN}========================================${NC}"
     info "Architecture: $SYS_ARCH | Chassis: $CHASSIS_TYPE"
     info "GPUs detected: NVIDIA=$HAS_NVIDIA, AMD=$HAS_AMD, Intel=$HAS_INTEL"
@@ -91,6 +91,7 @@ main() {
         "setup_fonts:System & Nerd Fonts"
         "setup_multimedia:Multimedia & Audio Codecs"
         "setup_gnome:GNOME Desktop & Extensions"
+        "setup_debloat:System & GNOME Debloat"
         "setup_desktop_apps:Desktop Applications"
         "setup_power:Power & Sleep Management"
         "setup_dev:Development Toolchains"
@@ -105,7 +106,7 @@ main() {
 
     # True layered profile definitions
     local base_minimal="setup_dnf setup_dns setup_cli_core setup_shell"
-    local base_workstation="$base_minimal setup_fonts setup_multimedia setup_gnome setup_desktop_apps setup_power setup_pre_driver_reboot setup_drivers"
+    local base_workstation="$base_minimal setup_fonts setup_multimedia setup_gnome setup_debloat setup_desktop_apps setup_power setup_pre_driver_reboot setup_drivers"
 
     local -A PROFILE_STEPS
     PROFILE_STEPS[minimal]="$base_minimal"
