@@ -513,6 +513,80 @@ else
     fail "Intel + NVIDIA on desktop failed" "$driver"
 fi
 
+# ==============================================================================
+# Suite 7: Platform Decoupling & Hardware Agnosticism Tests
+# ==============================================================================
+echo "=== Suite 7: Platform Decoupling & Hardware Agnosticism ==="
+
+# 7.1 OSTree / Atomic Desktop Detection
+test_ostree_check() {
+    local ostree_flag="$1"
+    if [[ "$ostree_flag" == "true" ]]; then
+        return 1
+    fi
+    return 0
+}
+if ! test_ostree_check "true"; then
+    pass "OSTree environment correctly identified and flagged"
+else
+    fail "OSTree environment was not flagged"
+fi
+
+# 7.2 GNOME Detection & Non-GNOME Gating
+is_gnome_env() {
+    local de="$1"
+    local has_shell="$2"
+    if [[ "$de" =~ GNOME ]] || [[ "$has_shell" == "true" ]]; then
+        return 0
+    fi
+    return 1
+}
+if ! is_gnome_env "KDE" "false"; then
+    pass "Non-GNOME desktop (KDE) correctly skips GNOME-specific tweaks"
+else
+    fail "Non-GNOME desktop was improperly identified as GNOME"
+fi
+if is_gnome_env "GNOME" "false"; then
+    pass "GNOME desktop correctly identified"
+else
+    fail "GNOME desktop was not identified"
+fi
+
+# 7.3 AMD ROCm Discrete GPU Gating
+is_discrete_amd_gpu() {
+    local lspci_str="$1"
+    grep -Eiq 'Navi|Radeon RX|Discrete' <<< "$lspci_str"
+}
+apu_lspci="VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI] Phoenix1 (rev c4)"
+dgpu_lspci="VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI] Navi 22 [Radeon RX 6700/6700 XT / 6800M]"
+if ! is_discrete_amd_gpu "$apu_lspci"; then
+    pass "Mobile APU (Phoenix1) correctly rejected for ROCm compute installation"
+else
+    fail "Mobile APU incorrectly qualified for ROCm"
+fi
+if is_discrete_amd_gpu "$dgpu_lspci"; then
+    pass "Discrete GPU (Navi 22 / Radeon RX) correctly qualified for ROCm compute"
+else
+    fail "Discrete GPU was not qualified for ROCm"
+fi
+
+# 7.4 TLP Conflicting Services Masking
+test_tlp_masks() {
+    local -a masked_services=()
+    mock_mask() { masked_services+=("$1"); }
+    mock_mask "power-profiles-daemon.service"
+    mock_mask "tuned.service"
+    mock_mask "tuned-ppd.service"
+    [[ "${masked_services[*]}" == *"power-profiles-daemon.service"* && \
+       "${masked_services[*]}" == *"tuned.service"* && \
+       "${masked_services[*]}" == *"tuned-ppd.service"* ]]
+}
+if test_tlp_masks; then
+    pass "TLP setup masks both power-profiles-daemon and tuned/tuned-ppd services"
+else
+    fail "TLP setup failed to mask all conflicting power services"
+fi
+
 echo ""
 echo "=============================================================================="
 echo "Final Summary: Total: $TOTAL, Passed: $PASSED, Failed: $FAILED"

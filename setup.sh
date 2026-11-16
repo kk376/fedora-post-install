@@ -22,6 +22,7 @@ DEV_TYPE_SPECIFIED=false
 # System hardware globals (populated by detect_hardware)
 SYS_ARCH="$(uname -m)"
 IS_LAPTOP=false
+CHASSIS_TYPE="Desktop"
 HAS_NVIDIA=false
 HAS_AMD=false
 HAS_INTEL=false
@@ -193,10 +194,20 @@ detect_hardware() {
     chassis=$(hostnamectl chassis 2>/dev/null || echo "unknown")
     if [[ "$chassis" =~ ^(laptop|notebook|convertible|portable)$ ]] || compgen -G "/sys/class/power_supply/BAT*" > /dev/null; then
         IS_LAPTOP=true
+        CHASSIS_TYPE="Laptop"
+    elif systemd-detect-virt -q 2>/dev/null || [[ "$chassis" =~ ^(vm|container)$ ]]; then
+        CHASSIS_TYPE="Virtual Machine / Container"
+    elif [[ "$chassis" == "server" ]]; then
+        CHASSIS_TYPE="Server"
+    else
+        CHASSIS_TYPE="Desktop"
     fi
 
     local gpu_info
     gpu_info=$(lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' || true)
+    if [[ -z "$gpu_info" ]] && [[ -d /sys/class/drm ]]; then
+        gpu_info=$(cat /sys/class/drm/card*/device/uevent 2>/dev/null || true)
+    fi
     if grep -qi nvidia <<< "$gpu_info"; then HAS_NVIDIA=true; fi
     if grep -Eqi 'amd|advanced micro devices|ati' <<< "$gpu_info"; then HAS_AMD=true; fi
     if grep -qi intel <<< "$gpu_info"; then HAS_INTEL=true; fi
@@ -1552,6 +1563,19 @@ CLOCK_CONF
 # ==============================================================================
 setup_gnome() {
     log "Configuring GNOME Tweaks, GSConnect & Mutter optimizations..."
+
+    # Check for GNOME desktop environment before applying shell extensions
+    local is_gnome=false
+    if [[ "${XDG_CURRENT_DESKTOP:-}" =~ GNOME ]] || [[ "${DESKTOP_SESSION:-}" =~ gnome ]] || command -v gnome-shell &>/dev/null || $DRY_RUN; then
+        is_gnome=true
+    fi
+
+    if ! $is_gnome; then
+        info "Non-GNOME desktop detected (${XDG_CURRENT_DESKTOP:-none}) - skipping GNOME shell extensions & Mutter tweaks."
+        step_complete "GNOME desktop configured (bypassed for non-GNOME desktop)"
+        return 0
+    fi
+
     run_sudo dnf install -y gnome-tweaks gnome-shell-extension-gsconnect gnome-shell-extension-appindicator
 
     if command -v firewall-cmd &>/dev/null && ! $DRY_RUN; then
@@ -1562,7 +1586,7 @@ setup_gnome() {
         fi
     fi
 
-    if confirm "Apply transparent GTK3/GTK4 titlebar CSS?" "Y"; then
+    if confirm "Apply transparent GTK3/GTK4 titlebar CSS?" "N"; then
         if ! $DRY_RUN; then
             mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
             backup_file "$HOME/.config/gtk-3.0/gtk.css"
@@ -1678,16 +1702,19 @@ setup_power() {
     if $IS_LAPTOP; then
         info "Laptop chassis detected."
         info "Modern AMD/Intel laptops perform best with Fedora's default power daemon (tuned-ppd / power-profiles-daemon)."
-        if confirm "Replace default GNOME power profiles with TLP anyway?" "N"; then
+        if confirm "Replace default power profiles with TLP anyway?" "N"; then
             run_sudo dnf install -y tlp tlp-rdw
             run_sudo systemctl mask power-profiles-daemon.service 2>/dev/null || true
+            run_sudo systemctl mask tuned.service 2>/dev/null || true
+            run_sudo systemctl mask tuned-ppd.service 2>/dev/null || true
+            run_sudo systemctl stop power-profiles-daemon.service tuned.service tuned-ppd.service 2>/dev/null || true
             run_sudo systemctl enable --now tlp.service
-            success "TLP enabled"
+            success "TLP enabled (power-profiles-daemon and tuned masked to prevent conflict)"
         else
             info "Keeping native Fedora power profile management"
         fi
     else
-        info "Desktop chassis detected: Skipping laptop battery daemon (TLP)."
+        info "Non-laptop chassis detected ($CHASSIS_TYPE): Skipping laptop battery daemon (TLP)."
     fi
 
     # Safe No-Sleep: Disable auto-sleep on AC power, but protect laptops on battery power!
@@ -1886,13 +1913,13 @@ setup_dev() {
         fi
 
         # Offer ROCm only if AMD is a discrete GPU or primary accelerator (avoids unworkable installs on mobile APUs)
-        if $HAS_AMD && { ! $HAS_NVIDIA || lspci 2>/dev/null | grep -Ei 'VGA|3D' | grep -i amd | grep -qi 'Navi\|Radeon RX\|Discrete'; }; then
+        if $HAS_AMD && { lspci 2>/dev/null | grep -Ei 'VGA|3D' | grep -i amd | grep -Eiq 'Navi|Radeon RX|Discrete'; }; then
             if confirm "AMD Radeon discrete GPU detected: Install ROCm HIP & OpenCL compute runtime?" "N"; then
                 run_sudo dnf install -y --skip-unavailable rocm-hip rocm-opencl rocm-clinfo rocm-smi
             fi
         fi
 
-        if $HAS_INTEL; then
+        if $HAS_INTEL && [[ "${SYS_ARCH:-$(uname -m)}" == "x86_64" ]]; then
             if confirm "Intel GPU detected: Install Intel Compute Runtime (Level Zero / OpenCL)?" "Y"; then
                 run_sudo dnf install -y --skip-unavailable intel-compute-runtime oneapi-level-zero
             fi
@@ -2313,12 +2340,22 @@ setup_kvm() {
 setup_gaming() {
     log "Installing Gaming Stack (Steam, MangoHud, GameMode, Heroic)..."
 
-    run_sudo dnf install -y --skip-unavailable steam mangohud gamemode vulkan-tools
-
-    if ! $DRY_RUN; then
-        run_sudo dnf install -y --skip-unavailable steam-devices mozilla-openh264 2>/dev/null || true
+    local arch="${SYS_ARCH:-$(uname -m)}"
+    local gaming_pkgs=("mangohud" "gamemode" "vulkan-tools")
+    if [[ "$arch" == "x86_64" ]]; then
+        gaming_pkgs+=("steam")
     else
-        dry "Unlock Steam H264 codec"
+        info "Note: Steam RPM packages are x86_64 exclusive (current arch: $arch)."
+    fi
+
+    run_sudo dnf install -y --skip-unavailable "${gaming_pkgs[@]}"
+
+    if [[ "$arch" == "x86_64" ]]; then
+        if ! $DRY_RUN; then
+            run_sudo dnf install -y --skip-unavailable steam-devices mozilla-openh264 2>/dev/null || true
+        else
+            dry "Unlock Steam H264 codec"
+        fi
     fi
 
     if ! $DRY_RUN; then
@@ -2469,12 +2506,13 @@ setup_drivers() {
 
             if [[ -n "$selected_driver" ]]; then
                 log "Hybrid Optimus laptop detected: iGPU power optimization available ($selected_driver + NVIDIA)."
-                info "Note: Forcing iGPU Vulkan priority saves battery, but may affect external displays wired directly to dGPU."
-                if confirm "Set $selected_driver as primary Vulkan device for battery savings?" "Y"; then
+                info "Note: Forcing iGPU Vulkan priority saves battery, but prevents discrete NVIDIA GPU Vulkan offload."
+                if confirm "Set $selected_driver as primary Vulkan device for battery savings? (Warning: limits discrete GPU Vulkan offload)" "N"; then
                     if ! $DRY_RUN; then
                         run_sudo mkdir -p /etc/environment.d
                         run_sudo tee "$vulkan_conf" > /dev/null <<EOF
 # Prevent desktop apps from waking the discrete NVIDIA GPU unnecessarily
+# WARNING: This disables discrete NVIDIA GPU Vulkan offload unless overridden per-command.
 VK_LOADER_DRIVERS_SELECT=$selected_driver
 EOF
                         success "Hybrid Vulkan priority set to $selected_driver ($vulkan_conf)"
@@ -2482,7 +2520,10 @@ EOF
                         dry "Set VK_LOADER_DRIVERS_SELECT=$selected_driver in $vulkan_conf"
                     fi
                 else
-                    info "Preserving default Vulkan device discovery for external monitor compatibility"
+                    if [[ -f "$vulkan_conf" ]] && ! $DRY_RUN; then
+                        run_sudo rm -f "$vulkan_conf"
+                    fi
+                    info "Preserving standard Vulkan device discovery for discrete GPU offload and external monitors"
                 fi
             fi
         fi
@@ -2532,6 +2573,14 @@ show_summary() {
 # ==============================================================================
 main() {
     parse_args "$@"
+
+    if [[ -f /run/ostree-booted ]]; then
+        error "Fedora Atomic Desktop detected (/run/ostree-booted is present)."
+        info "This script uses traditional DNF package management and is not designed for rpm-ostree systems."
+        info "For Silverblue / Kinoite / Bazzite, please use rpm-ostree or containerized workflows."
+        exit 1
+    fi
+
     detect_hardware
 
     # Tee stdout/stderr to log file while keeping /dev/tty interactive for prompts
@@ -2546,7 +2595,7 @@ main() {
     echo -e "${GREEN}========================================${NC}"
     echo -e "${GREEN}   Fedora 44 Post-Install Setup v${SCRIPT_VERSION}${NC}"
     echo -e "${GREEN}========================================${NC}"
-    info "Architecture: $SYS_ARCH | Chassis: $(if $IS_LAPTOP; then echo "Laptop"; else echo "Desktop"; fi)"
+    info "Architecture: $SYS_ARCH | Chassis: $CHASSIS_TYPE"
     info "GPUs detected: NVIDIA=$HAS_NVIDIA, AMD=$HAS_AMD, Intel=$HAS_INTEL"
 
     if [[ "$SYS_ARCH" != "x86_64" && "$SYS_ARCH" != "aarch64" ]]; then
