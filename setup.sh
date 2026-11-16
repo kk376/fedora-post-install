@@ -11,7 +11,7 @@
 : "${BACKUP_DIR:=$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)}"
 : "${LOG_FILE:=/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log}"
 : "${SCRIPT_VERSION:=8.0.0}"
-: "${PROFILE:=full}"
+: "${PROFILE:=workstation}"
 : "${DEV_TYPE:=all}"
 PROFILE_SPECIFIED=false
 DEV_TYPE_SPECIFIED=false
@@ -114,11 +114,11 @@ Options:
   --yes, -y             Unattended mode (auto-accept safe defaults)
   --profile=PROFILE     Choose setup profile (interactive menu if omitted):
                           minimal     - DNF, DNS, core CLI utilities, shell & terminal
-                          workstation - Minimal + fonts, codecs, GNOME, desktop apps, power, drivers
+                          workstation - Minimal + fonts, codecs, GNOME, desktop apps, power, drivers (default)
                           dev         - Workstation + dev toolchains, editors, Docker, KVM/QEMU
                           gaming      - Workstation + Steam, Heroic, MangoHud, GameMode
                           creator     - Workstation + OBS Studio, v4l2loopback, wf-recorder, NV Broadcast
-                          full        - Complete suite: Workstation + Dev + Gaming + Creator (default)
+                          full        - Complete suite: Workstation + Dev + Gaming + Creator
   --dev-type=GENRE      Choose developer genre for dev/full profile (comma-separated):
                           systems     - C, C++, Rust, CMake, Meson, GDB, Valgrind, ccache
                           web         - Node.js, Corepack (PNPM/Yarn), Python 3, jq
@@ -539,7 +539,7 @@ select_profile_menu() {
     fi
 
     if $DRY_RUN || $UNATTENDED; then
-        PROFILE="full"
+        PROFILE="workstation"
         info "Auto-selected profile: $PROFILE"
         return 0
     fi
@@ -549,25 +549,25 @@ select_profile_menu() {
     echo -e "${GREEN}         Select Setup Profile           ${NC}"
     echo -e "${GREEN}========================================${NC}"
     echo "  1) minimal     - DNF, DNS, core CLI utilities, shell & terminal (4 steps)"
-    echo "  2) workstation - Minimal + fonts, codecs, GNOME, desktop apps, power, drivers (11 steps)"
+    echo "  2) workstation - Minimal + fonts, codecs, GNOME, desktop apps, power, drivers [default] (11 steps)"
     echo "  3) dev         - Workstation + dev toolchains, editors, Docker, KVM/QEMU (15 steps)"
     echo "  4) gaming      - Workstation + Steam, Heroic, MangoHud, GameMode (12 steps)"
     echo "  5) creator     - Workstation + OBS Studio, v4l2loopback, wf-recorder, NV Broadcast (12 steps)"
-    echo "  6) full        - Complete suite: Workstation + Dev + Gaming + Creator [default] (17 steps)"
+    echo "  6) full        - Complete suite: Workstation + Dev + Gaming + Creator (17 steps)"
     echo ""
 
     local choice
-    choice=$(prompt_input "Enter choice [1-6, default: 6 (full)]: " "6")
+    choice=$(prompt_input "Enter choice [1-6, default: 2 (workstation)]: " "2")
     case "$choice" in
-        1|minimal)     PROFILE="minimal" ;;
-        2|workstation) PROFILE="workstation" ;;
-        3|dev)         PROFILE="dev" ;;
-        4|gaming)      PROFILE="gaming" ;;
-        5|creator)     PROFILE="creator" ;;
-        6|full|"")     PROFILE="full" ;;
+        1|minimal)        PROFILE="minimal" ;;
+        2|workstation|"") PROFILE="workstation" ;;
+        3|dev)            PROFILE="dev" ;;
+        4|gaming)         PROFILE="gaming" ;;
+        5|creator)        PROFILE="creator" ;;
+        6|full)           PROFILE="full" ;;
         *)
-            warn "Unrecognized selection '$choice'; defaulting to 'full' profile"
-            PROFILE="full"
+            warn "Unrecognized selection '$choice'; defaulting to 'workstation' profile"
+            PROFILE="workstation"
             ;;
     esac
     info "Selected profile: $PROFILE"
@@ -794,15 +794,16 @@ deploy_terminal_config() {
                 mkdir -p "$HOME/.config/ghostty"
                 backup_file "$HOME/.config/ghostty/config.ghostty"
                 cat > "$HOME/.config/ghostty/config.ghostty" <<'GHOSTTY_CONF'
+theme = tokyonight
 gtk-tabs-location = bottom
 gtk-wide-tabs = false
 gtk-toolbar-style = flat
 window-new-tab-position = end
 tab-inherit-working-directory = false
 GHOSTTY_CONF
-                success "Ghostty tab configuration deployed to ~/.config/ghostty/config.ghostty"
+                success "Ghostty configuration deployed to ~/.config/ghostty/config.ghostty"
             else
-                dry "Deploy Ghostty tab configuration to ~/.config/ghostty/config.ghostty"
+                dry "Deploy Ghostty configuration to ~/.config/ghostty/config.ghostty"
             fi
             ;;
         kitty)
@@ -1223,10 +1224,6 @@ ZSHRC_BASE
 # ===== Developer Environment & Git Shortcuts =====
 export EDITOR=nvim
 export VISUAL=nvim
-export PAGER=cat
-export SYSTEMD_PAGER=cat
-export MANPAGER=cat
-export DELTA_PAGER=cat
 export LESS="-F -X -R"
 export LIBVIRT_DEFAULT_URI="qemu:///system"
 
@@ -1283,9 +1280,6 @@ BASHRC_BASE
             cat >> "$HOME/.bashrc" <<'BASHRC_DEV'
 export EDITOR=nvim
 export VISUAL=nvim
-export PAGER=cat
-export SYSTEMD_PAGER=cat
-export MANPAGER=cat
 export LESS="-F -X -R"
 export LIBVIRT_DEFAULT_URI="qemu:///system"
 
@@ -1336,9 +1330,6 @@ FISH_BASE
 
 set -gx EDITOR nvim
 set -gx VISUAL nvim
-set -gx PAGER cat
-set -gx SYSTEMD_PAGER cat
-set -gx MANPAGER cat
 set -gx LESS "-F -X -R"
 set -gx LIBVIRT_DEFAULT_URI "qemu:///system"
 
@@ -1645,14 +1636,14 @@ setup_desktop_apps() {
     run flatpak install -y flathub org.localsend.localsend_app com.mattjakeman.ExtensionManager 2>/dev/null || warn "Flatpak installation had warnings"
 
     # Yazi Terminal File Manager (COPR)
-    if confirm "Install Yazi (blazing-fast Rust terminal file manager with media previews)?" "Y"; then
+    if confirm "Install Yazi terminal file manager?" "Y"; then
         if run_sudo dnf copr enable -y lihaohong/yazi; then
             run_sudo dnf install -y --skip-unavailable yazi file poppler-utils resvg ImageMagick || warn "Yazi install had warnings"
         fi
     fi
 
     # Vesktop (Architecture-aware download)
-    if confirm "Install Vesktop (Discord client with Vencord & Wayland audio sharing)?" "Y"; then
+    if confirm "Install Vesktop Discord client?" "Y"; then
         if ! $DRY_RUN; then
             local fallback_url="https://github.com/Vencord/Vesktop/releases/latest/download/vesktop.${SYS_ARCH}.rpm"
             rm -f /tmp/vesktop.rpm
@@ -1669,7 +1660,7 @@ setup_desktop_apps() {
 
     # Stirling-PDF
     if ! command -v stirling-pdf &>/dev/null && ! rpm -q stirling-pdf &>/dev/null; then
-        if confirm "Install Stirling-PDF (offline desktop PDF toolkit)?" "N"; then
+        if confirm "Install Stirling-PDF desktop toolkit?" "N"; then
             if ! $DRY_RUN; then
                 if [[ "$SYS_ARCH" != "x86_64" ]]; then
                     warn "Stirling-PDF RPM packages are exclusive to x86_64 (current arch: $SYS_ARCH)"
@@ -1744,7 +1735,7 @@ EOF
     fi
 
     # High-Performance ZRAM & Kernel Memory Tuning (Dynamic RAM allocation, zstd)
-    if confirm "Apply high-performance ZRAM memory tuning (zstd compression, swappiness 180)?" "Y"; then
+    if confirm "Apply ZRAM memory tuning (zstd compression, swappiness 180)?" "Y"; then
         if ! $DRY_RUN; then
             run_sudo mkdir -p /etc/systemd/zram-generator.conf.d /etc/sysctl.d
             run_sudo tee /etc/systemd/zram-generator.conf.d/10-zram.conf > /dev/null <<'ZRAM_EOF'
@@ -1860,16 +1851,16 @@ setup_dev() {
             *) info "Skipping Rust installation" ;;
         esac
 
-        if confirm "Install and configure ccache (50GB compressed compiler cache)?" "Y"; then
+        if confirm "Install and configure ccache (10GB compressed compiler cache)?" "Y"; then
             run_sudo dnf install -y --skip-unavailable ccache
             if ! $DRY_RUN; then
                 mkdir -p "$HOME/.ccache"
                 ccache --set-config=cache_dir="$HOME/.ccache" 2>/dev/null || true
-                ccache --set-config=max_size=50G 2>/dev/null || true
+                ccache --set-config=max_size=10G 2>/dev/null || true
                 ccache --set-config=compression=true 2>/dev/null || true
-                success "ccache configured (50GB limit)"
+                success "ccache configured (10GB limit)"
             else
-                dry "Configure ccache: 50GB max size, compression enabled"
+                dry "Configure ccache: 10GB max size, compression enabled"
             fi
         fi
     fi
@@ -1890,7 +1881,7 @@ setup_dev() {
         log "Installing Android & Java toolchain..."
         run_sudo dnf install -y --skip-unavailable android-tools java-latest-openjdk java-latest-openjdk-devel maven
 
-        if confirm "Install Scrcpy (low-latency Android screen mirroring via COPR)?" "Y"; then
+        if confirm "Install Scrcpy (Android screen mirroring via COPR)?" "Y"; then
             if run_sudo dnf copr enable -y zeno/scrcpy; then
                 run_sudo dnf install -y --skip-unavailable scrcpy || warn "Scrcpy install failed"
             fi
@@ -2387,7 +2378,7 @@ EOF
         dry "Create ~/.config/MangoHud/MangoHud.conf"
     fi
 
-    if confirm "Install Heroic Games Launcher (Epic, GOG, Amazon Games) via Flathub?" "Y"; then
+    if confirm "Install Heroic Games Launcher via Flathub?" "Y"; then
         if ! $DRY_RUN; then
             run flatpak install -y flathub com.heroicgameslauncher.hgl 2>/dev/null || warn "Heroic Flatpak install failed"
             mkdir -p "$HOME/Games/Heroic/Prefixes/shared" "$HOME/.var/app/com.heroicgameslauncher.hgl/config/MangoHud"
@@ -2414,7 +2405,7 @@ setup_creator() {
     )
     run_sudo dnf install -y --skip-unavailable "${creator_pkgs[@]}"
 
-    if $HAS_NVIDIA && confirm "Install NVIDIA Broadcast for Linux (AI noise removal & virtual camera)?" "N"; then
+    if $HAS_NVIDIA && confirm "Install NVIDIA Broadcast for Linux?" "N"; then
         local nb_dir="$HOME/.local/share/nvidia-broadcast-linux"
         if ! $DRY_RUN; then
             mkdir -p "$HOME/.local/share"

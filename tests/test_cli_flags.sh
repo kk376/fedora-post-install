@@ -112,8 +112,8 @@ run_test "Profile personal rejected (= syntax)" 1 "Unknown profile: personal" --
 run_test "Profile personal rejected (space syntax)" 1 "Unknown profile: personal" --profile personal -n
 
 # Default profile (when no profile flag passed)
-run_test "Default profile is full" 0 "Profile: full" -n
-run_test "Default profile step count" 0 "of 17" -n
+run_test "Default profile is workstation" 0 "Profile: workstation" -n
+run_test "Default profile step count" 0 "of 11" -n
 
 # 5. Dev-type flags
 run_test "Dev-type systems flag (= syntax)" 0 "DRY-RUN MODE" --profile=dev --dev-type=systems -n

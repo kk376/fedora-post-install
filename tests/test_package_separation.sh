@@ -922,7 +922,7 @@ fi
 # 12.2: Verify dry-run dev profile (all genres) prompts for ccache and installs/configures it
 if echo "$dry_dev_output" | grep -q "Prompt: Install and configure ccache" && \
    echo "$dry_dev_output" | grep -q "sudo dnf install -y --skip-unavailable ccache" && \
-   echo "$dry_dev_output" | grep -q "Configure ccache: 50GB max size, compression enabled"; then
+   echo "$dry_dev_output" | grep -q "Configure ccache: 10GB max size, compression enabled"; then
     pass "Dry-run dev profile prompts for ccache and logs installation & configuration"
 else
     fail "Dry-run dev profile missing ccache prompt or configuration logs"
