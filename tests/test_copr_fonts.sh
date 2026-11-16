@@ -13,6 +13,9 @@
 
 set -euo pipefail
 
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETUP_SCRIPT="${SCRIPT_DIR}/setup.sh"
 SRC_DIR="${SCRIPT_DIR}/src"

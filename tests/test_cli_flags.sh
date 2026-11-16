@@ -3,6 +3,9 @@
 
 set -u
 
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETUP_SCRIPT="${SCRIPT_DIR}/setup.sh"
 
@@ -143,6 +146,19 @@ run_test "Combo: --profile workstation -n --force" 0 "Profile: workstation" --pr
 run_test "Combo: -n --profile=dev -f" 0 "Profile: dev" -n --profile=dev -f
 run_test "Combo: --profile=full -f -n" 0 "Profile: full" --profile=full -f -n
 run_test "Combo: --dry-run -h (help exit)" 0 "Usage: .*setup\.sh \[OPTIONS\]" --dry-run -h
+
+# 8. Non-root guard validation (when run inside root/container environment)
+if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+    TOTAL=$((TOTAL + 1))
+    guard_output=$(ALLOW_ROOT=false bash "$SETUP_SCRIPT" --dry-run 2>&1 || true)
+    if echo "$guard_output" | grep -q "Do not run this script as root or with sudo"; then
+        echo -e "[${GREEN}PASS${NC}] Root invocation guard rejects execution when ALLOW_ROOT=false"
+        PASSED=$((PASSED + 1))
+    else
+        echo -e "[${RED}FAIL${NC}] Root invocation guard failed to reject root execution"
+        FAILED=$((FAILED + 1))
+    fi
+fi
 
 echo "------------------------------------------------------------"
 echo "Results: $PASSED / $TOTAL passed, $FAILED failed."

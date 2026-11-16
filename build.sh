@@ -139,7 +139,16 @@ if $CHECK_MODE; then
         exit 1
     fi
 
-    if cmp -s "$TMP_BUNDLE" "$OUTPUT_FILE"; then
+    in_sync=false
+    if command -v cmp >/dev/null 2>&1; then
+        cmp -s "$TMP_BUNDLE" "$OUTPUT_FILE" && in_sync=true
+    elif command -v diff >/dev/null 2>&1; then
+        diff -q "$TMP_BUNDLE" "$OUTPUT_FILE" >/dev/null 2>&1 && in_sync=true
+    elif command -v sha256sum >/dev/null 2>&1; then
+        [[ "$(sha256sum "$TMP_BUNDLE" | cut -d' ' -f1)" == "$(sha256sum "$OUTPUT_FILE" | cut -d' ' -f1)" ]] && in_sync=true
+    fi
+
+    if $in_sync; then
         ok "$OUTPUT_FILE is synchronized with src/ (${#MODULES[@]} modules)."
         exit 0
     else

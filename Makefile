@@ -11,7 +11,7 @@ build:
 
 test:
 	@chmod +x setup.sh build.sh tests/*.sh 2>/dev/null || true
-	bash ./tests/run_tests.sh
+	ALLOW_ROOT=$${ALLOW_ROOT:-true} bash ./tests/run_tests.sh
 
 lint: build
 	@command -v shellcheck >/dev/null 2>&1 || { echo "Error: shellcheck is not installed" >&2; exit 1; }

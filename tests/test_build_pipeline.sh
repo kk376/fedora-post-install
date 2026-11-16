@@ -6,6 +6,9 @@
 
 set -u
 
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
+
 TOTAL=0
 PASSED=0
 FAILED=0
@@ -194,7 +197,16 @@ echo "--- Suite 5: Standard Output Mode (--stdout) ---"
 stdout_target="${TEST_SANDBOX}/stdout_setup.sh"
 "$BUILD_SCRIPT" --stdout > "$stdout_target"
 
-if cmp -s "$stdout_target" "$test_out"; then
+stdout_matches=false
+if command -v cmp >/dev/null 2>&1; then
+    cmp -s "$stdout_target" "$test_out" && stdout_matches=true
+elif command -v diff >/dev/null 2>&1; then
+    diff -q "$stdout_target" "$test_out" >/dev/null 2>&1 && stdout_matches=true
+elif command -v sha256sum >/dev/null 2>&1; then
+    [[ "$(sha256sum "$stdout_target" | cut -d' ' -f1)" == "$(sha256sum "$test_out" | cut -d' ' -f1)" ]] && stdout_matches=true
+fi
+
+if $stdout_matches; then
     pass "--stdout emits byte-for-byte identical content to assembled bundle"
 else
     fail "--stdout content differs from assembled bundle"

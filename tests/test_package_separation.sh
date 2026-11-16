@@ -8,6 +8,9 @@
 
 set -u
 
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SETUP_SCRIPT="${SCRIPT_DIR}/setup.sh"
 SRC_DIR="${SCRIPT_DIR}/src"
@@ -166,6 +169,9 @@ run_mock_setup_packages() {
 
     bash -c '
         set -u
+
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
         PROFILE="$1"
         sandbox="$2"
         setup_script="$3"
@@ -505,6 +511,9 @@ run_mock_setup_copr() {
 
     bash -c '
         set -u
+
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
         sandbox="$1"
         setup_script="$2"
         DRY_RUN=false
@@ -597,6 +606,9 @@ test_mangohud_content() {
 
     bash -c '
         set -u
+
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
         PROFILE="gaming"
         DRY_RUN=false
         sandbox="$1"

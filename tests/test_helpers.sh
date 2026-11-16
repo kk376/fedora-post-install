@@ -4,6 +4,9 @@
 # Covers: set_zshrc_line, github_download, check_disk_space, confirm
 set -u
 
+# Allow test runners to execute setup.sh in container environments (EUID=0)
+export ALLOW_ROOT="${ALLOW_ROOT:-true}"
+
 TOTAL=0
 PASSED=0
 FAILED=0
