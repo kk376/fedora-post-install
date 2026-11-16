@@ -587,6 +587,39 @@ else
     fail "TLP setup failed to mask all conflicting power services"
 fi
 
+# ==============================================================================
+# Suite 8: Performance, DNF5 & Memory Tuning Safety Tests
+# ==============================================================================
+echo "=== Suite 8: Performance, DNF5 & Memory Tuning Safety ==="
+
+# 8.1 DNF5 max_downloads_per_mirror is configured
+if grep -q "max_downloads_per_mirror=10" "$SETUP_SCRIPT"; then
+    pass "DNF5 configuration includes max_downloads_per_mirror=10"
+else
+    fail "DNF5 configuration missing max_downloads_per_mirror"
+fi
+
+# 8.2 Live swapoff elimination
+if ! grep -q "swapoff /dev/zram0" "$SETUP_SCRIPT"; then
+    pass "setup_power does NOT invoke dangerous live swapoff /dev/zram0"
+else
+    fail "setup_power still contains live swapoff /dev/zram0"
+fi
+
+# 8.3 Bounded ZRAM allocation
+if grep -q 'zram-size = min(ram / 2, 32768)' "$SETUP_SCRIPT"; then
+    pass "ZRAM configuration bounds memory allocation with min(ram / 2, 32768)"
+else
+    fail "ZRAM configuration missing bounded memory allocation"
+fi
+
+# 8.4 Interrupted installer cleanup registration
+if grep -q "rm -f /tmp/starship-install" "$SETUP_SCRIPT"; then
+    pass "cleanup() registers temporary installer script removal"
+else
+    fail "cleanup() does not clean up temporary installer scripts"
+fi
+
 echo ""
 echo "=============================================================================="
 echo "Final Summary: Total: $TOTAL, Passed: $PASSED, Failed: $FAILED"

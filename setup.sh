@@ -673,11 +673,12 @@ setup_dnf() {
         run_sudo tee -a /etc/dnf/dnf.conf > /dev/null <<'EOF'
 # BEGIN fedora-setup
 max_parallel_downloads=10
+max_downloads_per_mirror=10
 defaultyes=True
 # END fedora-setup
 EOF
     else
-        dry "Add max_parallel_downloads=10 and defaultyes=True block to /etc/dnf/dnf.conf"
+        dry "Add max_parallel_downloads=10, max_downloads_per_mirror=10, and defaultyes=True block to /etc/dnf/dnf.conf"
     fi
 
     log "Enabling RPM Fusion (Free & Nonfree) and Flathub..."
@@ -1740,7 +1741,7 @@ EOF
             run_sudo mkdir -p /etc/systemd/zram-generator.conf.d /etc/sysctl.d
             run_sudo tee /etc/systemd/zram-generator.conf.d/10-zram.conf > /dev/null <<'ZRAM_EOF'
 [zram0]
-zram-size = ram
+zram-size = min(ram / 2, 32768)
 compression-algorithm = zstd
 ZRAM_EOF
 
@@ -1759,12 +1760,9 @@ SYSCTL_EOF
 
             run_sudo sysctl --system >/dev/null 2>&1 || true
             run_sudo systemctl daemon-reload 2>/dev/null || true
-            run_sudo swapoff /dev/zram0 2>/dev/null || true
-            run_sudo systemctl restart systemd-zram-setup@zram0.service 2>/dev/null || \
-                info "ZRAM size update will take full effect on next reboot"
-            success "High-performance ZRAM drop-in applied (/etc/systemd/zram-generator.conf.d/10-zram.conf)"
+            success "High-performance ZRAM drop-in applied (/etc/systemd/zram-generator.conf.d/10-zram.conf; takes full effect on next reboot)"
         else
-            dry "Configure /etc/systemd/zram-generator.conf.d/10-zram.conf (zstd, full RAM) and /etc/sysctl.d/99-zram.conf"
+            dry "Configure /etc/systemd/zram-generator.conf.d/10-zram.conf (zstd, balanced RAM cap) and /etc/sysctl.d/99-zram.conf"
         fi
     fi
 
@@ -2702,6 +2700,8 @@ cleanup() {
     if [[ -n "${SUDO_PID:-}" ]]; then
         kill "$SUDO_PID" 2>/dev/null || true
     fi
+    rm -f /tmp/starship-install-*.sh /tmp/zed-install-*.sh /tmp/agy-install-*.sh 2>/dev/null || true
+    rm -rf /tmp/cambria-extract-* 2>/dev/null || true
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
