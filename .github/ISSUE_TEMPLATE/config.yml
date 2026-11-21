@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & Community Discussions
+    url: https://github.com/kk376/fedora-post-install/discussions
+    about: Ask questions, share your Fedora setup workflows, and discuss ideas with the community.
+  - name: Report a Security Vulnerability
+    url: https://github.com/kk376/fedora-post-install/security/policy
+    about: Read our security policy and report vulnerabilities privately to the maintainers.

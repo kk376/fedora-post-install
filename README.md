@@ -226,9 +226,13 @@ chmod +x setup.sh
 Want to know exactly what this script does before running it?
 - 📖 **[HOW_IT_WORKS.md](HOW_IT_WORKS.md)**: Technical architecture guide covering process execution, profile layering, state tracking, and disaster recovery.
 
-## Contributing
+## Contributing & Community
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines and testing instructions.
+Contributions and feedback are welcome! Please review the project guidelines before submitting code:
+- **[CONTRIBUTING.md](CONTRIBUTING.md)**: Contribution guidelines, architecture, and testing instructions.
+- **[Code of Conduct](.github/CODE_OF_CONDUCT.md)**: Community standards and pledge.
+- **[Security Policy](.github/SECURITY.md)**: Privilege boundaries and vulnerability reporting.
+- **[Accessibility](.github/ACCESSIBILITY.md)**: Terminal and assistive technology commitments.
 
 ## License
 

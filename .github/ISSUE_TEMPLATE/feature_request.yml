@@ -1,0 +1,71 @@
+name: Feature Request
+description: Propose a new feature, tool, or step module for fedora-post-install
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an enhancement! Please ensure the proposed tool or configuration aligns with the scope of a general Fedora post-install setup script rather than highly subjective personal dotfiles.
+
+  - type: textarea
+    id: feature_summary
+    attributes:
+      label: Feature / Tool Summary
+      description: What tool, configuration, or capability would you like to see added?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: target_profile
+    attributes:
+      label: Target Profile
+      description: Which profile(s) should this step or package belong to?
+      options:
+        - "workstation (standard desktop)"
+        - "dev (software development)"
+        - "gaming (Steam, MangoHud, Wine/Heroic)"
+        - "creator (media, streaming, recording)"
+        - "minimal (server / headless / container)"
+        - "full (all profiles)"
+        - "standalone CLI flag (e.g. opt-in argument)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: package_source
+    attributes:
+      label: Package Origin
+      description: How is this package packaged on Fedora?
+      options:
+        - "Official Fedora RPM (dnf)"
+        - "RPM Fusion (free / non-free)"
+        - "Flathub (Flatpak)"
+        - "Official Vendor Repository (e.g. Docker, VS Code, HashiCorp)"
+        - "Custom Binary / Out-of-tree"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_implementation
+    attributes:
+      label: Proposed Implementation & Module
+      description: Which modular file in `src/steps/` should own this, or should it be a new step? Provide any sample bash commands or configuration details.
+    validations:
+      required: false
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: Scope Justification
+      description: Why does this belong in a general post-installation setup script rather than personal user dotfiles?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What other approaches or alternative tools did you consider?
+    validations:
+      required: false

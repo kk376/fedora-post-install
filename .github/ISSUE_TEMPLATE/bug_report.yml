@@ -1,0 +1,141 @@
+name: Bug Report
+description: Report an issue or unexpected behavior in fedora-post-install
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please search existing issues to confirm this bug hasn't already been reported.
+
+  - type: dropdown
+    id: fedora_version
+    attributes:
+      label: Fedora Release
+      description: Which version of Fedora Linux are you running?
+      options:
+        - "Fedora 41 (Workstation)"
+        - "Fedora 40 (Workstation)"
+        - "Fedora 42 (Rawhide / Branched)"
+        - "Other Fedora spin (specify in description)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: System Architecture
+      description: Target CPU architecture
+      options:
+        - "x86_64"
+        - "aarch64 (ARM64 / Apple Silicon / Raspberry Pi)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: hardware_type
+    attributes:
+      label: Hardware Platform
+      description: Device form factor
+      options:
+        - "Physical Laptop"
+        - "Physical Desktop"
+        - "Virtual Machine (KVM/QEMU/VirtualBox/VMware)"
+        - "Container"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: gpu_vendor
+    attributes:
+      label: GPU Hardware
+      description: Primary graphics hardware detected on your machine
+      options:
+        - "NVIDIA (Discrete)"
+        - "AMD (Radeon / Discrete / APU)"
+        - "Intel (Integrated / Arc)"
+        - "Hybrid (e.g. Intel/AMD CPU + NVIDIA dGPU)"
+        - "Virtual GPU (llvmpipe / virtio / VM)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: profile_used
+    attributes:
+      label: Profile Executed
+      description: Which profile did you run?
+      options:
+        - "workstation (default)"
+        - "dev"
+        - "gaming"
+        - "creator"
+        - "minimal"
+        - "full"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: execution_mode
+    attributes:
+      label: Execution Method
+      description: How did you execute the setup script?
+      options:
+        - "Remote one-liner: curl | bash"
+        - "Local git clone: ./setup.sh"
+        - "Standalone bundle: ./dist/setup.sh"
+    validations:
+      required: true
+
+  - type: input
+    id: flags_used
+    attributes:
+      label: CLI Flags Passed
+      description: Flags passed to the script (e.g. `--dry-run`, `--force`, `--yes`, `--dev-type=web`)
+      placeholder: "--profile=dev --dry-run"
+
+  - type: textarea
+    id: bug_description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what went wrong.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the issue.
+      placeholder: |
+        1. Run './setup.sh --profile=dev'
+        2. Reach step 'setup_docker'
+        3. Observe error message ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: terminal_logs
+    attributes:
+      label: Terminal Log Output
+      description: Paste relevant terminal logs or error messages (run with `bash setup.sh ...` to capture output).
+      render: shell
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Pre-Submission Checklist
+      options:
+        - label: I have verified this is not an immutable OSTree edition (Silverblue/Kinoite/Bazzite).
+          required: true
+        - label: I am not running the entire script directly as `sudo setup.sh` (as cautioned in documentation).
+          required: true
+        - label: I have checked that no existing issue covers this bug.
+          required: true
