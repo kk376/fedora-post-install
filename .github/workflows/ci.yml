@@ -42,9 +42,16 @@ jobs:
         run: make test
 
   fedora-validate:
-    name: Fedora Container Validation
+    name: Fedora Container Validation (${{ matrix.fedora_image }})
     runs-on: ubuntu-latest
-    container: fedora:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        fedora_image:
+          - "fedora:latest"
+          - "fedora:42"
+          - "fedora:rawhide"
+    container: ${{ matrix.fedora_image }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
