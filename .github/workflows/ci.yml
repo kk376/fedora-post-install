@@ -25,11 +25,11 @@ jobs:
       - name: Install ShellCheck
         run: command -v shellcheck >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y shellcheck)
 
-      - name: Verify build assembly
-        run: ./build.sh --check
-
       - name: Run ShellCheck
         run: make lint
+
+      - name: Verify build assembly
+        run: ./build.sh --check
 
   test:
     name: Test Suite
@@ -59,11 +59,11 @@ jobs:
       - name: Install test dependencies
         run: dnf install -y ShellCheck make bash diffutils
 
-      - name: Verify build assembly
-        run: ./build.sh --check
-
       - name: Run ShellCheck
         run: make lint
+
+      - name: Verify build assembly
+        run: ./build.sh --check
 
       - name: Run test suite
         run: make test
