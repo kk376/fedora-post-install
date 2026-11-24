@@ -12,7 +12,7 @@ setup_pre_driver_reboot() {
 
     local running_kernel installed_kernel
     running_kernel=$(uname -r)
-    installed_kernel=$(rpm -q --last kernel-core 2>/dev/null | head -1 | awk '{print $1}' | sed 's/^kernel-core-//' || true)
+    installed_kernel=$(rpm -q kernel-core --queryformat '%{VERSION}-%{RELEASE}.%{ARCH}\n' 2>/dev/null | sort -V | tail -n1 || true)
 
     if [[ -n "$installed_kernel" && "$running_kernel" != "$installed_kernel" ]]; then
         warn "Kernel update detected:"

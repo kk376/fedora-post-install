@@ -13,9 +13,14 @@ setup_fonts() {
         google-carlito-fonts google-crosextra-caladea-fonts google-caladea-fonts \
         curl cabextract xorg-x11-font-utils fontconfig
 
-    local msttcore_rpm="/tmp/msttcore-fonts-installer-2.6-1.noarch.rpm"
+    local tmp_base="/tmp"
+    if ! $DRY_RUN; then
+        init_run_tmp_dir
+        tmp_base="$RUN_TMP_DIR"
+    fi
+    local msttcore_rpm="$tmp_base/msttcore-fonts-installer-2.6-1.noarch.rpm"
     local msttcore_hash="55d7f3a86533225634ff3ea2384b4356d9665a29cc7eeacff16602a1714afbb4"
-    if run curl -fsSL -o "$msttcore_rpm" "https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm"; then
+    if run curl --proto '=https' --tlsv1.2 -fsSL -o "$msttcore_rpm" "https://downloads.sourceforge.net/project/mscorefonts2/rpms/msttcore-fonts-installer-2.6-1.noarch.rpm"; then
         if ! $DRY_RUN; then
             if verify_checksum "$msttcore_rpm" "$msttcore_hash"; then
                 run_sudo rpm -Uvh --replacepkgs "$msttcore_rpm" 2>/dev/null || warn "msttcore-fonts already installed or failed"
@@ -32,7 +37,7 @@ setup_fonts() {
             # 1. Cambria Regular
             if [[ ! -f "$ms_fonts_dir/cambria.ttc" && ! -f "/usr/share/fonts/msttcore/cambria.ttc" ]]; then
                 local tmp_cab_dir
-                tmp_cab_dir=$(mktemp -d /tmp/cambria-extract-XXXXXX)
+                tmp_cab_dir=$(mktemp -d "$RUN_TMP_DIR/cambria-extract.XXXXXX")
                 if curl --proto '=https' --tlsv1.2 -fsSL --max-time 60 -o "$tmp_cab_dir/ppv.exe" "https://downloads.sourceforge.net/project/mscorefonts2/cabs/PowerPointViewer.exe"; then
                     if cabextract -q -F ppviewer.cab -d "$tmp_cab_dir" "$tmp_cab_dir/ppv.exe" && \
                        cabextract -q --lowercase -F cambria.ttc -d "$ms_fonts_dir" "$tmp_cab_dir/ppviewer.cab"; then
@@ -52,7 +57,7 @@ setup_fonts() {
             local aptos_count=0
             for font in "${aptos_fonts[@]}"; do
                 if [[ ! -f "$ms_fonts_dir/$font" ]]; then
-                    if curl -fsSL --max-time 30 -o "$ms_fonts_dir/$font" "$aptos_base_url/$font"; then
+                    if curl --proto '=https' --tlsv1.2 -fsSL --max-time 30 -o "$ms_fonts_dir/$font" "$aptos_base_url/$font"; then
                         ((++aptos_count))
                     fi
                 fi
@@ -65,7 +70,7 @@ setup_fonts() {
             local segoe_count=0
             for font in "${segoe_fonts[@]}"; do
                 if [[ ! -f "$ms_fonts_dir/$font" ]]; then
-                    if curl -fsSL --max-time 30 -o "$ms_fonts_dir/$font" "$segoe_base_url/$font"; then
+                    if curl --proto '=https' --tlsv1.2 -fsSL --max-time 30 -o "$ms_fonts_dir/$font" "$segoe_base_url/$font"; then
                         ((++segoe_count))
                     fi
                 fi
@@ -79,17 +84,19 @@ setup_fonts() {
     log "Installing FiraCode Nerd Font & Symbols Nerd Font..."
     if ! $DRY_RUN; then
         mkdir -p "$HOME/.local/share/fonts/FiraCode" "$HOME/.local/share/fonts/NerdFonts" "$HOME/.config/fontconfig/conf.d"
-        if github_download "ryanoasis/nerd-fonts" "FiraCode\\.zip" "/tmp/FiraCode.zip" \
+        local firacode_zip="$RUN_TMP_DIR/FiraCode.zip"
+        if github_download "ryanoasis/nerd-fonts" "FiraCode\\.zip" "$firacode_zip" \
             "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip"; then
-            unzip -oq /tmp/FiraCode.zip -d "$HOME/.local/share/fonts/FiraCode/" && rm -f /tmp/FiraCode.zip
+            unzip -oq "$firacode_zip" -d "$HOME/.local/share/fonts/FiraCode/" && rm -f "$firacode_zip"
             success "FiraCode Nerd Font installed"
         fi
 
-        if github_download "ryanoasis/nerd-fonts" "NerdFontsSymbolsOnly\\.tar\\.xz" "/tmp/NerdFontsSymbolsOnly.tar.xz" \
+        local symbols_tar="$RUN_TMP_DIR/NerdFontsSymbolsOnly.tar.xz"
+        if github_download "ryanoasis/nerd-fonts" "NerdFontsSymbolsOnly\\.tar\\.xz" "$symbols_tar" \
             "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/NerdFontsSymbolsOnly.tar.xz"; then
-            tar -xf /tmp/NerdFontsSymbolsOnly.tar.xz -C "$HOME/.local/share/fonts/NerdFonts/" 2>/dev/null || true
-            tar -xf /tmp/NerdFontsSymbolsOnly.tar.xz -C "$HOME/.config/fontconfig/conf.d/" 10-nerd-font-symbols.conf 2>/dev/null || true
-            rm -f /tmp/NerdFontsSymbolsOnly.tar.xz
+            tar -xf "$symbols_tar" -C "$HOME/.local/share/fonts/NerdFonts/" 2>/dev/null || true
+            tar -xf "$symbols_tar" -C "$HOME/.config/fontconfig/conf.d/" 10-nerd-font-symbols.conf 2>/dev/null || true
+            rm -f "$symbols_tar"
             success "Symbols Nerd Font installed"
         fi
 

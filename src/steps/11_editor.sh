@@ -25,8 +25,9 @@ setup_editor() {
             if ! $DRY_RUN; then
                 if ! command -v zed &>/dev/null; then
                     if ! run_sudo dnf install -y --skip-unavailable zed 2>/dev/null; then
+                        init_run_tmp_dir
                         local zed_installer
-                        zed_installer=$(mktemp /tmp/zed-install-XXXXXX.sh)
+                        zed_installer=$(mktemp "$RUN_TMP_DIR/zed-install.XXXXXX.sh")
                         if curl --proto '=https' --tlsv1.2 -fsSL https://zed.dev/install.sh -o "$zed_installer"; then
                             bash "$zed_installer" 2>/dev/null || warn "Zed script install failed"
                         fi
@@ -124,11 +125,15 @@ DIR="$(dirname "$FILE")"
 NAME="$(basename "$FILE")"
 BASE="${NAME%.*}"
 
+RUN_TMP=$(mktemp -d "${TMPDIR:-/tmp}/zed-run.XXXXXX")
+cleanup_zed_run() { rm -rf "$RUN_TMP"; }
 drop_to_shell() {
+    cleanup_zed_run
     echo -e "\n\033[1;33m[Interrupted. Interactive shell active:]\033[0m"
     exec "$LOGIN_SH"
 }
 trap drop_to_shell INT TERM
+trap cleanup_zed_run EXIT
 
 echo -e "\033[1;34m==>\033[0m \033[1;32mRunning:\033[0m $NAME"
 cd "$DIR" || exit 1
@@ -139,17 +144,20 @@ case "$EXT" in
         if [[ -f "Cargo.toml" || -f "../Cargo.toml" ]]; then
             cargo run
         else
-            rustc "$FILE" -o "/tmp/$BASE" && "/tmp/$BASE"
+            rustc "$FILE" -o "$RUN_TMP/$BASE" && "$RUN_TMP/$BASE"
         fi
         ;;
-    c)   gcc -O2 "$FILE" -o "/tmp/$BASE" -lm && "/tmp/$BASE" ;;
-    cpp|cc|cxx) g++ -O2 "$FILE" -o "/tmp/$BASE" && "/tmp/$BASE" ;;
+    c)   gcc -O2 "$FILE" -o "$RUN_TMP/$BASE" -lm && "$RUN_TMP/$BASE" ;;
+    cpp|cc|cxx) g++ -O2 "$FILE" -o "$RUN_TMP/$BASE" && "$RUN_TMP/$BASE" ;;
     go)  go run "$FILE" ;;
     js)  node "$FILE" ;;
     ts)  npx tsx "$FILE" 2>/dev/null || npx ts-node "$FILE" ;;
     sh|bash) bash "$FILE" ;;
     *)   echo "[Zed Runner] Unsupported file extension: .$EXT" ;;
 esac
+
+cleanup_zed_run
+trap - EXIT INT TERM
 
 echo -e "\n\033[1;36m[Finished. Interactive shell active:]\033[0m"
 exec "$LOGIN_SH"
@@ -200,8 +208,9 @@ EOF
             log "Installing Google Antigravity IDE..."
             if ! $DRY_RUN; then
                 if ! command -v agy &>/dev/null; then
+                    init_run_tmp_dir
                     local agy_installer
-                    agy_installer=$(mktemp /tmp/agy-install-XXXXXX.sh)
+                    agy_installer=$(mktemp "$RUN_TMP_DIR/agy-install.XXXXXX.sh")
                     if curl --proto '=https' --tlsv1.2 -fsSL https://antigravity.google/cli/install.sh -o "$agy_installer"; then
                         bash "$agy_installer" 2>/dev/null || warn "Antigravity install failed"
                     fi

@@ -22,11 +22,13 @@ setup_desktop_apps() {
     # Vesktop (Architecture-aware download)
     if confirm "Install Vesktop Discord client?" "Y"; then
         if ! $DRY_RUN; then
+            init_run_tmp_dir
             local fallback_url="https://github.com/Vencord/Vesktop/releases/latest/download/vesktop.${SYS_ARCH}.rpm"
-            rm -f /tmp/vesktop.rpm
-            if github_download "Vencord/Vesktop" "vesktop.*\.${SYS_ARCH}\.rpm" "/tmp/vesktop.rpm" "$fallback_url"; then
-                run_sudo dnf install -y /tmp/vesktop.rpm 2>/dev/null || warn "Vesktop RPM install failed"
-                rm -f /tmp/vesktop.rpm
+            local vesktop_rpm="$RUN_TMP_DIR/vesktop.rpm"
+            rm -f "$vesktop_rpm"
+            if github_download "Vencord/Vesktop" "vesktop.*\.${SYS_ARCH}\.rpm" "$vesktop_rpm" "$fallback_url"; then
+                run_sudo dnf install -y "$vesktop_rpm" 2>/dev/null || warn "Vesktop RPM install failed"
+                rm -f "$vesktop_rpm"
             else
                 warn "Could not download Vesktop RPM for $SYS_ARCH"
             fi
@@ -42,7 +44,8 @@ setup_desktop_apps() {
                 if [[ "$SYS_ARCH" != "x86_64" ]]; then
                     warn "Stirling-PDF RPM packages are exclusive to x86_64 (current arch: $SYS_ARCH)"
                 else
-                    local stirling_rpm="/tmp/stirling-pdf.rpm"
+                    init_run_tmp_dir
+                    local stirling_rpm="$RUN_TMP_DIR/stirling-pdf.rpm"
                     rm -f "$stirling_rpm"
                     if github_download "Stirling-Tools/Stirling-PDF" "Stirling-PDF-linux-${SYS_ARCH}\.rpm" "$stirling_rpm" \
                         "https://files.stirlingpdf.com/linux-installer.rpm"; then

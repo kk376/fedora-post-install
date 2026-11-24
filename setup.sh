@@ -19,13 +19,18 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "")
 # When piped via curl (e.g. curl -fsSL ... | bash), BASH_SOURCE is /dev/fd/* or stdin,
 # so the local ./src directory does not exist. Fetch archive and run locally.
 if [[ -z "${SCRIPT_DIR}" || ! -d "${SCRIPT_DIR}/src" ]]; then
-    TMP_DIR=$(mktemp -d /tmp/fedora-post-install.XXXXXX)
+    TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/fedora-post-install.XXXXXX")
+    chmod 0700 "$TMP_DIR"
     trap 'rm -rf "$TMP_DIR"' EXIT INT TERM
     echo -e "\033[0;34m[SETUP]\033[0m Fetching fedora-post-install from GitHub..."
-    curl -fsSL "https://github.com/kk376/fedora-post-install/archive/refs/heads/main.tar.gz" \
+    curl --proto '=https' --tlsv1.2 -fsSL "https://github.com/kk376/fedora-post-install/archive/refs/heads/main.tar.gz" \
         | tar -xz -C "$TMP_DIR" --strip-components=1
     if [[ -f "$TMP_DIR/setup.sh" ]]; then
-        bash "$TMP_DIR/setup.sh" "$@"
+        if [[ ! -t 0 ]] && [[ -r /dev/tty ]]; then
+            bash "$TMP_DIR/setup.sh" "$@" < /dev/tty
+        else
+            bash "$TMP_DIR/setup.sh" "$@"
+        fi
         exit $?
     fi
 fi

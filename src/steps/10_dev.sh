@@ -64,12 +64,14 @@ setup_dev() {
         case "$rust_choice" in
             1)
                 run_sudo dnf install -y rustup
-                if ! $DRY_RUN && [[ ! -f "$HOME/.cargo/bin/rustc" ]]; then
+                if $DRY_RUN; then
+                    dry "Initialize rustup stable toolchain with clippy, rustfmt, rust-analyzer"
+                elif [[ ! -f "$HOME/.cargo/bin/rustc" ]]; then
                     rustup-init -y --no-modify-path --default-toolchain stable
                     "$HOME/.cargo/bin/rustup" component add clippy rustfmt rust-analyzer
                     success "Rust toolchain initialized via rustup"
                 else
-                    dry "Initialize rustup stable toolchain with clippy, rustfmt, rust-analyzer"
+                    info "Rustup toolchain already initialized"
                 fi
                 ;;
             2)

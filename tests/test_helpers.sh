@@ -176,6 +176,15 @@ else
     fail "GitHub API release pattern matching failed"
 fi
 
+# 2.1b Pattern with escaped regex dot (\.) without fallback URL (tests jq escaping)
+out_vesk_nofb="$TEST_DIR/vesktop_nofb.rpm"
+github_download "Vencord/Vesktop" 'vesktop.*\.x86_64\.rpm' "$out_vesk_nofb" ""
+if [[ $? -eq 0 ]] && [[ -f "$out_vesk_nofb" ]]; then
+    pass "GitHub API handles escaped dots (\\.) in pattern without falling back"
+else
+    fail "GitHub API failed on pattern with escaped dots (\\.) when fallback is empty"
+fi
+
 # 2.2 Pattern matching with regex anchor '$' (docker-compose binary vs checksum)
 out_dc="$TEST_DIR/docker-compose"
 github_download "docker/compose" 'docker-compose-linux-x86_64$' "$out_dc" "https://fallback.example.com/docker-compose"
@@ -618,10 +627,127 @@ else
 fi
 
 # 8.4 Interrupted installer cleanup registration
-if grep -q "rm -f /tmp/starship-install" "$SRC_DIR/99_main.sh"; then
+if grep -q "cleanup_run_tmp" "$SRC_DIR/99_main.sh"; then
     pass "cleanup() registers temporary installer script removal"
 else
     fail "cleanup() does not clean up temporary installer scripts"
+fi
+
+# ==============================================================================
+# Suite 9: Regression Tests for Control Flow, Shell Idempotency, and Subshells
+# ==============================================================================
+echo "=== Suite 9: Control Flow & Shell Regression Tests ==="
+
+# 9.1 Declining terminal theme deploy inside setup_terminal must not fail under set -e
+declined_term_rc=0
+(
+    set -euo pipefail
+    DRY_RUN=false
+    PROFILE="dev"
+    HAS_GUI=true
+    SKIP_WAIT=false
+    # shellcheck disable=SC2317
+    log() { :; }
+    # shellcheck disable=SC2317
+    info() { :; }
+    # shellcheck disable=SC2317
+    warn() { :; }
+    # shellcheck disable=SC2317
+    success() { :; }
+    # shellcheck disable=SC2317
+    run_sudo() { return 0; }
+    CALL_N=0
+    # shellcheck disable=SC2317
+    confirm() {
+        CALL_N=$((CALL_N + 1))
+        [[ $CALL_N -eq 1 ]] && return 0
+        return 1
+    }
+    # shellcheck disable=SC2317
+    prompt_input() { echo "2"; }
+    # shellcheck source=src/steps/04_shell.sh
+    source "$SRC_DIR/steps/04_shell.sh"
+    setup_terminal
+) >/dev/null 2>&1 || declined_term_rc=$?
+if [[ $declined_term_rc -eq 0 ]]; then
+    pass "setup_terminal exits 0 under set -e when user skips terminal & dev env"
+else
+    fail "setup_terminal failed under set -e when optional prompts declined (rc=$declined_term_rc)"
+fi
+
+# 9.2 setup_shell preserves user custom lines in ~/.zshrc and ~/.config/fish/config.fish across re-runs
+shell_sandbox="$TEST_DIR/shell_preserve"
+mkdir -p "$shell_sandbox/.config/fish"
+printf '# user custom zsh line\nalias myalias="echo hi"\n' > "$shell_sandbox/.zshrc"
+printf '# user custom fish line\nset -g custom_var 1\n' > "$shell_sandbox/.config/fish/config.fish"
+(
+    export HOME="$shell_sandbox"
+    DRY_RUN=false
+    PROFILE="minimal"
+    log() { :; }
+    info() { :; }
+    warn() { :; }
+    success() { :; }
+    step_complete() { :; }
+    run() { :; }
+    run_sudo() { :; }
+    backup_file() { :; }
+    confirm() { return 1; }
+    prompt_input() { echo "4"; }
+    # shellcheck source=src/steps/04_shell.sh
+    source "$SRC_DIR/steps/04_shell.sh"
+    setup_shell
+    setup_shell
+) >/dev/null 2>&1
+if grep -qF '# user custom zsh line' "$shell_sandbox/.zshrc" && \
+   grep -qF '# user custom fish line' "$shell_sandbox/.config/fish/config.fish" && \
+   [[ "$(grep -c '# >>> FEDORA_POST_INSTALL_MANAGED >>>' "$shell_sandbox/.zshrc")" -eq 1 ]] && \
+   [[ "$(grep -c '# >>> FEDORA_POST_INSTALL_MANAGED >>>' "$shell_sandbox/.config/fish/config.fish")" -eq 1 ]]; then
+    pass "setup_shell preserves user shell customizations and deduplicates managed blocks"
+else
+    fail "setup_shell overwrote custom shell config or duplicated managed blocks"
+fi
+
+# 9.3 setup_multimedia skips ffmpeg-free swap if already swapped to ffmpeg
+mm_swapped=false
+(
+    DRY_RUN=false
+    # shellcheck disable=SC2317
+    log() { :; }
+    # shellcheck disable=SC2317
+    info() { :; }
+    # shellcheck disable=SC2317
+    warn() { :; }
+    # shellcheck disable=SC2317
+    success() { :; }
+    # shellcheck disable=SC2317
+    step_complete() { :; }
+    # shellcheck disable=SC2317
+    run() { :; }
+    # shellcheck disable=SC2317
+    run_sudo() {
+        [[ "$*" == *"swap"*"ffmpeg-free"* ]] && echo "SWAP_CALLED"
+        return 0
+    }
+    # shellcheck disable=SC2317
+    confirm() { return 1; }
+    # shellcheck disable=SC2317
+    rpm() {
+        # simulate ffmpeg already installed and ffmpeg-free absent
+        [[ "$2" == "ffmpeg-free" ]] && return 1
+        return 0
+    }
+    # shellcheck source=src/steps/06_multimedia.sh
+    source "$SRC_DIR/steps/06_multimedia.sh"
+    out=$(setup_multimedia)
+    if [[ "$out" == *"SWAP_CALLED"* ]]; then
+        exit 1
+    fi
+) && mm_swapped=true
+if $mm_swapped; then
+    pass "setup_multimedia skips ffmpeg-free swap when ffmpeg-free is not installed"
+else
+    fail "setup_multimedia attempted dnf swap even though ffmpeg-free is not installed"
 fi
 
 echo ""

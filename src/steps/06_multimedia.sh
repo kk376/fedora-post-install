@@ -4,7 +4,11 @@
 setup_multimedia() {
     log "Configuring multimedia codecs, hardware VA-API, and PipeWire audio..."
 
-    run_sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
+    if rpm -q ffmpeg-free &>/dev/null; then
+        run_sudo dnf swap -y ffmpeg-free ffmpeg --allowerasing
+    else
+        run_sudo dnf install -y --skip-unavailable ffmpeg
+    fi
     run_sudo dnf install -y --allowerasing \
         gstreamer1-plugins-bad-freeworld \
         gstreamer1-plugins-ugly \

@@ -122,6 +122,21 @@ ALACRITTY_CONF
     esac
 }
 
+_set_default_login_shell() {
+    local name="$1" bin_path="$2"
+    if $DRY_RUN; then
+        dry "Set default login shell to $name via chsh"
+        return 0
+    fi
+    if [[ -n "$bin_path" ]]; then
+        grep -qxF "$bin_path" /etc/shells 2>/dev/null || echo "$bin_path" | run_sudo tee -a /etc/shells >/dev/null
+        run_sudo chsh -s "$bin_path" "${USER:-$(id -un)}" 2>/dev/null || warn "Failed to set login shell to $name"
+        success "Default login shell set to $name"
+    else
+        warn "$name binary not found; keeping current login shell"
+    fi
+}
+
 setup_terminal() {
     log "Configuring GPU-Accelerated Terminal Emulator..."
 
@@ -153,15 +168,21 @@ setup_terminal() {
                 else
                     dry "Enable Copr repo scottames/ghostty and install ghostty via dnf"
                 fi
-                confirm "Apply Tokyo Night configuration for Ghostty?" "Y" && deploy_terminal_config "ghostty"
+                if confirm "Apply Tokyo Night configuration for Ghostty?" "Y"; then
+                    deploy_terminal_config "ghostty"
+                fi
                 ;;
             2)
                 run_sudo dnf install -y --skip-unavailable kitty
-                confirm "Apply Tokyo Night configuration for Kitty?" "Y" && deploy_terminal_config "kitty"
+                if confirm "Apply Tokyo Night configuration for Kitty?" "Y"; then
+                    deploy_terminal_config "kitty"
+                fi
                 ;;
             3)
                 run_sudo dnf install -y --skip-unavailable alacritty
-                confirm "Apply Tokyo Night configuration for Alacritty?" "Y" && deploy_terminal_config "alacritty"
+                if confirm "Apply Tokyo Night configuration for Alacritty?" "Y"; then
+                    deploy_terminal_config "alacritty"
+                fi
                 ;;
             *)
                 info "Keeping stock Fedora terminal (Ptyxis)"
@@ -209,39 +230,19 @@ setup_shell() {
         case "$shell_choice" in
             1)
                 selected_shell_name="Fish"
-                if ! $DRY_RUN && command -v fish &>/dev/null; then
-                    local fish_bin
-                    fish_bin=$(command -v fish)
-                    grep -qxF "$fish_bin" /etc/shells || echo "$fish_bin" | run_sudo tee -a /etc/shells >/dev/null
-                    run_sudo chsh -s "$fish_bin" "${USER:-$(id -un)}" 2>/dev/null || warn "Failed to set login shell to Fish"
-                    success "Default login shell set to Fish"
-                else
-                    dry "Set default login shell to Fish via chsh"
-                fi
+                _set_default_login_shell "Fish" "$(command -v fish 2>/dev/null || true)"
                 ;;
             2)
                 selected_shell_name="ZSH"
-                if ! $DRY_RUN && command -v zsh &>/dev/null; then
-                    local zsh_bin
-                    zsh_bin=$(command -v zsh)
-                    grep -qxF "$zsh_bin" /etc/shells || echo "$zsh_bin" | run_sudo tee -a /etc/shells >/dev/null
-                    run_sudo chsh -s "$zsh_bin" "${USER:-$(id -un)}" 2>/dev/null || warn "Failed to set login shell to ZSH"
-                    success "Default login shell set to ZSH"
-                else
-                    dry "Set default login shell to ZSH via chsh"
-                fi
+                _set_default_login_shell "ZSH" "$(command -v zsh 2>/dev/null || true)"
                 ;;
             3)
                 selected_shell_name="Bash"
-                if ! $DRY_RUN; then
-                    run_sudo chsh -s /bin/bash "${USER:-$(id -un)}" 2>/dev/null || warn "Failed to set login shell to Bash"
-                    success "Default login shell set to Bash"
-                else
-                    dry "Set default login shell to Bash via chsh"
-                fi
+                _set_default_login_shell "Bash" "/bin/bash"
                 ;;
             *)
-                info "Keeping current login shell ($(get_login_shell))"
+                selected_shell_name="$(get_login_shell)"
+                info "Keeping current login shell ($selected_shell_name)"
                 ;;
         esac
 
@@ -289,8 +290,9 @@ setup_shell() {
         if ! command -v starship &>/dev/null && ! $DRY_RUN; then
             if ! run_sudo dnf install -y --skip-unavailable starship 2>/dev/null; then
                 log "Installing Starship via official installer..."
+                init_run_tmp_dir
                 local starship_installer
-                starship_installer=$(mktemp /tmp/starship-install-XXXXXX.sh)
+                starship_installer=$(mktemp "$RUN_TMP_DIR/starship-install.XXXXXX.sh")
                 if curl --proto '=https' --tlsv1.2 -fsSL https://starship.rs/install.sh -o "$starship_installer"; then
                     sh "$starship_installer" -y >/dev/null 2>&1 || warn "Starship installer failed"
                 fi
@@ -407,25 +409,49 @@ STARSHIP_CONFIG
         fi
     fi
 
-    # Deploy ZSH configuration (~/.zshrc)
-    if ! $DRY_RUN; then
-        backup_file "$HOME/.zshrc"
-        cat > "$HOME/.zshrc" <<'ZSHRC_BASE'
-# ===== Zsh History =====
+_replace_managed_block() {
+    local target="$1"
+    local content="$2"
+    mkdir -p "$(dirname "$target")"
+    backup_file "$target"
+    touch "$target"
+    local tmp_file
+    tmp_file=$(mktemp "${target}.XXXXXX")
+    awk '
+        /# >>> FEDORA_POST_INSTALL_MANAGED >>>/ { skip=1; next }
+        /# <<< FEDORA_POST_INSTALL_MANAGED <<</ { skip=0; next }
+        !skip { print }
+    ' "$target" > "$tmp_file"
+    if [[ -s "$tmp_file" && -n "$(tail -c 1 "$tmp_file")" ]]; then
+        printf '\n' >> "$tmp_file"
+    fi
+    printf '%s\n' "$content" >> "$tmp_file"
+    mv "$tmp_file" "$target"
+}
+
+_render_posix_managed_config() {
+    local shell_name="$1"
+    local include_dev="$2"
+    local include_starship="$3"
+
+    printf '# >>> FEDORA_POST_INSTALL_MANAGED >>>\n'
+    if [[ "$shell_name" == "zsh" ]]; then
+        cat <<'ZSH_OPTS'
+# ===== Zsh History & Plugins =====
 HISTFILE=~/.zsh_history
 HISTSIZE=10000
 SAVEHIST=10000
-
 setopt APPEND_HISTORY SHARE_HISTORY INC_APPEND_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE HIST_REDUCE_BLANKS
-
 bindkey '^[[;5D' backward-word
 bindkey '^[[;5C' forward-word
 bindkey '^L' clear-screen
-
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#8a8a8a"
 [[ -f ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && source ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 [[ -f ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+ZSH_OPTS
+    fi
 
+    cat <<'POSIX_ALIASES'
 # ===== Standard Aliases =====
 alias clear='printf "\033[2J\033[3J\033[H"'
 alias ls='eza --group-directories-first --classify --icons --git'
@@ -433,11 +459,10 @@ alias la='ls -la'
 alias cat='bat --paging=never --style=plain'
 alias less='bat --paging=always --pager="less -R"'
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-ZSHRC_BASE
+POSIX_ALIASES
 
-        if $enable_dev_shell; then
-            cat >> "$HOME/.zshrc" <<'ZSHRC_DEV'
-
+    if $include_dev; then
+        cat <<'POSIX_DEV'
 # ===== Developer Environment & Git Shortcuts =====
 export EDITOR=nvim
 export VISUAL=nvim
@@ -466,67 +491,22 @@ alias gswc='git switch -c'
 alias gst='git stash'
 alias gstp='git stash pop'
 alias gundo='git reset --soft HEAD~1'
-ZSHRC_DEV
-        fi
-
-        if $install_starship; then
-            cat >> "$HOME/.zshrc" <<'ZSHRC_STARSHIP'
-command -v starship >/dev/null && eval "$(starship init zsh)"
-ZSHRC_STARSHIP
-        fi
-    else
-        dry "Deploy ~/.zshrc configuration"
+POSIX_DEV
     fi
 
-    # Deploy Bash configuration (~/.bashrc)
-    if ! $DRY_RUN; then
-        backup_file "$HOME/.bashrc"
-        sed -i '/# >>> FEDORA_POST_INSTALL_MANAGED >>>/,/# <<< FEDORA_POST_INSTALL_MANAGED <<</d' "$HOME/.bashrc" 2>/dev/null || true
+    if $include_starship; then
+        # shellcheck disable=SC2016
+        printf 'command -v starship >/dev/null && eval "$(starship init %s)"\n' "$shell_name"
+    fi
+    printf '# <<< FEDORA_POST_INSTALL_MANAGED <<<\n'
+}
 
-        cat >> "$HOME/.bashrc" <<'BASHRC_BASE'
+_render_fish_managed_config() {
+    local include_dev="$1"
+    local include_starship="$2"
+
+    cat <<'FISH_BASE'
 # >>> FEDORA_POST_INSTALL_MANAGED >>>
-alias clear='printf "\033[2J\033[3J\033[H"'
-alias ls='eza --group-directories-first --classify --icons --git'
-alias la='ls -la'
-alias cat='bat --paging=never --style=plain'
-alias less='bat --paging=always --pager="less -R"'
-export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-BASHRC_BASE
-
-        if $enable_dev_shell; then
-            cat >> "$HOME/.bashrc" <<'BASHRC_DEV'
-export EDITOR=nvim
-export VISUAL=nvim
-export LESS="-F -X -R"
-export LIBVIRT_DEFAULT_URI="qemu:///system"
-
-alias gs='git status -sb'
-alias ga='git add'
-alias gaa='git add -A'
-alias gc='git commit'
-alias gcm='git commit -m'
-alias gp='git push'
-alias gpl='git pull --rebase'
-alias gd='git diff'
-alias gl='git log --oneline --graph --decorate -n 15'
-BASHRC_DEV
-        fi
-
-        if $install_starship; then
-            cat >> "$HOME/.bashrc" <<'BASHRC_STARSHIP'
-command -v starship >/dev/null && eval "$(starship init bash)"
-BASHRC_STARSHIP
-        fi
-        echo "# <<< FEDORA_POST_INSTALL_MANAGED <<<" >> "$HOME/.bashrc"
-    else
-        dry "Update ~/.bashrc managed block"
-    fi
-
-    # Deploy Fish configuration (~/.config/fish/config.fish)
-    if ! $DRY_RUN; then
-        mkdir -p "$HOME/.config/fish"
-        backup_file "$HOME/.config/fish/config.fish"
-        cat > "$HOME/.config/fish/config.fish" <<'FISH_BASE'
 set -g fish_greeting ""
 set -g fish_color_autosuggestion 828bb8
 fish_add_path -m $HOME/.local/bin $HOME/.cargo/bin
@@ -542,8 +522,8 @@ if type -q fzf
 end
 FISH_BASE
 
-        if $enable_dev_shell; then
-            cat >> "$HOME/.config/fish/config.fish" <<'FISH_DEV'
+    if $include_dev; then
+        cat <<'FISH_DEV'
 
 set -gx EDITOR nvim
 set -gx VISUAL nvim
@@ -573,16 +553,31 @@ alias gst 'git stash'
 alias gstp 'git stash pop'
 alias gundo 'git reset --soft HEAD~1'
 FISH_DEV
-        fi
+    fi
 
-        if $install_starship; then
-            cat >> "$HOME/.config/fish/config.fish" <<'FISH_STARSHIP'
+    if $include_starship; then
+        printf '\nif type -q starship\n    starship init fish | source\nend\n'
+    fi
+    printf '# <<< FEDORA_POST_INSTALL_MANAGED <<<\n'
+}
 
-if type -q starship
-    starship init fish | source
-end
-FISH_STARSHIP
-        fi
+    # Deploy ZSH configuration (~/.zshrc)
+    if ! $DRY_RUN; then
+        _replace_managed_block "$HOME/.zshrc" "$(_render_posix_managed_config zsh "$enable_dev_shell" "$install_starship")"
+    else
+        dry "Deploy ~/.zshrc configuration"
+    fi
+
+    # Deploy Bash configuration (~/.bashrc)
+    if ! $DRY_RUN; then
+        _replace_managed_block "$HOME/.bashrc" "$(_render_posix_managed_config bash "$enable_dev_shell" "$install_starship")"
+    else
+        dry "Update ~/.bashrc managed block"
+    fi
+
+    # Deploy Fish configuration (~/.config/fish/config.fish)
+    if ! $DRY_RUN; then
+        _replace_managed_block "$HOME/.config/fish/config.fish" "$(_render_fish_managed_config "$enable_dev_shell" "$install_starship")"
         success "Shell configurations deployed (.zshrc, .bashrc, config.fish)"
     else
         dry "Deploy ~/.config/fish/config.fish"

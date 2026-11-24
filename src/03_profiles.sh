@@ -107,7 +107,9 @@ select_profile_menu() {
 }
 
 check_network() {
-    ping -c 1 -W 2 1.1.1.1 &>/dev/null || ping -c 1 -W 2 8.8.8.8 &>/dev/null
+    ping -c 1 -W 2 1.1.1.1 &>/dev/null || \
+        ping -c 1 -W 2 8.8.8.8 &>/dev/null || \
+        curl -fsSI --proto '=https' --tlsv1.2 --max-time 3 https://fedoraproject.org >/dev/null 2>&1
 }
 
 check_disk_space() {

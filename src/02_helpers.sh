@@ -137,42 +137,69 @@ verify_checksum() {
     return 0
 }
 
+init_run_tmp_dir() {
+    if [[ -z "${RUN_TMP_DIR:-}" || ! -d "${RUN_TMP_DIR:-}" ]]; then
+        RUN_TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/fedora-setup-run.XXXXXX")
+        chmod 0700 "$RUN_TMP_DIR"
+    fi
+}
+
+cleanup_run_tmp() {
+    if [[ -n "${RUN_TMP_DIR:-}" && -d "$RUN_TMP_DIR" ]]; then
+        rm -rf "$RUN_TMP_DIR"
+        RUN_TMP_DIR=""
+    fi
+}
+
 # Download a release asset from GitHub with progressive JSON parser fallback (jq -> python3 -> regex).
 github_download() {
     local repo="$1" pattern="$2" output="$3" fallback="${4:-}" expected_sha256="${5:-}"
     local api_url="https://api.github.com/repos/$repo/releases/latest"
-    local download_url="" api_response
+    local download_url="" asset_digest="" api_response
 
-    api_response=$(curl -sfL --max-time 10 "$api_url" 2>/dev/null || true)
+    api_response=$(curl --proto '=https' --tlsv1.2 -sfL --max-time 10 "$api_url" 2>/dev/null || true)
     if [[ -n "$api_response" ]]; then
         if command -v jq &>/dev/null; then
-            download_url=$(echo "$api_response" | jq -r ".assets[] | select(.name | test(\"$pattern\")) | .browser_download_url" 2>/dev/null | head -1 || true)
+            local jq_line
+            jq_line=$(echo "$api_response" | jq -r --arg pat "$pattern" '[.assets[] | select(.name | test($pat)) | (.browser_download_url + "\t" + (.digest // ""))] | first // empty' 2>/dev/null || true)
+            download_url="${jq_line%%$'\t'*}"
+            [[ "$jq_line" == *$'\t'* ]] && asset_digest="${jq_line#*$'\t'}"
         elif command -v python3 &>/dev/null; then
-            download_url=$(python3 -c "
+            local py_line
+            py_line=$(python3 -c "
 import sys, json, re
 try:
     data = json.loads(sys.stdin.read())
     pat = re.compile(sys.argv[1])
     for a in data.get('assets', []):
         if pat.search(a.get('name', '')):
-            print(a.get('browser_download_url', ''))
+            print(f\"{a.get('browser_download_url', '')}\t{a.get('digest') or ''}\")
             break
 except Exception:
     pass
 " "$pattern" <<< "$api_response" 2>/dev/null || true)
+            download_url="${py_line%%$'\t'*}"
+            [[ "$py_line" == *$'\t'* ]] && asset_digest="${py_line#*$'\t'}"
         else
             download_url=$(echo "$api_response" | grep -oP '"browser_download_url":\s*"\K[^"]*' 2>/dev/null | grep -E "$pattern" 2>/dev/null | head -1 || true)
         fi
     fi
 
-    [[ -z "$download_url" ]] && download_url="$fallback"
+    if [[ -z "$download_url" ]]; then
+        download_url="$fallback"
+        asset_digest=""
+    fi
+
+    if [[ -z "$expected_sha256" && "$asset_digest" =~ ^sha256:([0-9a-fA-F]{64})$ ]]; then
+        expected_sha256="${BASH_REMATCH[1]}"
+    fi
 
     if [[ -n "$download_url" ]]; then
         # Prevent symlink attacks on output destination
         if [[ -L "$output" ]]; then
             rm -f "$output"
         fi
-        if curl -fL --max-time 120 -o "$output" "$download_url" 2>/dev/null; then
+        if curl --proto '=https' --tlsv1.2 -fL --max-time 120 -o "$output" "$download_url" 2>/dev/null; then
             if [[ -n "$expected_sha256" ]]; then
                 if ! verify_checksum "$output" "$expected_sha256"; then
                     rm -f "$output"
@@ -185,7 +212,7 @@ except Exception:
     return 1
 }
 
-# Backup a file before modifying (preserves directory hierarchy)
+# Backup a file before modifying (preserves directory hierarchy and original snapshot)
 backup_file() {
     local file="$1"
     if [[ -f "$file" ]]; then
@@ -202,6 +229,9 @@ backup_file() {
             dry "Backup: $file -> $backup_path"
             return 0
         fi
+        if [[ -e "$backup_path" ]]; then
+            return 0
+        fi
         mkdir -p "$(dirname "$backup_path")" "$BACKUP_DIR"
         chmod 0700 "$BACKUP_DIR" 2>/dev/null || true
         cp -p "$abs_file" "$backup_path"
@@ -211,15 +241,67 @@ backup_file() {
     fi
 }
 
+_is_valid_restore_target() {
+    local orig="$1"
+    if [[ "$orig" == *".."* ]]; then
+        warn "Security: Path traversal attempt detected in manifest ($orig) - skipped"
+        return 1
+    fi
+    if [[ "$orig" != /* ]]; then
+        warn "Security: Non-absolute path detected in manifest ($orig) - skipped"
+        return 1
+    fi
+    if [[ "$orig" == /etc/* ]]; then
+        case "$orig" in
+            /etc/dnf/dnf.conf|/etc/systemd/zram-generator.conf) return 0 ;;
+            *)
+                warn "Security: Untrusted system configuration target ($orig) - skipped"
+                return 1
+                ;;
+        esac
+    fi
+    if [[ "$orig" != "$HOME"/* ]]; then
+        warn "Security: Target outside allowed user directory ($orig) - skipped"
+        return 1
+    fi
+    return 0
+}
+
+_restore_single_file() {
+    local src="$1" orig="$2"
+    if $DRY_RUN; then
+        dry "cp -p $src $orig"
+    elif [[ "$orig" == /etc/* ]]; then
+        run_sudo cp -p "$src" "$orig"
+        success "Restored: $orig"
+    else
+        mkdir -p "$(dirname "$orig")"
+        cp -p "$src" "$orig"
+        success "Restored: $orig"
+    fi
+}
+
+_find_latest_backup_dir() {
+    local backup_root="$1"
+    local candidate latest=""
+    [[ -d "$backup_root" ]] || return 1
+    for candidate in "$backup_root"/*/; do
+        [[ -d "$candidate" ]] || continue
+        candidate="${candidate%/}"
+        if [[ -z "$latest" ]] || [[ "$candidate" -nt "$latest" ]] || { [[ ! "$latest" -nt "$candidate" ]] && [[ "$(basename "$candidate")" > "$(basename "$latest")" ]]; }; then
+            latest="$candidate"
+        fi
+    done
+    [[ -n "$latest" ]] && printf '%s\n' "$latest"
+}
+
 restore_backups() {
     local latest_backup
-    # shellcheck disable=SC2012
-    latest_backup=$(ls -td "$HOME/.config/fedora-setup-backups"/*/ 2>/dev/null | head -1 || true)
+    latest_backup=$(_find_latest_backup_dir "$HOME/.config/fedora-setup-backups" || true)
     if [[ -z "$latest_backup" ]]; then
         warn "No backups found"
         return 1
     fi
-    latest_backup="${latest_backup%/}"
 
     log "Latest backup: $latest_backup"
     if ! confirm "Restore all files from this backup?" "N"; then
@@ -229,90 +311,24 @@ restore_backups() {
     if [[ -f "$latest_backup/.manifest" ]]; then
         while IFS= read -r orig; do
             [[ -z "$orig" ]] && continue
+            _is_valid_restore_target "$orig" || continue
 
-            # Security: Reject path traversal attempts
-            if [[ "$orig" == *".."* ]]; then
-                warn "Security: Path traversal attempt detected in manifest ($orig) - skipped"
-                continue
-            fi
-
-            # Security: Ensure absolute path
-            if [[ "$orig" != /* ]]; then
-                warn "Security: Non-absolute path detected in manifest ($orig) - skipped"
-                continue
-            fi
-
-            # Security: Strict allowlist for privileged system configuration files (/etc)
-            if [[ "$orig" == /etc/* ]]; then
-                case "$orig" in
-                    /etc/dnf/dnf.conf|/etc/systemd/zram-generator.conf) ;;
-                    *)
-                        warn "Security: Untrusted system configuration target ($orig) - skipped"
-                        continue
-                        ;;
-                esac
-            elif [[ "$orig" != "$HOME"/* && "$orig" != /tmp/* ]]; then
-                warn "Security: Target outside allowed user directory ($orig) - skipped"
-                continue
-            fi
-
-            local rel_path="${orig#/}"
-            local backup_path="$latest_backup/$rel_path"
-
+            local backup_path="$latest_backup/${orig#/}"
             if [[ ! -f "$backup_path" ]]; then
                 warn "No backup for $orig at $backup_path"
                 continue
             fi
-
-            if $DRY_RUN; then
-                dry "cp $backup_path $orig"
-            elif [[ "$orig" == /etc/* ]]; then
-                run_sudo cp "$backup_path" "$orig"
-                success "Restored: $orig"
-            else
-                mkdir -p "$(dirname "$orig")"
-                cp "$backup_path" "$orig"
-                success "Restored: $orig"
-            fi
+            _restore_single_file "$backup_path" "$orig"
         done < "$latest_backup/.manifest"
     elif compgen -G "$latest_backup/*/*" >/dev/null; then
         while IFS= read -r -d '' bfile; do
             [[ "$(basename "$bfile")" == ".manifest" ]] && continue
             local rel_path="${bfile#"$latest_backup"/}"
             local orig="/$rel_path"
-
-            # Security: Reject path traversal attempts or non-absolute paths
-            if [[ "$orig" == *".."* || "$orig" != /* ]]; then
-                continue
-            fi
-
-            # Security: Strict allowlist for privileged system configuration files (/etc)
-            if [[ "$orig" == /etc/* ]]; then
-                case "$orig" in
-                    /etc/dnf/dnf.conf|/etc/systemd/zram-generator.conf) ;;
-                    *)
-                        warn "Security: Untrusted system configuration target ($orig) - skipped"
-                        continue
-                        ;;
-                esac
-            elif [[ "$orig" != "$HOME"/* && "$orig" != /tmp/* ]]; then
-                warn "Security: Target outside allowed user directory ($orig) - skipped"
-                continue
-            fi
-
-            if $DRY_RUN; then
-                dry "cp $bfile $orig"
-            elif [[ "$orig" == /etc/* ]]; then
-                run_sudo cp "$bfile" "$orig"
-                success "Restored: $orig"
-            else
-                mkdir -p "$(dirname "$orig")"
-                cp "$bfile" "$orig"
-                success "Restored: $orig"
-            fi
+            _is_valid_restore_target "$orig" || continue
+            _restore_single_file "$bfile" "$orig"
         done < <(find "$latest_backup" -mindepth 2 -type f -print0)
     else
-        # Legacy flat backup fallback (.backup files in root of backup dir)
         local originals=(
             "$HOME/.zshrc"
             "$HOME/.bashrc"
@@ -326,24 +342,10 @@ restore_backups() {
         )
 
         for orig in "${originals[@]}"; do
-            local name backup_path
-            name="$(basename "$orig")"
-            backup_path="$latest_backup/$name.backup"
-
-            if [[ ! -f "$backup_path" ]]; then
-                continue
-            fi
-
-            if $DRY_RUN; then
-                dry "cp $backup_path $orig"
-            elif [[ "$orig" == /etc/* ]]; then
-                run_sudo cp "$backup_path" "$orig"
-                success "Restored: $orig"
-            else
-                mkdir -p "$(dirname "$orig")"
-                cp "$backup_path" "$orig"
-                success "Restored: $orig"
-            fi
+            local backup_path
+            backup_path="$latest_backup/$(basename "$orig").backup"
+            [[ -f "$backup_path" ]] || continue
+            _restore_single_file "$backup_path" "$orig"
         done
     fi
 
