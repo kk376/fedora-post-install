@@ -58,7 +58,7 @@ Options:
                           workstation - Minimal + fonts, codecs, GNOME, debloat, desktop apps, power, drivers (default)
                           dev         - Workstation + dev toolchains, editors, Docker, KVM/QEMU
                           gaming      - Workstation + Steam, Heroic, MangoHud, GameMode
-                          creator     - Workstation + OBS Studio, v4l2loopback, wf-recorder, NV Broadcast
+                          creator     - Workstation + OBS Studio, v4l2loopback, GStreamer, NV Broadcast
                           full        - Complete suite: Workstation + Dev + Gaming + Creator
   --dev-type=GENRE      Choose developer genre for dev/full profile (comma-separated):
                           systems     - C, C++, Rust, CMake, Meson, GDB, Valgrind, ccache

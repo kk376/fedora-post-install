@@ -126,22 +126,24 @@ setup_dev() {
         log "Installing Data & AI stack (Python Devel, Ruff, UV, GPU Compute)..."
         run_sudo dnf install -y --skip-unavailable python3-devel python3-virtualenv python3-wheel python3-setuptools ruff uv
 
-        if $HAS_NVIDIA; then
-            if confirm "NVIDIA GPU detected: Install CUDA development toolkit?" "Y"; then
-                run_sudo dnf install -y --skip-unavailable xorg-x11-drv-nvidia-cuda xorg-x11-drv-nvidia-cuda-devel
+        if [[ "${IS_CONTAINER:-false}" != "true" ]]; then
+            if $HAS_NVIDIA; then
+                if confirm "NVIDIA GPU detected: Install CUDA development toolkit?" "N"; then
+                    run_sudo dnf install -y --skip-unavailable xorg-x11-drv-nvidia-cuda xorg-x11-drv-nvidia-cuda-devel
+                fi
             fi
-        fi
 
-        # Offer ROCm only if AMD is a discrete GPU or primary accelerator (avoids unworkable installs on mobile APUs)
-        if $HAS_AMD && { lspci 2>/dev/null | grep -Ei 'VGA|3D' | grep -i amd | grep -Eiq 'Navi|Radeon RX|Discrete'; }; then
-            if confirm "AMD Radeon discrete GPU detected: Install ROCm HIP & OpenCL compute runtime?" "N"; then
-                run_sudo dnf install -y --skip-unavailable rocm-hip rocm-opencl rocm-clinfo rocm-smi
+            # Offer ROCm only if AMD is a discrete/workstation GPU (avoids unsupported installs on APUs)
+            if $HAS_AMD && { lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' | grep -i amd | grep -Eiq 'Navi|Radeon RX|Radeon PRO|Instinct|RDNA|Discrete'; }; then
+                if confirm "AMD Radeon discrete GPU detected: Install ROCm HIP & OpenCL compute runtime?" "N"; then
+                    run_sudo dnf install -y --skip-unavailable rocm-hip rocm-opencl rocm-clinfo rocm-smi
+                fi
             fi
-        fi
 
-        if $HAS_INTEL && [[ "${SYS_ARCH:-$(uname -m)}" == "x86_64" ]]; then
-            if confirm "Intel GPU detected: Install Intel Compute Runtime (Level Zero / OpenCL)?" "Y"; then
-                run_sudo dnf install -y --skip-unavailable intel-compute-runtime oneapi-level-zero
+            if $HAS_INTEL && [[ "${SYS_ARCH:-$(uname -m)}" == "x86_64" ]] && [[ "${INTEL_VAAPI_PKG:-intel-media-driver}" != "libva-intel-driver" ]]; then
+                if confirm "Intel GPU detected: Install Intel Compute Runtime (Level Zero / OpenCL)?" "N"; then
+                    run_sudo dnf install -y --skip-unavailable intel-compute-runtime oneapi-level-zero
+                fi
             fi
         fi
     fi

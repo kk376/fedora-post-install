@@ -30,10 +30,15 @@ DEV_TYPE_SPECIFIED=false
 # System hardware globals (populated by detect_hardware)
 SYS_ARCH="$(uname -m)"
 IS_LAPTOP=false
+IS_VM=false
+IS_CONTAINER=false
 CHASSIS_TYPE="Desktop"
 HAS_NVIDIA=false
 HAS_AMD=false
 HAS_INTEL=false
+HAS_BLUETOOTH=false
+HAS_BTRFS=false
+INTEL_VAAPI_PKG="intel-media-driver"
 
 # ==============================================================================
 # Colors & Logging

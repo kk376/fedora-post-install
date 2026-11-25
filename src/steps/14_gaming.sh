@@ -16,7 +16,11 @@ setup_gaming() {
 
     if [[ "$arch" == "x86_64" ]]; then
         if ! $DRY_RUN; then
-            run_sudo dnf install -y --skip-unavailable steam-devices mozilla-openh264 2>/dev/null || true
+            local extra_steam_pkgs=("mozilla-openh264")
+            if [[ "${IS_VM:-false}" != "true" && "${IS_CONTAINER:-false}" != "true" ]]; then
+                extra_steam_pkgs=("steam-devices" "mozilla-openh264")
+            fi
+            run_sudo dnf install -y --skip-unavailable "${extra_steam_pkgs[@]}" 2>/dev/null || true
         else
             dry "Unlock Steam H264 codec"
         fi

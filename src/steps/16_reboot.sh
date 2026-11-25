@@ -4,6 +4,12 @@
 setup_pre_driver_reboot() {
     log "Checking running kernel against latest installed kernel-core..."
 
+    if [[ "${IS_CONTAINER:-false}" == "true" ]]; then
+        info "Container environment detected: Skipping kernel reboot checkpoint."
+        step_complete "Reboot checkpoint (skipped in container)"
+        return 0
+    fi
+
     if $DRY_RUN; then
         dry "Compare uname -r against latest installed kernel-core RPM"
         step_complete "Reboot checkpoint (dry-run)"

@@ -750,6 +750,178 @@ else
     fail "setup_multimedia attempted dnf swap even though ffmpeg-free is not installed"
 fi
 
+# ==============================================================================
+# Suite 10: Hardware Agnosticism & Sysadmin Safety Tests
+# ==============================================================================
+echo "=== Suite 10: Hardware Agnosticism & Sysadmin Safety ==="
+
+# 10.1 UPS / peripheral BAT* with scope=Device must NOT mark a desktop as a laptop
+if bash -c '
+    source "'"$SRC_DIR"'/00_header.sh"
+    source "'"$SRC_DIR"'/02_helpers.sh"
+    declare -f is_system_battery_present >/dev/null || exit 2
+    dev_ps=$(mktemp -d)
+    sys_ps=$(mktemp -d)
+    trap "rm -rf $dev_ps $sys_ps" EXIT
+    mkdir -p "$dev_ps/BAT0" "$sys_ps/BAT0"
+    echo "Device" > "$dev_ps/BAT0/scope"
+    echo "System" > "$sys_ps/BAT0/scope"
+    ! is_system_battery_present "$dev_ps" && is_system_battery_present "$sys_ps"
+' 2>/dev/null; then
+    pass "is_system_battery_present distinguishes System vs Device batteries"
+else
+    fail "is_system_battery_present missing or misclassifies System/Device batteries"
+fi
+
+# 10.2 Legacy vs modern Intel GPU VA-API classification (never installs both)
+intel_legacy=$(
+    bash -c '
+        source "'"$SRC_DIR"'/00_header.sh"
+        source "'"$SRC_DIR"'/02_helpers.sh"
+        declare -f intel_vaapi_driver_for_pci >/dev/null || exit 2
+        intel_vaapi_driver_for_pci "8086:0416"
+    ' 2>/dev/null || true
+)
+intel_modern=$(
+    bash -c '
+        source "'"$SRC_DIR"'/00_header.sh"
+        source "'"$SRC_DIR"'/02_helpers.sh"
+        declare -f intel_vaapi_driver_for_pci >/dev/null || exit 2
+        intel_vaapi_driver_for_pci "8086:a7a0"
+    ' 2>/dev/null || true
+)
+if [[ "$intel_legacy" == "libva-intel-driver" && "$intel_modern" == "intel-media-driver" ]]; then
+    pass "Intel VA-API selection distinguishes legacy i965 from modern iHD"
+else
+    fail "Intel VA-API selection failed (legacy='$intel_legacy', modern='$intel_modern')"
+fi
+
+# 10.3 setup_multimedia skips Bluetooth and clock-rate overrides when unneeded
+mm_log="$TEST_DIR/mm_sudo.log"
+rm -f "$mm_log"
+bash -c '
+    set -u
+    DRY_RUN=false
+    HAS_BLUETOOTH=false
+    HAS_INTEL=false
+    HAS_AMD=false
+    HAS_NVIDIA=false
+    BACKUP_DIR="'"$TEST_DIR"'/mm_bak"
+    log() { :; }
+    info() { :; }
+    warn() { :; }
+    success() { :; }
+    step_complete() { :; }
+    backup_file() { echo "BACKUP: $1" >> "'"$mm_log"'"; }
+    confirm() { return 1; }
+    run() { :; }
+    run_sudo() { echo "SUDO: $*" >> "'"$mm_log"'"; return 0; }
+    rpm() { return 1; }
+    id() { return 1; }
+    systemctl() { return 1; }
+    source "'"$SRC_DIR"'/steps/06_multimedia.sh"
+    setup_multimedia
+' 2>/dev/null
+mm_no_bt_out=$(cat "$mm_log" 2>/dev/null || true)
+if [[ "$mm_no_bt_out" != *"50-bluez.conf"* && "$mm_no_bt_out" != *"disable-bluetooth.conf"* && "$mm_no_bt_out" != *"99-clock-rates.conf"* ]]; then
+    pass "setup_multimedia skips Bluetooth and clock-rate overrides when unneeded"
+else
+    fail "setup_multimedia wrote Bluetooth or clock-rate configs despite HAS_BLUETOOTH=false / declined confirm: $mm_no_bt_out"
+fi
+
+# 10.4 setup_creator excludes wlroots-only wf-recorder
+if ! grep -q "wf-recorder" "$SRC_DIR/steps/15_creator.sh"; then
+    pass "setup_creator excludes wlroots-only wf-recorder on Fedora Workstation GNOME"
+else
+    fail "setup_creator still installs wlroots-only wf-recorder"
+fi
+
+# 10.5 setup_power logs consistent 99-zram.conf filename and invokes backup_file
+power_dry_out=$(
+    bash -c '
+        set -u
+        DRY_RUN=false
+        IS_LAPTOP=false
+        IS_VM=false
+        IS_CONTAINER=false
+        CHASSIS_TYPE="Desktop"
+        log() { :; }
+        info() { :; }
+        warn() { :; }
+        success() { echo "SUCCESS: $*"; }
+        step_complete() { :; }
+        confirm() { [[ "$1" == *"ZRAM"* ]]; }
+        backup_file() { echo "BACKUP: $1"; }
+        run_sudo() {
+            if [[ "${1:-}" == "tee" ]]; then cat >/dev/null; fi
+            return 0
+        }
+        gsettings() { return 0; }
+        source "'"$SRC_DIR"'/steps/09_power.sh"
+        setup_power
+    ' 2>/dev/null
+)
+if [[ "$power_dry_out" != *"10-zram.conf"* ]] && \
+   [[ "$power_dry_out" == *"99-zram.conf"* ]] && \
+   [[ "$power_dry_out" == *"BACKUP: /etc/systemd/zram-generator.conf.d/99-zram.conf"* ]] && \
+   [[ "$power_dry_out" == *"BACKUP: /etc/sysctl.d/99-zram.conf"* ]]; then
+    pass "setup_power uses consistent 99-zram.conf name and backs up zram/sysctl targets"
+else
+    fail "setup_power logged stale 10-zram.conf or omitted backups: $power_dry_out"
+fi
+
+# 10.6 setup_drivers excludes CUDA in workstation step and respects legacy vs modern Intel VA-API
+drv_modern_out=$(
+    bash -c '
+        set -u
+        DRY_RUN=false
+        IS_CONTAINER=false
+        IS_VM=false
+        IS_LAPTOP=false
+        HAS_INTEL=true
+        HAS_AMD=false
+        HAS_NVIDIA=true
+        INTEL_VAAPI_PKG="intel-media-driver"
+        log() { :; }
+        info() { :; }
+        warn() { :; }
+        success() { :; }
+        step_complete() { :; }
+        backup_file() { :; }
+        confirm() { return 0; }
+        mokutil() { return 1; }
+        rpm() { return 0; }
+        run_sudo() { echo "SUDO: $*"; return 0; }
+        source "'"$SRC_DIR"'/steps/17_drivers.sh"
+        setup_drivers
+    ' 2>/dev/null
+)
+if [[ "$drv_modern_out" != *"xorg-x11-drv-nvidia-cuda"* ]] && \
+   [[ "$drv_modern_out" != *"libva-intel-driver"* ]] && \
+   [[ "$drv_modern_out" == *"intel-media-driver"* ]]; then
+    pass "setup_drivers excludes CUDA from workstation and selects only modern Intel VA-API"
+else
+    fail "setup_drivers installed CUDA or redundant libva-intel-driver: $drv_modern_out"
+fi
+
+# 10.7 setup_cli_core omits btrfs-only compsize when HAS_BTRFS=false
+cli_nobtrfs_out=$(
+    bash -c '
+        set -u
+        HAS_BTRFS=false
+        log() { :; }
+        step_complete() { :; }
+        run_sudo() { echo "SUDO: $*"; return 0; }
+        source "'"$SRC_DIR"'/steps/03_cli_core.sh"
+        setup_cli_core
+    ' 2>/dev/null
+)
+if [[ "$cli_nobtrfs_out" != *"compsize"* ]]; then
+    pass "setup_cli_core skips Btrfs-only compsize when root is not Btrfs"
+else
+    fail "setup_cli_core installed compsize despite HAS_BTRFS=false"
+fi
+
 echo ""
 echo "=============================================================================="
 echo "Final Summary: Total: $TOTAL, Passed: $PASSED, Failed: $FAILED"

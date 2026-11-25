@@ -6,8 +6,11 @@ setup_desktop_apps() {
 
     run_sudo dnf install -y --skip-unavailable dnf5-plugins dnf-plugins-core 2>/dev/null || true
     run_sudo dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo --overwrite 2>/dev/null || warn "Failed to add Brave repository"
-    run_sudo dnf install -y --skip-unavailable \
-        brave-browser vlc qbittorrent telegram-desktop timeshift gparted ntfs-3g wmctrl
+    local desktop_pkgs=(
+        brave-browser vlc qbittorrent telegram-desktop timeshift gparted ntfs-3g
+    )
+    [[ "${XDG_SESSION_TYPE:-wayland}" == "x11" ]] && desktop_pkgs+=("wmctrl")
+    run_sudo dnf install -y --skip-unavailable "${desktop_pkgs[@]}"
 
     log "Installing essential Flatpaks (LocalSend, Extension Manager)..."
     run flatpak install -y flathub org.localsend.localsend_app com.mattjakeman.ExtensionManager 2>/dev/null || warn "Flatpak installation had warnings"
@@ -19,14 +22,16 @@ setup_desktop_apps() {
         fi
     fi
 
-    # Vesktop (Architecture-aware download)
+    # Vesktop (Architecture-aware download: upstream uses x86_64 or arm64 on ARM64)
     if confirm "Install Vesktop Discord client?" "Y"; then
         if ! $DRY_RUN; then
             init_run_tmp_dir
-            local fallback_url="https://github.com/Vencord/Vesktop/releases/latest/download/vesktop.${SYS_ARCH}.rpm"
+            local vesktop_arch="${SYS_ARCH}"
+            [[ "${SYS_ARCH}" == "aarch64" ]] && vesktop_arch="arm64"
+            local fallback_url="https://github.com/Vencord/Vesktop/releases/latest/download/vesktop.${vesktop_arch}.rpm"
             local vesktop_rpm="$RUN_TMP_DIR/vesktop.rpm"
             rm -f "$vesktop_rpm"
-            if github_download "Vencord/Vesktop" "vesktop.*\.${SYS_ARCH}\.rpm" "$vesktop_rpm" "$fallback_url"; then
+            if github_download "Vencord/Vesktop" "vesktop.*\.(${SYS_ARCH}|arm64)\.rpm" "$vesktop_rpm" "$fallback_url"; then
                 run_sudo dnf install -y "$vesktop_rpm" 2>/dev/null || warn "Vesktop RPM install failed"
                 rm -f "$vesktop_rpm"
             else

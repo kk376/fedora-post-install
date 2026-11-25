@@ -54,7 +54,7 @@ main() {
     echo -e "${GREEN}   Fedora Post-Install Setup v${SCRIPT_VERSION}${NC}"
     echo -e "${GREEN}========================================${NC}"
     info "Architecture: $SYS_ARCH | Chassis: $CHASSIS_TYPE"
-    info "GPUs detected: NVIDIA=$HAS_NVIDIA, AMD=$HAS_AMD, Intel=$HAS_INTEL"
+    info "GPUs detected: NVIDIA=$HAS_NVIDIA, AMD=$HAS_AMD, Intel=$HAS_INTEL | Bluetooth=$HAS_BLUETOOTH | Btrfs=$HAS_BTRFS"
 
     if [[ "$SYS_ARCH" != "x86_64" && "$SYS_ARCH" != "aarch64" ]]; then
         warn "Untested CPU architecture: $SYS_ARCH"

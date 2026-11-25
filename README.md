@@ -85,7 +85,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 | `workstation` | 12    | Minimal + fonts, codecs & dynamic PipeWire audio, GNOME tweaks, debloat, desktop apps, power, GPU drivers    |
 | `dev`         | 16    | Workstation + developer toolchains (`--dev-type`), Code Editor, Docker & Compose, KVM/QEMU, GPU drivers (last)|
 | `gaming`      | 13    | Workstation + Steam (H.264 unlock), MangoHud, GameMode, Heroic Games Launcher, GPU drivers (last)            |
-| `creator`     | 13    | Workstation + OBS Studio, v4l2loopback, wf-recorder, NVIDIA Broadcast, GPU drivers (last)                    |
+| `creator`     | 13    | Workstation + OBS Studio, v4l2loopback, GStreamer, NVIDIA Broadcast, GPU drivers (last)                      |
 | `full`        | 18    | Complete power-user suite: Workstation + Dev + Gaming + Creator + GPU drivers                                |
 
 ---

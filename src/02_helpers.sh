@@ -31,20 +31,56 @@ is_dev_profile() {
     [[ "$PROFILE" == "dev" || "$PROFILE" == "full" ]]
 }
 
+# Return 0 only if a system chassis battery exists (ignores UPS/peripheral Device batteries).
+is_system_battery_present() {
+    local ps_root="${1:-/sys/class/power_supply}"
+    local bat scope
+    for bat in "$ps_root"/BAT*; do
+        [[ -d "$bat" ]] || continue
+        scope=$(cat "$bat/scope" 2>/dev/null || echo "System")
+        [[ "$scope" != "Device" ]] && return 0
+    done
+    return 1
+}
+
+# Select libva-intel-driver (i965) for legacy Gen4-Gen7.5 Intel GPUs, else intel-media-driver (iHD).
+intel_vaapi_driver_for_pci() {
+    local pci_text="${1:-}"
+    if grep -Eiq '8086:(004[0-9a-f]|010[0-9a-f]|011[0-9a-f]|012[0-9a-f]|015[0-9a-f]|016[0-9a-f]|040[0-9a-f]|041[0-9a-f]|042[0-9a-f]|0a0[0-9a-f]|0a1[0-9a-f]|0a2[0-9a-f]|0d1[0-9a-f]|0d2[0-9a-f]|0f3[0-9a-f]|2a4[0-9a-f])' <<< "$pci_text"; then
+        echo "libva-intel-driver"
+    else
+        echo "intel-media-driver"
+    fi
+}
+
 # Detect hardware once at startup so all functions can make hardware-aware decisions
 detect_hardware() {
-    local chassis
+    local chassis dmi_chassis
     chassis=$(hostnamectl chassis 2>/dev/null || echo "unknown")
-    if [[ "$chassis" =~ ^(laptop|notebook|convertible|portable)$ ]] || compgen -G "/sys/class/power_supply/BAT*" > /dev/null; then
+    dmi_chassis=$(cat /sys/class/dmi/id/chassis_type 2>/dev/null || echo "")
+
+    if systemd-detect-virt --container -q 2>/dev/null || [[ "$chassis" == "container" ]]; then
+        IS_CONTAINER=true
+        CHASSIS_TYPE="Container"
+    elif systemd-detect-virt -q 2>/dev/null || [[ "$chassis" == "vm" ]]; then
+        IS_VM=true
+        CHASSIS_TYPE="Virtual Machine"
+    elif [[ "$chassis" =~ ^(laptop|notebook|convertible|portable)$ ]] || \
+         [[ "$dmi_chassis" =~ ^(8|9|10|11|14|30|31|32)$ ]] || \
+         is_system_battery_present "/sys/class/power_supply"; then
         IS_LAPTOP=true
         CHASSIS_TYPE="Laptop"
-    elif systemd-detect-virt -q 2>/dev/null || [[ "$chassis" =~ ^(vm|container)$ ]]; then
-        CHASSIS_TYPE="Virtual Machine / Container"
     elif [[ "$chassis" == "server" ]]; then
         CHASSIS_TYPE="Server"
     else
         CHASSIS_TYPE="Desktop"
     fi
+
+    compgen -G "/sys/class/bluetooth/hci*" > /dev/null && HAS_BLUETOOTH=true
+
+    local root_fstype
+    root_fstype=$(findmnt -n -o FSTYPE / 2>/dev/null || stat -f -c %T / 2>/dev/null || echo "")
+    [[ "$root_fstype" == "btrfs" ]] && HAS_BTRFS=true
 
     local gpu_info
     gpu_info=$(lspci 2>/dev/null | grep -Ei 'VGA|3D|Display' || true)
@@ -53,7 +89,12 @@ detect_hardware() {
     fi
     if grep -Eiq 'nvidia|10de:|DRIVER=nouveau|DRIVER=nvidia' <<< "$gpu_info"; then HAS_NVIDIA=true; fi
     if grep -Eiq 'amd|advanced micro devices|ati|1002:|DRIVER=amdgpu|DRIVER=radeon' <<< "$gpu_info"; then HAS_AMD=true; fi
-    if grep -Eiq 'intel|8086:|DRIVER=i915|DRIVER=xe' <<< "$gpu_info"; then HAS_INTEL=true; fi
+    if grep -Eiq 'intel|8086:|DRIVER=i915|DRIVER=xe' <<< "$gpu_info"; then
+        HAS_INTEL=true
+        local intel_ids
+        intel_ids=$(lspci -n 2>/dev/null | grep -Eo '8086:[0-9a-fA-F]{4}' || cat /sys/class/drm/card*/device/uevent 2>/dev/null || true)
+        INTEL_VAAPI_PKG=$(intel_vaapi_driver_for_pci "$intel_ids")
+    fi
 }
 
 # Get the user's configured login shell directly from /etc/passwd (updates immediately after chsh)

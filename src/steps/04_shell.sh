@@ -139,6 +139,9 @@ _set_default_login_shell() {
 
 setup_terminal() {
     log "Configuring GPU-Accelerated Terminal Emulator..."
+    if [[ "${IS_VM:-false}" == "true" ]]; then
+        warn "Virtual machine detected: GPU-accelerated terminals (Ghostty, Kitty, Alacritty) require 3D/OpenGL acceleration; stock Ptyxis works reliably without 3D."
+    fi
 
     if confirm "Install a GPU-accelerated terminal emulator (Ghostty / Kitty / Alacritty)?" "Y"; then
         echo ""

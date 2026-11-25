@@ -29,7 +29,7 @@ setup_fonts() {
         fi
     fi
 
-    if confirm "Install extended Microsoft office fonts (Cambria, Aptos, Segoe UI)?" "Y"; then
+    if confirm "Install extended Microsoft office fonts (Cambria, Aptos, Segoe UI; unpinned third-party sources)?" "N"; then
         if ! $DRY_RUN; then
             local ms_fonts_dir="$HOME/.local/share/fonts/ms-fonts"
             mkdir -p "$ms_fonts_dir"
