@@ -16,8 +16,9 @@ permissions:
 
 jobs:
   lint:
-    name: ShellCheck Lint
+    name: ShellCheck & Static Hygiene
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,15 +26,36 @@ jobs:
       - name: Install ShellCheck
         run: command -v shellcheck >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y shellcheck)
 
-      - name: Run ShellCheck
-        run: make lint
+      - name: Check bash syntax & line/Unicode hygiene
+        run: |
+          for f in build.sh setup.sh src/*.sh src/steps/*.sh tests/*.sh; do
+            bash -n "$f"
+          done
+          python3 -c '
+          import pathlib, sys
+          bad = []
+          for p in [*pathlib.Path(".").glob("*.sh"), *pathlib.Path("src").rglob("*.sh"), *pathlib.Path("tests").glob("*.sh")]:
+              raw = p.read_bytes()
+              if b"\r\n" in raw:
+                  bad.append((str(p), "CRLF line endings"))
+              txt = raw.decode("utf-8")
+              if any(ch in txt for ch in "\u200b\u200c\u200d\ufeff\u202a\u202b\u202c\u202d\u202e"):
+                  bad.append((str(p), "hidden Unicode control char"))
+          if bad:
+              print(bad, file=sys.stderr)
+              sys.exit(1)
+          '
 
-      - name: Verify build assembly
-        run: ./build.sh --check
+      - name: Run ShellCheck & verify bundle
+        run: |
+          make lint
+          ./build.sh --check
+          bash -n dist/setup.sh
 
   test:
     name: Test Suite
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -44,6 +66,8 @@ jobs:
   fedora-validate:
     name: Fedora Container Validation (${{ matrix.fedora_image }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: ${{ matrix.fedora_image == 'fedora:rawhide' }}
     strategy:
       fail-fast: false
       matrix:
@@ -57,16 +81,27 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install test dependencies
-        run: dnf install -y ShellCheck make bash diffutils
+        run: dnf install -y --setopt=install_weak_deps=False ShellCheck make bash diffutils
 
-      - name: Run ShellCheck
-        run: make lint
-
-      - name: Verify build assembly
-        run: ./build.sh --check
+      - name: Run ShellCheck & build sync
+        run: |
+          make lint
+          ./build.sh --check
+          bash -n dist/setup.sh
 
       - name: Run test suite
         run: make test
 
-      - name: Validate dry run
-        run: ALLOW_ROOT=true bash setup.sh --dry-run --profile minimal
+      - name: Validate all profiles (Wayland & X11 dry-run)
+        run: |
+          for p in minimal workstation gaming creator full; do
+            ALLOW_ROOT=true XDG_SESSION_TYPE=wayland bash setup.sh --dry-run --force --profile "$p" >/dev/null
+          done
+          ALLOW_ROOT=true XDG_SESSION_TYPE=x11 bash setup.sh --dry-run --force --profile dev --dev-type systems >/dev/null
+
+      - name: Validate standalone bundled script without src/
+        run: |
+          tmp_dir="$(mktemp -d)"
+          trap 'rm -rf "$tmp_dir"' EXIT
+          cp dist/setup.sh "$tmp_dir/setup.sh"
+          ALLOW_ROOT=true bash "$tmp_dir/setup.sh" --dry-run --force --profile full >/dev/null
