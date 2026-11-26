@@ -26,11 +26,11 @@ Built from years of actual Fedora usage, covering the things I find myself setti
 
 ## What's New in v9.0.0
 
-- **Modular Architecture & Self-Bootstrapper**: Decomposed into 23 cohesive source modules under `src/` driven by a clean 43-line self-bootstrapping runner with zero duplicate git bloat.
-- **Interactive 4-Tier Debloat Engine (`setup_debloat`)**: Interactively suppresses unnecessary background daemons (`rygel`, `cups-browsed`, `ModemManager`), removes desktop clutter and heavy office suites, reclaims 200–400MB idle RAM (`gnome-software`/`PackageKit`), and prevents DNF weak dependency creep.
+- **Modular Architecture & Self-Bootstrapper**: Split into 23 source modules under `src/` driven by a lean self-bootstrapping `setup.sh` entrypoint.
+- **Interactive 4-Tier Debloat Engine (`setup_debloat`)**: Interactively suppresses unnecessary background daemons (`rygel`, `cups-browsed`, `ModemManager`), removes desktop clutter and heavy office suites, reclaims idle RAM (`gnome-software`/`PackageKit`), and optionally disables DNF weak dependencies.
 - **Encrypted DNS-over-TLS (DoT)**: System-wide encrypted DNS resolution via `systemd-resolved` drop-ins with SNI hostname verification across Cloudflare, Quad9, and Google.
-- **Fedora 45 Modernization**: Integrated GNOME Adwaita typography (`adwaita-sans-fonts`, `adwaita-mono-fonts`), variable Noto fonts, and COLRv1 color emoji.
-- **Mesa Vulkan Video & NVIDIA Power Daemons**: Added `mesa-vulkan-drivers-freeworld` swap for hardware Vulkan Video acceleration, and enabled `nvidia-suspend`/`hibernate`/`resume` units for rock-solid power management.
+- **Fedora Typography & Variable Fonts**: Integrated GNOME Adwaita typography (`adwaita-sans-fonts`, `adwaita-mono-fonts`), variable Noto fonts, and COLRv1 color emoji.
+- **Mesa Vulkan Video & NVIDIA Power Daemons**: Added `mesa-vulkan-drivers-freeworld` swap for hardware Vulkan Video acceleration, and enabled `nvidia-suspend`/`hibernate`/`resume` units for suspend/resume reliability.
 - **D3cold Hybrid GPU Sleep**: Full 4-variable environment profile enabling discrete NVIDIA GPUs to enter true low-power sleep on laptops.
 - **Native Fedora PostgreSQL**: Switched from brittle external PGDG yum repositories to official native Fedora packages.
 
@@ -85,7 +85,7 @@ When run interactively without options, `./setup.sh` displays a menu to select y
 | `workstation` | 12    | Minimal + fonts, codecs & dynamic PipeWire audio, GNOME tweaks, debloat, desktop apps, power, GPU drivers    |
 | `dev`         | 16    | Workstation + developer toolchains (`--dev-type`), Code Editor, Docker & Compose, KVM/QEMU, GPU drivers (last)|
 | `gaming`      | 13    | Workstation + Steam (H.264 unlock), MangoHud, GameMode, Heroic Games Launcher, GPU drivers (last)            |
-| `creator`     | 13    | Workstation + OBS Studio, v4l2loopback, wf-recorder, NVIDIA Broadcast, GPU drivers (last)                    |
+| `creator`     | 13    | Workstation + OBS Studio, v4l2loopback, GStreamer, NVIDIA Broadcast, GPU drivers (last)                      |
 | `full`        | 18    | Complete power-user suite: Workstation + Dev + Gaming + Creator + GPU drivers                                |
 
 ---
@@ -146,7 +146,7 @@ GCC, Clang, LLVM, ccache (10GB compressed cache in systems genre), Java OpenJDK,
 
 ### Gaming
 
-Steam (with H.264 unlock), MangoHud (auto-configured with 32px HUD scaling, alpha transparency, and rounded corners), Vesktop, and Heroic Games Launcher (official Flathub Flatpak for Epic/GOG/sideloaded games, pre-configured with `disableUMU` to eliminate container exit lag, shared wine prefixes, and NVIDIA Prime offload). Included on `gaming` and `full` profiles.
+Steam (with H.264 unlock), MangoHud (auto-configured with 24px font scaling, alpha transparency, and rounded corners), Vesktop, and Heroic Games Launcher (Flathub Flatpak for Epic/GOG/sideloaded games, with shared prefix directory creation and MangoHud config sync). Included on `gaming` and `full` profiles.
 
 ### Virtualization
 

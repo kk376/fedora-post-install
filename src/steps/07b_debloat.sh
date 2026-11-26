@@ -20,14 +20,18 @@ setup_debloat() {
     info "Note: Local CUPS printing continues to function normally."
     if confirm "Disable unnecessary background service daemons (rygel, cups-browsed)?" "Y"; then
         run_sudo systemctl --global disable rygel.service 2>/dev/null || true
-        systemctl --user disable --now rygel.service 2>/dev/null || true
+        if ! $DRY_RUN; then
+            systemctl --user disable --now rygel.service 2>/dev/null || true
+        else
+            dry "systemctl --user disable --now rygel.service"
+        fi
         run_sudo systemctl disable --now cups-browsed.service 2>/dev/null || true
         success "Disabled rygel and cups-browsed background daemons"
     fi
 
-    if ! ls /sys/class/wwan* &>/dev/null 2>&1; then
+    if ! compgen -G "/sys/class/wwan*" >/dev/null; then
         if systemctl is-active --quiet ModemManager.service 2>/dev/null; then
-            if confirm "No cellular WWAN modem detected. Disable ModemManager background daemon?" "Y"; then
+            if confirm "No built-in WWAN modem detected (decline if using USB LTE dongles). Disable ModemManager?" "N"; then
                 run_sudo systemctl disable --now ModemManager.service 2>/dev/null || true
                 success "Disabled ModemManager"
             fi
@@ -90,13 +94,18 @@ setup_debloat() {
     echo ""
     log "Tier 4: DNF Weak Dependency Prevention"
     info "Prevents DNF from auto-installing optional 'recommended' packages on future installs."
-    if confirm "Set install_weak_deps=False in /etc/dnf/dnf.conf?" "Y"; then
-        if grep -q "^install_weak_deps=" /etc/dnf/dnf.conf 2>/dev/null; then
-            run_sudo sed -i 's/^install_weak_deps=.*/install_weak_deps=False/' /etc/dnf/dnf.conf
+    if confirm "Set install_weak_deps=False in /etc/dnf/dnf.conf? (May omit optional driver/plugin extras later)" "N"; then
+        if ! $DRY_RUN; then
+            backup_file "/etc/dnf/dnf.conf"
+            if grep -q "^install_weak_deps=" /etc/dnf/dnf.conf 2>/dev/null; then
+                run_sudo sed -i 's/^install_weak_deps=.*/install_weak_deps=False/' /etc/dnf/dnf.conf
+            else
+                echo "install_weak_deps=False" | run_sudo tee -a /etc/dnf/dnf.conf > /dev/null
+            fi
+            success "Configured install_weak_deps=False in /etc/dnf/dnf.conf"
         else
-            echo "install_weak_deps=False" | run_sudo tee -a /etc/dnf/dnf.conf > /dev/null
+            dry "Set install_weak_deps=False in /etc/dnf/dnf.conf"
         fi
-        success "Configured install_weak_deps=False in /etc/dnf/dnf.conf"
     fi
 
     step_complete "Debloat optimizations configured"

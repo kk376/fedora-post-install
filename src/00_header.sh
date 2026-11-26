@@ -16,7 +16,8 @@ fi
 : "${DRY_RUN:=false}"
 : "${UNATTENDED:=false}"
 : "${BACKUP_DIR:=$HOME/.config/fedora-setup-backups/$(date +%Y%m%d_%H%M%S)}"
-: "${LOG_FILE:=/tmp/fedora-setup-$(date +%Y%m%d_%H%M%S).log}"
+: "${LOG_FILE:=$HOME/.local/state/fedora-setup/setup-$(date +%Y%m%d_%H%M%S).log}"
+: "${RUN_TMP_DIR:=}"
 : "${SCRIPT_VERSION:=9.0.0}"
 : "${PROFILE:=workstation}"
 : "${DEV_TYPE:=all}"
@@ -29,10 +30,15 @@ DEV_TYPE_SPECIFIED=false
 # System hardware globals (populated by detect_hardware)
 SYS_ARCH="$(uname -m)"
 IS_LAPTOP=false
+IS_VM=false
+IS_CONTAINER=false
 CHASSIS_TYPE="Desktop"
 HAS_NVIDIA=false
 HAS_AMD=false
 HAS_INTEL=false
+HAS_BLUETOOTH=false
+HAS_BTRFS=false
+INTEL_VAAPI_PKG="intel-media-driver"
 
 # ==============================================================================
 # Colors & Logging

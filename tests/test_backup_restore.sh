@@ -459,7 +459,7 @@ test_restore_system_file() {
 
     restore_backups
 
-    if [[ "$sudo_called_with" == *"cp $backup_dir/dnf.conf.backup /etc/dnf/dnf.conf"* ]]; then
+    if [[ "$sudo_called_with" == *"cp -p $backup_dir/dnf.conf.backup /etc/dnf/dnf.conf"* ]]; then
         pass "restore_backups used run_sudo when restoring system file /etc/dnf/dnf.conf"
     else
         fail "Test 8" "Expected run_sudo call with dnf.conf.backup, got: '$sudo_called_with'"
@@ -665,6 +665,49 @@ test_backup_dir_permissions() {
     fi
 }
 
+# ==============================================================================
+# Test 15: Repeated backup_file in same run preserves original & +x permission
+# ==============================================================================
+test_backup_idempotent_and_preserves_mode() {
+    info_test "Test 15: Repeated backup_file preserves original backup and +x mode on restore"
+    local sandbox="$TEST_TMP_DIR/test15"
+    mkdir -p "$sandbox/home/bin" "$sandbox/home/.config/fedora-setup"
+    local target="$sandbox/home/bin/script.sh"
+    echo "#!/bin/bash" > "$target"
+    echo "# original v1" >> "$target"
+    chmod 0755 "$target"
+
+    export HOME="$sandbox/home"
+    export DRY_RUN=false
+    export BACKUP_DIR="$HOME/.config/fedora-setup-backups/20260817_230000"
+    export STATE_FILE="$HOME/.config/fedora-setup/state.txt"
+
+    setup_extracted_functions
+    confirm() { return 0; }
+
+    backup_file "$target"
+    echo "# mutated v2" > "$target"
+    backup_file "$target"
+
+    local backup_copy="$BACKUP_DIR/${target#/}"
+    local ok=true
+    if ! grep -qF "# original v1" "$backup_copy"; then
+        fail "Test 15" "Second backup_file call overwrote the original backup"
+        ok=false
+    fi
+
+    chmod 0644 "$target"
+    restore_backups
+    if [[ ! -x "$target" ]] || ! grep -qF "# original v1" "$target"; then
+        fail "Test 15" "restore_backups failed to restore original content or executable permission"
+        ok=false
+    fi
+
+    if $ok; then
+        pass "backup_file preserves first snapshot in run and restore_backups preserves +x mode"
+    fi
+}
+
 # Run all test suites
 echo "========================================================"
 echo "Running Backup & Restore Subsystem Test Suite"
@@ -685,6 +728,7 @@ test_restore_backups_hierarchical_manifest
 test_restore_backups_traversal_blocked
 test_restore_backups_untrusted_etc_blocked
 test_backup_dir_permissions
+test_backup_idempotent_and_preserves_mode
 
 echo "========================================================"
 echo "Test Results: $TESTS_PASSED passed, $TESTS_FAILED failed"

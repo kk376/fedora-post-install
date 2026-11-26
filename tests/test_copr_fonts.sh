@@ -145,10 +145,10 @@ assert_contains "setup_fonts installs Segoe UI font family" "segoe-ui-linux" "$f
 # 5. FiraCode Nerd Font parameters
 assert_contains "setup_fonts targets ryanoasis/nerd-fonts repo" "ryanoasis/nerd-fonts" "$fonts_func_code"
 assert_contains "setup_fonts uses FiraCode regex pattern" 'FiraCode\\.zip' "$fonts_func_code"
-assert_contains "setup_fonts outputs to /tmp/FiraCode.zip" "/tmp/FiraCode.zip" "$fonts_func_code"
+assert_contains "setup_fonts stores FiraCode zip in RUN_TMP_DIR" 'RUN_TMP_DIR/FiraCode.zip' "$fonts_func_code"
 assert_contains "setup_fonts provides fallback URL" "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/FiraCode.zip" "$fonts_func_code"
 assert_contains "setup_fonts unpacks to ~/.local/share/fonts" "HOME/.local/share/fonts" "$fonts_func_code"
-assert_contains "setup_fonts cleans up temporary zip" "rm -f /tmp/FiraCode.zip" "$fonts_func_code"
+assert_contains "setup_fonts cleans up temporary zip" 'rm -f "$firacode_zip"' "$fonts_func_code"
 
 # 6. fc-cache execution
 assert_contains "setup_fonts executes fc-cache -fv" "fc-cache -fv" "$fonts_func_code"
@@ -192,7 +192,7 @@ EOF
 dry_run_out=$(test_fonts_dry_run "$fonts_func_code")
 assert_contains "Dry-run makes zero real filesystem or cache modifications" "REAL_EXEC_COUNT=0" "$dry_run_out"
 assert_contains "Dry-run logs DNF font install" "DRY: sudo dnf install -y --skip-unavailable" "$dry_run_out"
-assert_contains "Dry-run logs msttcore-fonts curl download" "DRY: curl -fsSL -o" "$dry_run_out"
+assert_contains "Dry-run logs msttcore-fonts curl download" "DRY: curl --proto =https --tlsv1.2 -fsSL -o" "$dry_run_out"
 assert_contains "Dry-run logs Cambria, Aptos, and Segoe UI download" "Download Cambria, Aptos, and Segoe UI" "$dry_run_out"
 assert_contains "Dry-run logs FiraCode Nerd Font download/extract" "DRY: Download and extract FiraCode Nerd Font and Symbols Nerd Font" "$dry_run_out"
 assert_contains "Dry-run logs fc-cache -fv" "DRY: fc-cache -fv" "$dry_run_out"
@@ -203,6 +203,9 @@ test_fonts_live_execution() {
     bash <<EOF
 set -u
 DRY_RUN=false
+RUN_TMP_DIR=""
+init_run_tmp_dir() { RUN_TMP_DIR="/tmp/fpi-mock-fonts"; }
+mktemp() { echo "/tmp/fpi-mock-fonts/cambria-extract.mock"; }
 
 log() { :; }
 info() { :; }
@@ -234,9 +237,9 @@ EOF
 
 live_exec_out=$(test_fonts_live_execution "$fonts_func_code")
 assert_contains "Live mode creates font directories" "MKDIR: -p $HOME/.local/share/fonts/FiraCode" "$live_exec_out"
-assert_contains "Live mode downloads FiraCode" "GH_DOWNLOAD: repo=ryanoasis/nerd-fonts pattern=FiraCode\\.zip output=/tmp/FiraCode.zip" "$live_exec_out"
-assert_contains "Live mode unzips font archive" "UNZIP: -oq /tmp/FiraCode.zip -d $HOME/.local/share/fonts/FiraCode/" "$live_exec_out"
-assert_contains "Live mode removes temporary zip" "RM: -f /tmp/FiraCode.zip" "$live_exec_out"
+assert_contains "Live mode downloads FiraCode" "GH_DOWNLOAD: repo=ryanoasis/nerd-fonts pattern=FiraCode\\.zip output=/tmp/fpi-mock-fonts/FiraCode.zip" "$live_exec_out"
+assert_contains "Live mode unzips font archive" "UNZIP: -oq /tmp/fpi-mock-fonts/FiraCode.zip -d $HOME/.local/share/fonts/FiraCode/" "$live_exec_out"
+assert_contains "Live mode removes temporary zip" "RM: -f /tmp/fpi-mock-fonts/FiraCode.zip" "$live_exec_out"
 assert_contains "Live mode downloads Symbols Nerd Font" "GH_DOWNLOAD: repo=ryanoasis/nerd-fonts pattern=NerdFontsSymbolsOnly\\.tar\\.xz" "$live_exec_out"
 assert_contains "Live mode signals Symbols Nerd Font success" "SUCCESS: Symbols Nerd Font installed" "$live_exec_out"
 assert_contains "Live mode executes fc-cache -fv" "FC-CACHE: -fv" "$live_exec_out"

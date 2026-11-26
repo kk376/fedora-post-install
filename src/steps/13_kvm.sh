@@ -4,8 +4,15 @@
 setup_kvm() {
     log "Setting up KVM/QEMU Virtualization..."
 
-    if ! grep -E 'vmx|svm' /proc/cpuinfo &>/dev/null && [[ "$SYS_ARCH" == "x86_64" ]]; then
-        warn "CPU virtualization extensions (VT-x/AMD-V) not detected in /proc/cpuinfo"
+    local kvm_supported=true
+    if [[ "$SYS_ARCH" == "x86_64" ]]; then
+        grep -Eq 'vmx|svm' /proc/cpuinfo &>/dev/null || kvm_supported=false
+    elif [[ ! -e /dev/kvm ]]; then
+        kvm_supported=false
+    fi
+
+    if ! $kvm_supported; then
+        warn "Hardware virtualization support (VT-x/AMD-V or /dev/kvm) not detected"
         if ! confirm "Continue installing KVM packages anyway?" "N"; then
             step_complete "KVM (skipped)"
             return 0

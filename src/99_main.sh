@@ -37,8 +37,12 @@ main() {
 
     detect_hardware
 
-    # Tee stdout/stderr to log file while keeping /dev/tty interactive for prompts
-    exec > >(tee -a "$LOG_FILE") 2>&1
+    # Tee stdout/stderr to private log file in live runs while keeping /dev/tty interactive for prompts
+    if ! $DRY_RUN; then
+        init_run_tmp_dir
+        mkdir -p "$(dirname "$LOG_FILE")"
+        exec > >(tee -a "$LOG_FILE") 2>&1
+    fi
 
     if $DRY_RUN; then
         echo -e "${MAGENTA}========================================${NC}"
@@ -50,7 +54,7 @@ main() {
     echo -e "${GREEN}   Fedora Post-Install Setup v${SCRIPT_VERSION}${NC}"
     echo -e "${GREEN}========================================${NC}"
     info "Architecture: $SYS_ARCH | Chassis: $CHASSIS_TYPE"
-    info "GPUs detected: NVIDIA=$HAS_NVIDIA, AMD=$HAS_AMD, Intel=$HAS_INTEL"
+    info "GPUs detected: NVIDIA=$HAS_NVIDIA, AMD=$HAS_AMD, Intel=$HAS_INTEL | Bluetooth=$HAS_BLUETOOTH | Btrfs=$HAS_BTRFS"
 
     if [[ "$SYS_ARCH" != "x86_64" && "$SYS_ARCH" != "aarch64" ]]; then
         warn "Untested CPU architecture: $SYS_ARCH"
@@ -116,7 +120,7 @@ main() {
     PROFILE_STEPS[creator]="$base_workstation setup_creator"
     PROFILE_STEPS[full]="" # Empty string runs all steps in master registry order
 
-    init_state
+    $DRY_RUN || init_state
 
     local filtered_steps=()
     for step in "${steps[@]}"; do
@@ -169,8 +173,7 @@ cleanup() {
     if [[ -n "${SUDO_PID:-}" ]]; then
         kill "$SUDO_PID" 2>/dev/null || true
     fi
-    rm -f /tmp/starship-install-*.sh /tmp/zed-install-*.sh /tmp/agy-install-*.sh 2>/dev/null || true
-    rm -rf /tmp/cambria-extract-* 2>/dev/null || true
+    cleanup_run_tmp
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

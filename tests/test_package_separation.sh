@@ -188,6 +188,7 @@ export ALLOW_ROOT="${ALLOW_ROOT:-true}"
         success() { :; }
         step_complete() { :; }
         backup_file() { :; }
+        init_run_tmp_dir() { RUN_TMP_DIR="$sandbox/run_tmp"; mkdir -p "$RUN_TMP_DIR"; }
         confirm() { return 0; }
         prompt_input() { echo "${2:-}"; }
         HAS_NVIDIA=false
@@ -201,7 +202,7 @@ export ALLOW_ROOT="${ALLOW_ROOT:-true}"
                 while [[ $# -gt 0 ]]; do
                     case "$1" in
                         -y|--skip-unavailable) shift ;;
-                        /tmp/vesktop.rpm) touch "$sandbox/.vesktop_installed"; shift ;;
+                        */vesktop.rpm) touch "$sandbox/.vesktop_installed"; shift ;;
                         steam-devices) touch "$sandbox/.steam_unlocked"; echo -n "$1 " >> "$sandbox/.dnf_pkgs"; shift ;;
                         *) echo -n "$1 " >> "$sandbox/.dnf_pkgs"; shift ;;
                     esac
@@ -528,6 +529,7 @@ export ALLOW_ROOT="${ALLOW_ROOT:-true}"
         prompt_input() { echo "${2:-}"; }
         github_download() { touch "$3"; return 0; }
         backup_file() { return 0; }
+        init_run_tmp_dir() { RUN_TMP_DIR="$sandbox/run_tmp"; mkdir -p "$RUN_TMP_DIR"; }
         HAS_NVIDIA=false
         HAS_AMD=false
         HAS_INTEL=false
@@ -624,6 +626,7 @@ export ALLOW_ROOT="${ALLOW_ROOT:-true}"
         success() { :; }
         step_complete() { :; }
         backup_file() { :; }
+        init_run_tmp_dir() { RUN_TMP_DIR="$sandbox/run_tmp"; mkdir -p "$RUN_TMP_DIR"; }
         confirm() { return 0; }
         run_sudo() { return 0; }
         run() { return 0; }
